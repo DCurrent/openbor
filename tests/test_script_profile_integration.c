@@ -42,12 +42,15 @@ static int fixture_sequence;
 static int fixture_shadow_calls;
 static Instruction **fixture_failure_ip;
 static ScriptVariant fixture_foreign_result;
+static int fixture_step_dispatch;
 static const char fixture_import_source[] =
     "void imported_work() { profile_work(7); }\n"
     "int profile_shadow(int value) { return value + 200; }\n";
 
 static HRESULT fixture_mapped(ScriptVariant **parameters,
     ScriptVariant **result, int count);
+static HRESULT fixture_evaluate_call(Interpreter *interpreter);
+static HRESULT fixture_evaluate_immediate(Interpreter *interpreter);
 
 /* Game-global archive selection is unnecessary for the in-memory fixture. */
 char packfile[MAX_FILENAME_LEN];
@@ -282,7 +285,7 @@ static HRESULT fixture_outer(ScriptVariant **parameters,
     ++fixture_outer_calls;
     fixture_time += 40;
     Interpreter_Reset(&fixture_child);
-    assert(SUCCEEDED(Interpreter_EvaluateImmediate(&fixture_child)));
+    assert(SUCCEEDED(fixture_evaluate_immediate(&fixture_child)));
     fixture_time += 60;
     ScriptVariant_ChangeType(*result, VT_INTEGER);
     (*result)->lVal = 1;
@@ -614,7 +617,7 @@ static HRESULT fixture_reenter(ScriptVariant **parameters,
     fixture_active_interpreter->pCurrentInstruction =
         fixture_active_interpreter->pClearEntry;
     fixture_active_interpreter->bCallCompleted = FALSE;
-    status = Interpreter_EvaluateCall(fixture_active_interpreter);
+    status = fixture_evaluate_call(fixture_active_interpreter);
     assert(count ? FAILED(status) : SUCCEEDED(status));
     assert(fixture_active_interpreter->pCurrentCall == saved.pCurrentCall);
     *fixture_active_interpreter = saved;
@@ -804,6 +807,112 @@ static unsigned fixture_native_mode(Interpreter *interpreter, int native)
  * Damon V. Caskey
  * 2026-11-12
  *
+ * Preserve the previous per-opcode function boundary as a test-side oracle.
+ * Nested script calls still enter production evaluation; a separate parent-
+ * revision build verifies those paths against the prior complete interpreter.
+ */
+static HRESULT fixture_evaluate_call(Interpreter *interpreter)
+{
+    HRESULT status = S_OK;
+    ep_script_scope scope = {0, 0, 0};
+
+    if(!fixture_step_dispatch)
+    {
+        return Interpreter_EvaluateCall(interpreter);
+    }
+    if(engine_profile_script_active)
+    {
+        scope = engine_profile_script_begin();
+    }
+    while(SUCCEEDED(status) && !interpreter->bCallCompleted)
+    {
+        status = Interpreter_EvalInstruction(interpreter);
+    }
+    if(scope.frame_id)
+    {
+        engine_profile_script_end(scope);
+    }
+    return status;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Reproduce the original immediate scan and main-entry behavior using public
+ * single-step dispatch. Do not assume initializers run only once or replace
+ * the scan with instruction-step traversal, which has different semantics.
+ */
+static HRESULT fixture_evaluate_immediate(Interpreter *interpreter)
+{
+    HRESULT status = S_OK;
+    ep_script_scope scope = {0, 0, 0};
+    int immediate = 0;
+    int index;
+
+    if(!fixture_step_dispatch)
+    {
+        return Interpreter_EvaluateImmediate(interpreter);
+    }
+    if(engine_profile_script_active)
+    {
+        scope = engine_profile_script_begin();
+    }
+    if(interpreter->bHasImmediateCode)
+    {
+        for(index = 0; index < interpreter->theInstructionList.size; ++index)
+        {
+            Instruction *instruction = interpreter->theInstructionList.solidlist[index];
+
+            if(instruction->OpCode == IMMEDIATE)
+            {
+                immediate = 1;
+            }
+            else if(instruction->OpCode == DEFERRED)
+            {
+                immediate = 0;
+            }
+            if(immediate)
+            {
+                interpreter->pCurrentInstruction = (Instruction **)
+                    &interpreter->theInstructionList.solidlist[index];
+                status = Interpreter_EvalInstruction(interpreter);
+            }
+            if(FAILED(status))
+            {
+                break;
+            }
+        }
+    }
+    if(!interpreter->bMainCompleted)
+    {
+        if(interpreter->pMainEntry)
+        {
+            interpreter->pCurrentInstruction = interpreter->pMainEntry;
+            status = fixture_evaluate_call(interpreter);
+        }
+        else
+        {
+            status = E_FAIL;
+        }
+        if(SUCCEEDED(status))
+        {
+            interpreter->bMainCompleted = TRUE;
+        }
+        interpreter->bCallCompleted = FALSE;
+    }
+    interpreter->bReset = FALSE;
+    if(scope.frame_id)
+    {
+        engine_profile_script_end(scope);
+    }
+    return status;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
  * Reset collection, preserving precompiled native IDs across configuration.
  */
 static void fixture_configure(int enabled)
@@ -871,22 +980,24 @@ typedef struct fixture_native_observation
  * Damon V. Caskey
  * 2026-11-12
  *
- * Compare independently compiled generic/native executions of identical source.
- * Repeated execution reuses operand and result slots, including string values.
+ * Compare generic/native calls and normal/single-step execution of identical
+ * source. Repeated execution reuses operand/result slots, including strings.
  */
 static void fixture_compare_native_source(const char *name, const char *source,
     int fails, const char *expected_trace)
 {
-    fixture_native_observation observations[2];
-    int native;
+    fixture_native_observation observations[4];
+    int mode;
 
     memset(observations, 0, sizeof(observations));
-    for(native = 0; native < 2; ++native)
+    for(mode = 0; mode < 4; ++mode)
     {
         Interpreter interpreter;
-        fixture_native_observation *observation = &observations[native];
+        fixture_native_observation *observation = &observations[mode];
         unsigned repetition;
+        int native = mode & 1;
 
+        fixture_step_dispatch = mode >> 1;
         fixture_compile(&interpreter, name, source);
         assert(fixture_native_mode(&interpreter, native) > 0);
         for(repetition = 0; repetition < 2; ++repetition)
@@ -905,7 +1016,7 @@ static void fixture_compare_native_source(const char *name, const char *source,
             fixture_active_interpreter = &interpreter;
             frame = fixture_begin_frame();
             Interpreter_Reset(&interpreter);
-            status = Interpreter_EvaluateImmediate(&interpreter);
+            status = fixture_evaluate_immediate(&interpreter);
             assert(fails ? FAILED(status) : SUCCEEDED(status));
             assert(!interpreter.pCurrentCall);
             assert(!fixture_shadow_calls);
@@ -913,20 +1024,26 @@ static void fixture_compare_native_source(const char *name, const char *source,
             {
                 assert(interpreter.pCurrentInstruction == fixture_failure_ip);
             }
+            if(strstr(name, "immediate_revisit"))
+            {
+                /* Initializers repeat even when main has already completed.
+                 * A second immediate evaluation deliberately has no reset. */
+                assert(SUCCEEDED(fixture_evaluate_immediate(&interpreter)));
+            }
             if(strstr(name, "entries"))
             {
                 Interpreter_Reset(&interpreter);
                 interpreter.pCurrentInstruction = interpreter.pInitEntry;
-                assert(SUCCEEDED(Interpreter_EvaluateCall(&interpreter)));
+                assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
                 Interpreter_Reset(&interpreter);
                 interpreter.pCurrentInstruction = interpreter.pClearEntry;
-                assert(SUCCEEDED(Interpreter_EvaluateCall(&interpreter)));
+                assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
                 assert(!interpreter.pCurrentCall);
             }
             if(!strstr(fixture_native_trace, expected_trace))
             {
                 fprintf(stderr, "Native fixture %s mode=%d missing trace %s:\n%s",
-                    name, native, expected_trace, fixture_native_trace);
+                    name, mode, expected_trace, fixture_native_trace);
                 assert(!"missing expected native fixture trace");
             }
             if(strstr(name, "exit") || fails)
@@ -983,7 +1100,7 @@ static void fixture_compare_native_source(const char *name, const char *source,
             fixture_begin_frame();
             reads = fixture_clock_reads;
             Interpreter_Reset(&interpreter);
-            status = Interpreter_EvaluateImmediate(&interpreter);
+            status = fixture_evaluate_immediate(&interpreter);
             assert(fails ? FAILED(status) : SUCCEEDED(status));
             assert(fixture_clock_reads == reads);
             assert(!interpreter.pCurrentCall);
@@ -995,15 +1112,19 @@ static void fixture_compare_native_source(const char *name, const char *source,
         fixture_active_interpreter = NULL;
         Interpreter_Clear(&interpreter);
     }
-    assert(strcmp(observations[0].trace, observations[1].trace) == 0);
-    assert(memcmp(observations[0].functions, observations[1].functions,
-        sizeof(observations[0].functions)) == 0);
-    assert(memcmp(&observations[0].phase, &observations[1].phase,
-        sizeof(observations[0].phase)) == 0);
-    assert(observations[0].clock_reads == observations[1].clock_reads);
-    assert(observations[0].main_completed == observations[1].main_completed);
-    assert(observations[0].call_completed == observations[1].call_completed);
-    assert(observations[0].reset == observations[1].reset);
+    fixture_step_dispatch = 0;
+    for(mode = 1; mode < 4; ++mode)
+    {
+        assert(strcmp(observations[0].trace, observations[mode].trace) == 0);
+        assert(memcmp(observations[0].functions, observations[mode].functions,
+            sizeof(observations[0].functions)) == 0);
+        assert(memcmp(&observations[0].phase, &observations[mode].phase,
+            sizeof(observations[0].phase)) == 0);
+        assert(observations[0].clock_reads == observations[mode].clock_reads);
+        assert(observations[0].main_completed == observations[mode].main_completed);
+        assert(observations[0].call_completed == observations[mode].call_completed);
+        assert(observations[0].reset == observations[mode].reset);
+    }
 }
 
 /*
@@ -1107,8 +1228,180 @@ static void fixture_native_regressions(void)
         "void ondestroy() { profile_sink(1000); }\n"
         "void main() { profile_redirect(1, \"argument\", 1.25); profile_sink(999); }\n",
         1, "redirect(1:1;32:argument;2:1.25;)");
+    fixture_compare_native_source("dispatch_control_flow.c",
+        "int inner(int value) { if(value < 0) { return -value; } return value + 1; }\n"
+        "int outer(int value) { return inner(value) + 2; }\n"
+        "void main() { int i; int j; int total = 0; int bits; "
+        "for(i = 0; i < 5; i++) { if(i == 1) { continue; } "
+        "for(j = 0; j < 3; j++) { if(j == 2) { break; } total += outer(i + j); } } "
+        "while(total < 48) { total++; } "
+        "do { total++; } while(total < 50); "
+        "switch(total) { case 49: total = 90; break; "
+        "case 50: total += 4; default: total += 1; } "
+        "profile_sink(total, inner(-4)); "
+        "bits = (3 << 2) | 1; if(bits == 13 && total >= 55) { profile_sink(601); } }\n",
+        0, "sink(1:55;1:4;)");
+    fixture_compare_native_source("dispatch_immediate_exit.c",
+        "int marker = profile_exit();\n"
+        "int second = profile_zero();\n"
+        "void main() { profile_sink(999); }\n",
+        0, "exit()\nzero()");
+    fixture_compare_native_source("dispatch_immediate_failure.c",
+        "int marker = profile_fail();\n"
+        "void main() { profile_sink(81); }\n",
+        0, "sink(1:81;)");
+    fixture_compare_native_source("dispatch_immediate_revisit.c",
+        "int marker = profile_next();\n"
+        "void main() { profile_sink(marker); }\n",
+        0, "next()\nsink(1:1;)\nnext()");
     assert(engine_profile_native_register("profile_zero") !=
         engine_profile_native_register("profile_zero_alias"));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Verify instruction-boundary behavior directly, independent of parser output.
+ * Hand-built targets intentionally use different source/destination steps so
+ * a loop rewrite cannot silently advance from the wrong instruction record.
+ */
+static void fixture_dispatch_steps(void)
+{
+    int mode;
+
+    fixture_configure(0);
+    for(mode = 0; mode < 2; ++mode)
+    {
+        Interpreter interpreter;
+        Instruction instructions[10];
+        Instruction *tape[10];
+        Instruction *empty_instruction = NULL;
+        ScriptVariant value;
+        ScriptVariant target;
+        ScriptVariant condition;
+        ScriptVariant result;
+        unsigned index;
+
+        memset(&interpreter, 0, sizeof(interpreter));
+        memset(instructions, 0, sizeof(instructions));
+        ScriptVariant_Init(&value);
+        ScriptVariant_Init(&target);
+        ScriptVariant_Init(&condition);
+        ScriptVariant_Init(&result);
+        ScriptVariant_ChangeType(&value, VT_INTEGER);
+        value.lVal = 42;
+        for(index = 0; index < sizeof(tape) / sizeof(*tape); ++index)
+        {
+            tape[index] = &instructions[index];
+            instructions[index].OpCode = NOOP;
+            instructions[index].step = 1;
+        }
+        fixture_step_dispatch = mode;
+
+        /* Public single-step execution must still run one opcode when the
+         * run-to-completion flag is already set. It must not execute a second. */
+        instructions[0].OpCode = SAVE;
+        instructions[0].theRef = &target;
+        instructions[0].theRef2 = &value;
+        instructions[0].step = 2;
+        instructions[2].OpCode = ERR;
+        interpreter.pCurrentInstruction = tape;
+        interpreter.bCallCompleted = TRUE;
+        assert(SUCCEEDED(Interpreter_EvalInstruction(&interpreter)));
+        assert(target.vt == VT_INTEGER && target.lVal == 42);
+        assert(interpreter.pCurrentInstruction == tape + 2);
+        assert(interpreter.bCallCompleted);
+
+        /* In contrast, an already-completed run does not fetch any opcode.
+         * NULL is intentional here: evaluating even one instruction would fail. */
+        interpreter.pCurrentInstruction = NULL;
+        assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
+        assert(!interpreter.pCurrentInstruction);
+
+        /* A null instruction slot is a no-op in the single-step contract.
+         * Do not run a completion loop on it, because it cannot advance. */
+        interpreter.pCurrentInstruction = &empty_instruction;
+        interpreter.bCallCompleted = FALSE;
+        assert(SUCCEEDED(Interpreter_EvalInstruction(&interpreter)));
+        assert(interpreter.pCurrentInstruction == &empty_instruction);
+
+        /* Skipped instructions include deliberate errors. RET must advance
+         * with its own step after setting the completion flag. */
+        instructions[0].step = 3;
+        instructions[1].OpCode = ERR;
+        instructions[3].OpCode = RET;
+        instructions[3].step = 2;
+        interpreter.pCurrentInstruction = tape;
+        assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
+        assert(interpreter.bCallCompleted);
+        assert(interpreter.pCurrentInstruction == tape + 5);
+
+        /* Both sides of a conditional branch must apply the executed
+         * branch's step, not the target instruction's differently sized step. */
+        instructions[0].OpCode = Branch_TRUE;
+        instructions[0].theRef = &condition;
+        instructions[0].step = 2;
+        instructions[0].ptheJumpTarget = tape + 3;
+        instructions[2].OpCode = SAVE;
+        instructions[2].theRef = &target;
+        instructions[2].theRef2 = &value;
+        instructions[3].step = 1;
+        instructions[5].OpCode = RET;
+        for(index = 0; index < 2; ++index)
+        {
+            ScriptVariant_ChangeType(&target, VT_INTEGER);
+            target.lVal = 0;
+            ScriptVariant_ChangeType(&condition, VT_INTEGER);
+            condition.lVal = index;
+            interpreter.pCurrentInstruction = tape;
+            interpreter.bCallCompleted = FALSE;
+            assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
+            assert(target.lVal == (index ? 0 : 42));
+            assert(interpreter.pCurrentInstruction == tape + (index ? 6 : 4));
+        }
+
+        instructions[0].OpCode = JUMP;
+        interpreter.pCurrentInstruction = tape;
+        interpreter.bCallCompleted = FALSE;
+        assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
+        assert(interpreter.pCurrentInstruction == tape + 6);
+
+        /* JUMPR retains the source instruction as the return-value location.
+         * RET copies it to the enclosing call result before advancing. */
+        instructions[0].OpCode = JUMPR;
+        instructions[0].theRef = &value;
+        instructions[9].theVal = &result;
+        instructions[5].step = 2;
+        interpreter.pCurrentCall = tape + 9;
+        interpreter.pCurrentInstruction = tape;
+        interpreter.bCallCompleted = FALSE;
+        assert(SUCCEEDED(fixture_evaluate_call(&interpreter)));
+        assert(result.vt == VT_INTEGER && result.lVal == 42);
+        assert(!interpreter.pReturnEntry);
+        assert(interpreter.pCurrentCall == tape + 9);
+        assert(interpreter.pCurrentInstruction == tape + 7);
+
+        /* Failed and unknown instructions still advance exactly once before
+         * the running loop observes E_FAIL and exits. */
+        instructions[0].OpCode = ERR;
+        instructions[0].step = 3;
+        interpreter.pCurrentInstruction = tape;
+        interpreter.bCallCompleted = FALSE;
+        assert(FAILED(fixture_evaluate_call(&interpreter)));
+        assert(interpreter.pCurrentInstruction == tape + 3);
+        assert(!interpreter.bCallCompleted);
+        instructions[0].OpCode = OPCODE_END + 1;
+        interpreter.pCurrentInstruction = tape;
+        assert(FAILED(fixture_evaluate_call(&interpreter)));
+        assert(interpreter.pCurrentInstruction == tape + 3);
+
+        ScriptVariant_Clear(&result);
+        ScriptVariant_Clear(&condition);
+        ScriptVariant_Clear(&target);
+        ScriptVariant_Clear(&value);
+    }
+    fixture_step_dispatch = 0;
 }
 
 /*
@@ -1459,6 +1752,7 @@ int main(int argc, char **argv)
     assert(fixture_clock_reads == reads);
 
     fixture_native_regressions();
+    fixture_dispatch_steps();
 
     Interpreter_Clear(&entry_script);
     Interpreter_Clear(&cancel_script);
@@ -1470,6 +1764,6 @@ int main(int argc, char **argv)
     List_Clear(&fixture_functions);
     StrCache_Clear();
     engine_profile_shutdown();
-    puts("Script/native profiler and native-call opcode integration tests passed.");
+    puts("Script/native profiler, native-call and opcode-dispatch integration tests passed.");
     return 0;
 }

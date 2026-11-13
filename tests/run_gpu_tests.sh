@@ -111,6 +111,25 @@ test_script_sources=(engine/source/scriptlib/Interpreter.c
     -o "$test_build_dir/test_script_profile_integration"
 run_test "$test_build_dir/test_script_profile_integration"
 
+# Verify that both normal execution modes contain their opcode bodies, not
+# per-opcode C calls. Test debug and release optimization levels explicitly;
+# correctness alone cannot catch a compiler declining ordinary inline hints.
+test_dispatch_objects=()
+for test_dispatch_level in 0 3; do
+    test_dispatch_object="$test_build_dir/Interpreter_dispatch_O$test_dispatch_level.o"
+    test_dispatch_mode=(-UNDEBUG)
+    if [[ $test_dispatch_level == 3 ]]; then
+        test_dispatch_mode=(-DNDEBUG)
+    fi
+    "$test_compiler" "${test_flags[@]}" "-O$test_dispatch_level" \
+        "${test_dispatch_mode[@]}" -UPP_TEST -DPP_TEST=0 \
+        -Iengine/source/scriptlib -Iengine/source/preprocessorlib \
+        -include tests/script_profile_fixture_globals.h \
+        -c engine/source/scriptlib/Interpreter.c -o "$test_dispatch_object"
+    test_dispatch_objects+=("$test_dispatch_object")
+done
+bash tests/test_interpreter_dispatch_codegen.sh "${test_dispatch_objects[@]}"
+
 # Keep unrelated renderer fixtures independent of the diagnostic branch's
 # default-on setting. The native profiling suite explicitly enables its own
 # collection windows and exercises GPU query opt-out separately.

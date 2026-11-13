@@ -18,17 +18,23 @@
 * Damon V. Caskey
 * 2026-11-12
 *
-* Keep native-call bookkeeping and exception buffers out of the per-opcode
-* evaluator's stack frame. Inlining these helpers can increase the prologue
-* paid by arithmetic and branch instructions that never enter either helper.
+* Put the shared opcode body directly inside each execution loop, eliminating
+* its call/return boundary without duplicating the source switch. Keep native
+* bookkeeping and exception buffers out of those loops: inlining those larger
+* helpers would increase the frame cost paid by unrelated instructions.
 */
 #if defined(_MSC_VER)
 #define INTERPRETER_NOINLINE __declspec(noinline)
+#define INTERPRETER_FORCE_INLINE __forceinline
 #elif defined(__GNUC__) || defined(__clang__)
 #define INTERPRETER_NOINLINE __attribute__((noinline))
+#define INTERPRETER_FORCE_INLINE inline __attribute__((always_inline))
 #else
 #define INTERPRETER_NOINLINE
+#define INTERPRETER_FORCE_INLINE inline
 #endif
+
+static INTERPRETER_FORCE_INLINE HRESULT Interpreter_ExecuteInstruction(Interpreter *pinterpreter);
 
 void Interpreter_Init(Interpreter *pinterpreter, LPCSTR name, List *pflist)
 {
@@ -491,6 +497,9 @@ endcall:
 
 
 /******************************************************************************
+* Damon V. Caskey
+* 2026-11-12 - Inline the shared opcode body without changing immediate scanning.
+*
 *  EvaluateImmediate -- This method scans the instruction list and evaluates
 *  any immediate code that may be present.  In the instruction list, immediate
 *  code is preceeded by an IMMEDIATE instruction, and followed by a DEFERRED
@@ -540,7 +549,7 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter)
             if (bImmediate)
             {
                 pinterpreter->pCurrentInstruction = ((Instruction **)pinterpreter->theInstructionList.solidlist) + index;
-                hr = Interpreter_EvalInstruction(pinterpreter);
+                hr = Interpreter_ExecuteInstruction(pinterpreter);
             }
             //If we failed, then we need to break out of this loop
             if (FAILED(hr))
@@ -583,6 +592,9 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter)
 }
 
 /******************************************************************************
+* Damon V. Caskey
+* 2026-11-12 - Execute the opcode body inside the run-to-completion loop.
+*
 *  EvaluateCall -- This method evaluates the byte-code of a single call into
 *  this interpreter.
 *  Parameters: none
@@ -609,7 +621,7 @@ HRESULT Interpreter_EvaluateCall(Interpreter *pinterpreter)
     //flag is set to true.
     while( ( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )) //pinterpreter->bReset &&
     {
-        hr = Interpreter_EvalInstruction(pinterpreter);
+        hr = Interpreter_ExecuteInstruction(pinterpreter);
     }
     if(script_scope.frame_id)
     {
@@ -1425,13 +1437,20 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
 }
 
 
-/******************************************************************************
-*  EvalInstruction -- This method evaluates a single byte-code instruction.
-*  Parameters: none
-*  Returns: S_OK
-*           E_FAIL
-******************************************************************************/
-HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Execute one opcode as part of the caller's machine-code loop. The supported
+* compilers force this body inline in both execution modes, so ordinary script
+* execution no longer enters and leaves a C function for every instruction.
+*
+* Keep interpreter state authoritative across native/script callbacks. In
+* particular, advance from the possibly changed current instruction using the
+* executed instruction's step, even after errors or completion. Immediate
+* scanning and run-to-completion keep their distinct existing outer control.
+*/
+static INTERPRETER_FORCE_INLINE HRESULT Interpreter_ExecuteInstruction(Interpreter *pinterpreter)
 {
     HRESULT hr = S_OK;
     //Retrieve the current instruction from the list
@@ -1729,6 +1748,19 @@ HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
 
     //return the result of this token evaluation
     return hr;
+}
+
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Preserve the public single-instruction entry point for diagnostic callers.
+* It shares exactly the same opcode body as the inlined execution loops, but
+* normal immediate and function evaluation never call this wrapper per opcode.
+*/
+HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
+{
+    return Interpreter_ExecuteInstruction(pinterpreter);
 }
 
 /******************************************************************************

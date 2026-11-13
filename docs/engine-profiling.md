@@ -10,9 +10,11 @@ Date: 2026-11-12
 renderer. `experiment/gpu-palette-cache` retains those measurements while
 adding bounded resident palettes, context-local graphics-state caching, and
 cache-specific accounting. It also provides sampled interpreter/native-call
-profiling within the existing frame phases and compiled native-call descriptors
-that reduce repeated interpreter dispatch setup. Successive changes remain on
-that same branch; use the individual commits below for controlled comparisons.
+profiling within the existing frame phases, compiled native-call descriptors,
+and an opcode body embedded in the interpreter execution loops. These changes
+reduce repeated native-dispatch setup and per-opcode call boundaries.
+Successive changes remain on that same branch; use the individual commits below
+for controlled comparisons.
 Profiling is enabled by default on both diagnostic branches. Games, including
 DC3D, require no script, asset, lighting, or rendering changes.
 
@@ -586,17 +588,18 @@ boundaries. Their local storage must not be folded into the shared opcode
 dispatcher and make unrelated arithmetic instructions pay a larger stack-frame
 cost. This preserves the existing execution loop rather than replacing it.
 
-| Storage | 64-bit pointer build | 32-bit pointer build |
-| --- | ---: | ---: |
-| Descriptor payload per compiled native-call site | 40 bytes | 24 bytes |
-| Existing instruction structure | 80 bytes, unchanged | 48 bytes, unchanged |
+| Storage | Supported 64-bit build |
+| --- | ---: |
+| Descriptor payload per compiled native-call site | 40 bytes |
+| Existing instruction structure | 80 bytes, unchanged |
 
-These sizes assume the current layout and 32-bit `int`/`unsigned` fields. The
-descriptor reuses a pointer field unused by ordinary CALL instructions, so it
-does not enlarge every instruction. Allocator bookkeeping and padding beyond
-the descriptor payload are additional and platform-dependent. Allocation occurs
-once per compiled call site, not per invocation; normal instruction teardown
-releases it. Profiler opt-out does not disable the optimized call instruction.
+These sizes assume the current layout and 32-bit `int`/`unsigned` fields within
+the supported 64-bit process. The descriptor reuses a pointer field unused by
+ordinary CALL instructions, so it does not enlarge every instruction.
+Allocator bookkeeping and padding beyond the descriptor payload are additional
+and platform-dependent. Allocation occurs once per compiled call site, not per
+invocation; normal instruction teardown releases it. Profiler opt-out does not
+disable the optimized call instruction.
 
 1. Build the baseline and changed revision with matching release options. Keep
    the game, camera route or stationary view, driver, display, and pacing
@@ -614,6 +617,44 @@ releases it. Profiler opt-out does not disable the optimized call instruction.
 The headless differential benchmark described below is a controlled synthetic
 check, not a substitute for this matched game-level comparison or an estimate
 of DC3D's expected FPS gain.
+
+### Comparing in-loop opcode execution
+
+Use dedicated-native-call commit `66e79ce` as the baseline for this separate
+interpreter change. Both revisions already use `CALL_NATIVE`; this comparison
+therefore isolates removal of the C function boundary around each executed
+opcode rather than combining it with native-call descriptor changes.
+
+The opcode switch has one shared source implementation. GCC/Clang use the
+`always_inline` annotation; the MSVC spelling is `__forceinline`. Run-to-completion execution
+and immediate-code scanning embed that implementation directly. The public
+`Interpreter_EvalInstruction()` entry point still executes exactly one opcode
+for existing callers and regression checks. Other compilers retain a normal
+inline hint rather than requiring a compiler-specific extension.
+
+Instruction ordering, current-instruction updates, return/completion behavior,
+native and imported callbacks, errors, and profiling boundaries are unchanged.
+Immediate scanning retains its separate traversal rules rather than being
+converted into the run-to-completion loop. There is no cached program counter,
+opcode fusion, variant specialization, new script API, or module change.
+The native-call helper and error formatter remain out of line so their larger
+local storage does not inflate the ordinary opcode path.
+
+This trades additional compiled machine code at the execution entry points for
+fewer call/return boundaries. It adds no heap allocations, per-script storage,
+or instruction fields. Exact text size and code layout depend on the compiler
+and optimization settings; reduced call count alone is not a guarantee of a
+particular whole-game speedup.
+
+Build both revisions with the same release options and repeat the matched
+scene procedure above with detailed profiling disabled, then with all profiling
+disabled. Compare `draw_script_ms`, complete frame intervals, rendering work
+counts, and visual/gameplay behavior. Keep arithmetic-heavy and mixed-script
+controls alongside native-heavy tests: the shared opcode execution path affects
+all three, not only engine-function calls. Synthetic host benchmarks must use
+the same checked workload in separate baseline and changed executables, with
+native-call specialization already active in both. Preserve assertions in the
+benchmark harness while using normal optimized production objects.
 
 ## Regression tests
 
@@ -642,8 +683,19 @@ deterministic work; script execution and argument/return handling remain real.
 Dedicated-call regressions compare equivalent compiled scripts through generic
 CALL and CALL_NATIVE dispatch. They exercise native argument values and side
 effects, result types, script/import resolution, nested callbacks, error
-recovery, and profiling ownership. Both routes must retain equivalent
-observable behavior; timing is not a correctness assertion.
+recovery, and profiling ownership. The same fixtures also compare the normal
+execution loops against repeated public single-step evaluation for both native
+dispatch forms. These routes must retain equivalent observable behavior;
+timing is not a correctness assertion.
+
+Instruction-boundary regressions also cover nonunit steps, taken/untaken
+branches, return targets, errors, null instruction slots, and already-completed
+runs. The public single-step API must still execute one instruction even when
+the run-to-completion flag is set. Separate object-code checks verify both
+`-O0` and `-O3`: the two execution modes must not call the shared opcode body or
+public one-step wrapper, while the public entry point and separate native-call
+helper remain present. These code-generation checks catch a compiler silently
+declining to inline even when functional tests still pass.
 
 `test_native_call_descriptor` separately checks lowering eligibility, zero and
 80 arguments, unchanged instruction layout, and allocator-wrapped failure of
