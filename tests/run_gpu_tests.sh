@@ -80,6 +80,18 @@ for test_script_interval in -1 0 1001 invalid; do
 done
 run_test "$test_build_dir/test_script_profile"
 
+# Validate descriptor eligibility, optional allocation failure and ownership
+# against the real instruction implementation. Allocator wrapping stays in
+# this isolated fixture; no test hooks enter the production call path.
+"$test_compiler" "${test_flags[@]}" -UNDEBUG \
+    -Iengine/source/scriptlib -Iengine/source/preprocessorlib \
+    tests/test_native_call_descriptor.c \
+    engine/source/scriptlib/Instruction.c engine/source/scriptlib/List.c \
+    engine/source/scriptlib/ScriptVariant.c engine/source/scriptlib/ScriptVariantInteger.c \
+    "${test_link_flags[@]}" -Wl,--wrap=malloc -Wl,--wrap=free \
+    -o "$test_build_dir/test_native_call_descriptor"
+run_test "$test_build_dir/test_native_call_descriptor"
+
 # Execute actual compiled scripts with native callbacks, imports and errors.
 # PP_TEST=0 retains test-safe logging declarations while selecting the normal
 # packed-file preprocessor path supplied by the fixture's in-memory file API.
@@ -91,7 +103,7 @@ test_script_sources=(engine/source/scriptlib/Interpreter.c
     engine/source/scriptlib/ScriptVariant.c engine/source/scriptlib/ScriptVariantInteger.c
     engine/source/scriptlib/ImportCache.c engine/source/preprocessorlib/pp_parser.c
     engine/source/preprocessorlib/pp_lexer.c engine/source/preprocessorlib/pp_expr.c)
-"$test_compiler" "${test_flags[@]}" -UPP_TEST -DPP_TEST=0 \
+"$test_compiler" "${test_flags[@]}" -UNDEBUG -UPP_TEST -DPP_TEST=0 \
     -Iengine/source/scriptlib -Iengine/source/preprocessorlib \
     -include tests/script_profile_fixture_globals.h \
     tests/test_script_profile_integration.c "${test_script_sources[@]}" \

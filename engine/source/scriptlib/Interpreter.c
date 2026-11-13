@@ -14,6 +14,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Keep native-call bookkeeping and exception buffers out of the per-opcode
+* evaluator's stack frame. Inlining these helpers can increase the prologue
+* paid by arithmetic and branch instructions that never enter either helper.
+*/
+#if defined(_MSC_VER)
+#define INTERPRETER_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define INTERPRETER_NOINLINE __attribute__((noinline))
+#else
+#define INTERPRETER_NOINLINE
+#endif
+
 void Interpreter_Init(Interpreter *pinterpreter, LPCSTR name, List *pflist)
 {
     memset(pinterpreter, 0, sizeof(Interpreter));
@@ -190,9 +206,124 @@ HRESULT Interpreter_GetValueByRef(Interpreter *pinterpreter, LPCSTR variable, Sc
     return hr;
 }
 
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Preserve native-call exception diagnostics without keeping the conversion
+* buffer and formatting locals in every successful call's execution frame.
+* Resolve aliases and format parameters exactly as the generic CALL path did.
+*/
+static INTERPRETER_NOINLINE void Interpreter_ReportNativeFailure(Interpreter *pinterpreter,
+    SCRIPTFUNCTION function, ScriptVariant **parameters, int parameter_count)
+{
+    ScriptVariant *parameter;
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
+    int index;
+
+    List_Includes(pinterpreter->ptheFunctionList, function);
+    printf("Script function '%s' returned an exception. See any preceding error messages above for details.\n", List_GetName(pinterpreter->ptheFunctionList));
+
+    if(parameter_count > 0)
+    {
+        printf(" parameters: ");
+        for(index = 0; index < parameter_count; ++index)
+        {
+            parameter = parameters[index];
+
+            /* Keep malformed-parameter diagnostics from dereferencing NULL. */
+            if(!parameter)
+            {
+                printf("<invalid>, ");
+                continue;
+            }
+            if(FAILED(ScriptVariant_GetStringView(parameter, conversion_buffer,
+                sizeof(conversion_buffer), &string_view)))
+            {
+                printf("<invalid or oversized>, ");
+                continue;
+            }
+            if(parameter->vt == VT_STR)
+            {
+                printf("\"%.*s\", ", (int)string_view.length, string_view.string);
+            }
+            else
+            {
+                printf("%.*s, ", (int)string_view.length, string_view.string);
+            }
+        }
+        printf("\n");
+    }
+}
+
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Execute a compile-validated native-call descriptor without re-reading the
+* generic count variant or argument-list metadata. Native functions still
+* validate their live values, and all calls retain existing callback, error,
+* current-instruction, completion, and profiler behavior. This is not a leaf
+* shortcut: any native function may reenter the interpreter or request exit.
+*/
+static INTERPRETER_NOINLINE HRESULT Interpreter_CallNative(Interpreter *pinterpreter,
+    Instruction *instruction)
+{
+    const NativeCall *native_call = instruction->nativeCall;
+    Instruction **previous_call = pinterpreter->pCurrentCall;
+    Instruction **current_call = pinterpreter->pCurrentInstruction;
+    ScriptVariant *result = native_call->result;
+    ep_script_scope native_scope = {0, 0, 0};
+    HRESULT hr;
+
+    /*
+    * Keep the ordinary CALL context visible to callbacks. Reset its cursor
+    * through the cached address, preserving even callbacks that inspect or
+    * consume arguments through the current call's legacy List interface.
+    */
+    *native_call->parameter_index = 0;
+    pinterpreter->pCurrentCall = current_call;
+
+    if(engine_profile_script_active)
+    {
+        native_scope = engine_profile_native_begin(native_call->profile_native_id);
+    }
+
+    /*
+    * A native may replace this local pointer with NULL or another result.
+    * Never pass the descriptor's result field by address: the compiled result
+    * slot must survive void-returning calls and later reuse unchanged.
+    */
+    hr = native_call->function(native_call->parameters, &result,
+        native_call->parameter_count);
+
+    if(native_scope.frame_id)
+    {
+        engine_profile_script_end(native_scope);
+    }
+
+    if(FAILED(hr))
+    {
+        Interpreter_ReportNativeFailure(pinterpreter, native_call->function,
+            native_call->parameters, native_call->parameter_count);
+    }
+    else
+    {
+        /* The evaluator applies this instruction's existing step afterward. */
+        pinterpreter->pCurrentInstruction = current_call;
+    }
+
+    /* Restore the enclosing context on failure as well as success. */
+    pinterpreter->pCurrentCall = previous_call;
+    pinterpreter->bCallCompleted = !pinterpreter->bReset;
+    return hr;
+}
+
 /******************************************************************************
 * Caskey, Damon V.
 * 2026-07-29 - Reworked original implementation
+* 2026-11-12 - Share cold native diagnostics with the dedicated native path.
 *
 * Executes the CALL instruction selected by the interpreter's current
 * instruction pointer.
@@ -214,11 +345,7 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
     Instruction **pCurrentCall;
     Instruction *currentCall;
     ScriptVariant **parameters;
-    ScriptVariant *parameter;
     ScriptVariant *pretvar;
-    ScriptVariantStringView string_view;
-    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
-    int i;
 
     if(!pinterpreter) {
         return E_FAIL;
@@ -321,60 +448,8 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
         }
 
         if(FAILED(hr)) {
-            
-            /*
-            * Resolve the native function's registered name
-            * for diagnostic output.
-            */
-            List_Includes(pinterpreter->ptheFunctionList, currentCall->functionRef);
-
-            printf("Script function '%s' returned an exception. See any preceding error messages above for details.\n", List_GetName(pinterpreter->ptheFunctionList));
-
-            if(paramCount > 0) {
-                printf(" parameters: ");
-
-                for(i = 0; i < paramCount; i++) {
-                    parameter = parameters[i];
-
-                    /*
-                    * Parameter references are validated
-                    * during compilation, though this guard
-                    * prevents diagnostic handling from
-                    * dereferencing corrupted metadata.
-                    */
-                    if(!parameter) {
-                        printf("<invalid>, ");
-                        continue;
-                    }
-
-                    if(FAILED(ScriptVariant_GetStringView(
-                        parameter,
-                        conversion_buffer,
-                        sizeof(conversion_buffer),
-                        &string_view
-                    ))) {
-                        printf("<invalid or oversized>, ");
-                        continue;
-                    }
-
-                    if(parameter->vt == VT_STR) {
-                        printf(
-                            "\"%.*s\", ",
-                            (int)string_view.length,
-                            string_view.string
-                        );
-                    
-                    } else {
-                        printf(
-                            "%.*s, ",
-                            (int)string_view.length,
-                            string_view.string
-                        );
-                    }
-                }
-
-                printf("\n");
-            }
+            Interpreter_ReportNativeFailure(pinterpreter,
+                currentCall->functionRef, parameters, paramCount);
         }
 
     } else {
@@ -1326,6 +1401,26 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
         }
     }
 
+    /*
+    * Damon V. Caskey
+    * 2026-11-12
+    * Lower native calls only after compilation and pointer/step finalization
+    * have succeeded. Earlier error cleanup treats theRef2 as a non-owning
+    * operand, so it must never encounter an owning native descriptor. Failed
+    * optional allocations simply leave valid generic CALL instructions.
+    */
+    if(SUCCEEDED(hr))
+    {
+        for(i = 0; i < size; ++i)
+        {
+            pInstruction = pinterpreter->theInstructionList.solidlist[i];
+            if(pInstruction->OpCode == CALL)
+            {
+                Instruction_CompileNativeCall(pInstruction);
+            }
+        }
+    }
+
     return hr;
 }
 
@@ -1518,6 +1613,10 @@ HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
             hr = Interpreter_Call(pinterpreter);
             //Reset the m_bCallCompleted flag back to false
             //pinterpreter->bCallCompleted = FALSE;
+            break;
+
+        case CALL_NATIVE:
+            hr = Interpreter_CallNative(pinterpreter, pInstruction);
             break;
 
             // return

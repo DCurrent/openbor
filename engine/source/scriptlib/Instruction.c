@@ -69,8 +69,25 @@ void Instruction_Init(Instruction *pins)
     pins->theToken->theType = END_OF_TOKENS;
 }
 
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Release instruction-owned storage, including an optional native descriptor.
+* Operand references and descriptor references borrow storage; only the
+* instruction's own result, argument-list container, and source data are freed.
+*/
 void Instruction_Clear(Instruction *pins)
 {
+    /*
+    * CALL_NATIVE owns its descriptor, but not the argument/result storage
+    * referenced by it. Release only the descriptor before ordinary cleanup.
+    */
+    if(pins->OpCode == CALL_NATIVE)
+    {
+        free(pins->nativeCall);
+        pins->nativeCall = NULL;
+    }
     if(pins->theVal)
     {
         ScriptVariant_Clear(pins->theVal);
@@ -90,6 +107,77 @@ void Instruction_Clear(Instruction *pins)
         free(pins->theToken);
     }
     memset(pins, 0, sizeof(Instruction));
+}
+
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Lower a fully compiled native CALL to CALL_NATIVE. Validate immutable call
+* structure once, after argument mapping and instruction finalization, then
+* publish a descriptor containing direct execution references. Script/import
+* targets and incomplete calls retain the ordinary path. Failure to allocate
+* this optional optimization also leaves the original CALL intact.
+*/
+bool Instruction_CompileNativeCall(Instruction *pins)
+{
+    NativeCall *native_call;
+    ScriptVariant **parameters;
+    int parameter_count;
+    int index;
+
+    /*
+    * Native resolution must already have won over local/imported functions.
+    * The unused second-operand slot must still be available for ownership.
+    */
+    if(!pins || pins->OpCode != CALL || !pins->functionRef
+        || pins->jumpTargetType || pins->ptheJumpTarget || pins->theRef2
+        || !pins->theVal || !pins->theRef || pins->theRef->vt != VT_INTEGER
+        || pins->theRef->lVal < 0 || !pins->theRefList)
+    {
+        return false;
+    }
+
+    parameter_count = (int)pins->theRef->lVal;
+    parameters = (ScriptVariant **)pins->theRefList->solidlist;
+    if(List_GetSize(pins->theRefList) != parameter_count
+        || (parameter_count > 0 && !parameters))
+    {
+        return false;
+    }
+    for(index = 0; index < parameter_count; ++index)
+    {
+        if(!parameters[index])
+        {
+            return false;
+        }
+    }
+
+    /*
+    * Bypass the fatal safealloc wrapper only for this optional descriptor.
+    * Ordinary malloc failure preserves an executable generic CALL instead
+    * of making the memory-for-speed optimization a new loading requirement.
+    */
+    native_call = (malloc)(sizeof(*native_call));
+    if(!native_call)
+    {
+        return false;
+    }
+
+    native_call->parameters = parameters;
+    native_call->result = pins->theVal;
+    native_call->function = pins->functionRef;
+    native_call->parameter_index = &pins->theRefList->index;
+    native_call->parameter_count = parameter_count;
+    native_call->profile_native_id = pins->profile_native_id;
+
+    /*
+    * Publish the owning opcode last. Instruction_Clear() must never observe
+    * CALL_NATIVE with an uninitialized descriptor or borrowed operand value.
+    */
+    pins->nativeCall = native_call;
+    pins->OpCode = CALL_NATIVE;
+    return true;
 }
 
 void Instruction_NewData(Instruction *pins)
@@ -562,6 +650,14 @@ HRESULT Instruction_ConvertConstant(Instruction *pins) {
 }
 
 
+/*
+* Damon V. Caskey
+* 2026-11-12
+*
+* Describe an instruction for diagnostic pseudo-code output. Keep compiled
+* native calls distinguishable from generic calls without dereferencing their
+* execution descriptor or requiring compile-time tokens to remain available.
+*/
 void Instruction_ToString(Instruction *pins, LPSTR strRep)
 {
     strRep[0] = 0;
@@ -594,6 +690,9 @@ void Instruction_ToString(Instruction *pins, LPSTR strRep)
         break;
     case CALL:
         strcpy( strRep, "CALL " );
+        break;
+    case CALL_NATIVE:
+        strcpy( strRep, "CALL_NATIVE " );
         break;
     case POS:
         strcpy( strRep, "POS " );

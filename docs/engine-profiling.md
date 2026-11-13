@@ -10,8 +10,9 @@ Date: 2026-11-12
 renderer. `experiment/gpu-palette-cache` retains those measurements while
 adding bounded resident palettes, context-local graphics-state caching, and
 cache-specific accounting. It also provides sampled interpreter/native-call
-profiling within the existing frame phases. Successive changes remain on that same branch;
-use the individual commits below for controlled comparisons.
+profiling within the existing frame phases and compiled native-call descriptors
+that reduce repeated interpreter dispatch setup. Successive changes remain on
+that same branch; use the individual commits below for controlled comparisons.
 Profiling is enabled by default on both diagnostic branches. Games, including
 DC3D, require no script, asset, lighting, or rendering changes.
 
@@ -556,6 +557,64 @@ and collect repeated full windows after warmup.
 These counters establish avoided cached setter calls. Only matched real-device
 timings establish whether that reduction improves the workload's frame rate.
 
+### Comparing compiled native-call dispatch
+
+Use script-profiling commit `67555aa` as the baseline for the dedicated
+`CALL_NATIVE` instruction. This change affects interpreter dispatch only. Native
+function bodies, array access and bounds checks, variant arithmetic, argument
+evaluation order, rendering, and game scripts are unchanged. It is not a
+specialized `get()` implementation or a general bytecode-fusion pass.
+
+After normal target resolution and compilation, eligible native calls retain a
+descriptor containing the resolved function, contiguous argument references,
+argument count, result slot, argument-list cursor, and profiling ID. Execution
+uses those already-validated references instead of repeating the generic
+script/import/native selection and parameter-list metadata checks. Argument
+values are still evaluated normally on every execution; the descriptor caches
+the call's structure, not the results of earlier calls.
+
+Script-local and imported targets retain the ordinary call path and their
+existing resolution priority. Native calls retain current-call context,
+argument-cursor reset, return/completion handling, native-triggered callbacks,
+and error reporting. Detailed native timing still surrounds the same native
+function invocation. If optional descriptor allocation fails, the call remains
+on its ordinary validated path rather than making an otherwise valid script
+fail to compile.
+
+The dedicated native helper and diagnostic formatter use deliberate no-inline
+boundaries. Their local storage must not be folded into the shared opcode
+dispatcher and make unrelated arithmetic instructions pay a larger stack-frame
+cost. This preserves the existing execution loop rather than replacing it.
+
+| Storage | 64-bit pointer build | 32-bit pointer build |
+| --- | ---: | ---: |
+| Descriptor payload per compiled native-call site | 40 bytes | 24 bytes |
+| Existing instruction structure | 80 bytes, unchanged | 48 bytes, unchanged |
+
+These sizes assume the current layout and 32-bit `int`/`unsigned` fields. The
+descriptor reuses a pointer field unused by ordinary CALL instructions, so it
+does not enlarge every instruction. Allocator bookkeeping and padding beyond
+the descriptor payload are additional and platform-dependent. Allocation occurs
+once per compiled call site, not per invocation; normal instruction teardown
+releases it. Profiler opt-out does not disable the optimized call instruction.
+
+1. Build the baseline and changed revision with matching release options. Keep
+   the game, camera route or stationary view, driver, display, and pacing
+   settings identical, and record the exact commit from each executable.
+2. Set `OPENBOR_PROFILE_SCRIPT=0` in both runs, retaining the existing frame and
+   renderer profiling. Per-call detailed timing can materially perturb this
+   workload, so sampled slow-frame time is not a clean dispatch benchmark.
+3. Compare `draw_script_ms` and complete frame intervals across repeated matched
+   runs. Check rendering work counts and visual/gameplay behavior as before.
+   Then repeat with `OPENBOR_PROFILE=0` to check total diagnostic overhead.
+4. Use a separate detail-enabled run only to verify native-call counts and
+   attribution. The same functions should still execute; this optimization
+   reduces dispatch bookkeeping rather than removing native invocations.
+
+The headless differential benchmark described below is a controlled synthetic
+check, not a substitute for this matched game-level comparison or an estimate
+of DC3D's expected FPS gain.
+
 ## Regression tests
 
 Run `bash tests/run_gpu_tests.sh`. The context-independent suite checks disabled
@@ -580,12 +639,35 @@ imports, immediate code, main/init/clear functions, helpers, native aliases,
 callbacks, and native error paths. Its native game-service stubs provide
 deterministic work; script execution and argument/return handling remain real.
 
+Dedicated-call regressions compare equivalent compiled scripts through generic
+CALL and CALL_NATIVE dispatch. They exercise native argument values and side
+effects, result types, script/import resolution, nested callbacks, error
+recovery, and profiling ownership. Both routes must retain equivalent
+observable behavior; timing is not a correctness assertion.
+
+`test_native_call_descriptor` separately checks lowering eligibility, zero and
+80 arguments, unchanged instruction layout, and allocator-wrapped failure of
+the optional allocation. Ownership checks cover one-time descriptor release
+and borrowed string arguments without transferring their lifetime to the
+descriptor.
+
 The generated `test_script_profile_integration` test executable also accepts
 `--benchmark` for an optional native-heavy interpreter-loop comparison of
 detail disabled, interval 16, and interval 1. It rotates three trials per mode,
 uses a monotonic host clock, discards log I/O, and reports observations without
 timing-based pass/fail assertions. This measures that synthetic host workload,
 not the production SDL timer's exact overhead or DC3D/GPU performance.
+
+Its separate `--native-benchmark` option compares generic and dedicated native
+dispatch on the same compiled native-heavy workload with profiling disabled.
+It rotates execution order across repeated trials and verifies call totals
+while reporting elapsed time per native invocation. That metric includes the
+surrounding interpreted loop and fixture function body; it is not isolated
+dispatch latency. For release-like measurements, compile production objects
+with `-O3 -DNDEBUG` but compile the test harness with assertions enabled before
+linking them together. The harness rejects `NDEBUG` because it would remove
+assert-wrapped execution and validation, invalidating the benchmark. No
+synthetic timing threshold is used as a test pass/fail criterion.
 
 With SDL2 development files and an available desktop OpenGL context, the runner
 also verifies real native counters and byte totals, independent timestamp
