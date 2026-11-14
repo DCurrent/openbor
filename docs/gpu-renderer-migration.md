@@ -59,8 +59,43 @@ The report also runs when a video mode recreates the graphics context. These
 records are independent of profiling and remain visible with
 `OPENBOR_PROFILE=0`; no per-frame logging is added.
 
-The graphics section identifies the requested presenter, scene dimensions and
-bit depth, CPU output-filter selection, and the actual presenter selected.
+The graphics section uses headings, tab-indented rows and explicit units. The
+first video initialization labels its menu settings **Starting Values**. Later
+initializations use **Values at Video Reinitialization**, including when a menu
+change recreates the video mode. These are snapshots, and menu options can
+change them during play. Shutdown does not print a zero-resolution settings
+snapshot.
+
+For example, the starting settings from a windowed RGB32 game might read:
+
+```text
+[GPU] Starting Values
+    Menu options can change these values during play.
+    Video backend requested:    OpenGL
+    FPS limit:                  200 FPS
+    Display mode:               Windowed
+    Display scale:              3.00x
+    Software filter selected:   Disabled
+    CPU output filter:          Inactive
+    Scene resolution:           480 x 272
+    Scene color format:         RGB32 (4 bytes per pixel)
+```
+
+FPS settings use their menu meanings: Disabled, VSync, 200 FPS or 500 FPS.
+Fullscreen scaling is identified as automatic, with the stored window scale
+shown separately in the same row. Filter selection and filter activity have
+separate rows because a selected filter can be inactive at the current scale.
+The **Active Presentation** section reports the backend and VSync state that
+were actually selected, plus display refresh rate and output color depth.
+It follows the requested settings and capability checks, keeping them distinct.
+Unavailable display refresh information is labeled `Unavailable`, rather than
+presented as a zero-Hz display.
+
+New native rendering features should extend this checklist with their required
+capabilities, initialization result, enabled execution path and any CPU
+fallback consequence. Successful activation should be explicit alongside
+warnings for missing capabilities.
+
 The native OpenGL capability check reports:
 
 - Driver vendor, renderer name, OpenGL version and GLSL version.
@@ -87,7 +122,10 @@ with the cause, the work that moves to the CPU, and the statement
 produces these records during initialization:
 
 ```text
-[GPU] WARNING: Insufficient fragment uniform components for native affine transforms: 64 available, 256 required. Affine draws will use CPU software rendering.
+[GPU] WARNING: Insufficient fragment uniform components for native affine transforms.
+    Available:                         64
+    Required:                          256
+    Affine draws will use CPU software rendering.
 [GPU] RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.
 [GPU] WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.
 ```
@@ -330,8 +368,9 @@ conservative array padding. Contexts with less capacity retain the earlier
 native renderer and use software for affine draws. If an older compiler rejects
 the optional affine shader, initialization retries the earlier material shader.
 The ordinary startup capability report warns about the reason and the CPU
-performance consequence before any affine draw. Optional profiling records
-also retain `fragment_uniform_components` and `native_affine`. Repeated affine draws
+performance consequence before any affine draw. Its labeled limit and result
+rows report the fragment-uniform capacity and native affine availability.
+Repeated affine draws
 validate every instance first and retain their original blending order.
 
 ## Validation

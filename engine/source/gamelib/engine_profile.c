@@ -199,15 +199,27 @@ static unsigned ep_environment_unsigned(const char *name, unsigned fallback,
  * 2026-11-12
  * Describe the separate, bounded script-detail sampling policy. No native
  * call timing is extrapolated to frames that were not selected in advance.
+ * 2026-11-13 - Present configuration as labeled rows instead of encoded fields.
  */
 static void ep_script_log_config(void)
 {
-    engine_profile_log("kind=script_config enabled=%d interval=%u "
-        "sampling=whole_frame timing=exclusive_cpu_us functions=%u stack=%u "
-        "slow_frames=%u top_functions=%u overhead_subtracted=0",
-        profile.script_enabled, profile.script_interval,
-        (unsigned)EP_SCRIPT_MAX_FUNCTIONS, (unsigned)EP_SCRIPT_STACK_LIMIT,
-        (unsigned)EP_SCRIPT_SLOW_FRAMES, (unsigned)EP_SCRIPT_TOP_FUNCTIONS);
+    engine_profile_log("Script Profiling\n"
+        "\t%-26s\t%s\n"
+        "\t%-26s\tOne whole frame in every %u eligible frames\n"
+        "\t%-26s\tExclusive CPU time (microseconds)\n"
+        "\t%-26s\t%u\n"
+        "\t%-26s\t%u\n"
+        "\t%-26s\t%u per window\n"
+        "\t%-26s\t%u per phase\n"
+        "\t%-26s\tIncluded in measured time; no estimate subtracted\n",
+        "Detailed timing:", profile.script_enabled ? "Enabled" : "Disabled",
+        "Sampling interval:", profile.script_interval,
+        "Timing method:",
+        "Function registry slots:", (unsigned)EP_SCRIPT_MAX_FUNCTIONS,
+        "Execution stack limit:", (unsigned)EP_SCRIPT_STACK_LIMIT,
+        "Slow sampled frames kept:", (unsigned)EP_SCRIPT_SLOW_FRAMES,
+        "Top functions reported:", (unsigned)EP_SCRIPT_TOP_FUNCTIONS,
+        "Instrumentation overhead:");
 }
 
 /*
@@ -246,6 +258,7 @@ void engine_profile_set_hooks(uint64_t (*clock_us)(void), void (*log_line)(const
  * 2026-11-12
  * Start a fresh collector with bounded storage and no allocation in frames.
  * Production normally reaches this once through environment initialization.
+ * 2026-11-13 - Label the startup measurement settings with their units.
  */
 void engine_profile_configure(int enabled, unsigned frames, unsigned warmup)
 {
@@ -270,10 +283,18 @@ void engine_profile_configure(int enabled, unsigned frames, unsigned warmup)
     profile.script_enabled = !script_setting || strcmp(script_setting, "0") != 0;
     profile.script_interval = ep_environment_unsigned("OPENBOR_PROFILE_SCRIPT_INTERVAL",
         EP_DEFAULT_SCRIPT_INTERVAL, 1, EP_SCRIPT_MAX_INTERVAL);
-    engine_profile_log("kind=config enabled=%d frames=%u warmup=%u gap_ms=%u "
-        "clock=monotonic_us gpu_time=elapsed_command_span",
-        profile.enabled, profile.window, profile.warmup,
-        (unsigned)(EP_MAX_GAP_US / 1000));
+    engine_profile_log("Measurement Settings\n"
+        "\t%-26s\t%s\n"
+        "\t%-26s\t%u frames\n"
+        "\t%-26s\t%u eligible update entries\n"
+        "\t%-26s\t%u ms\n"
+        "\t%-26s\tMonotonic (microseconds)\n"
+        "\t%-26s\tElapsed command spans; may include GPU idle time\n",
+        "Profiling:", profile.enabled ? "Enabled" : "Disabled",
+        "Reporting window:", profile.window,
+        "Warmup:", profile.warmup,
+        "Discontinuity threshold:", (unsigned)(EP_MAX_GAP_US / 1000),
+        "CPU clock:", "GPU timing meaning:");
     ep_script_log_config();
 }
 

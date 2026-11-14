@@ -15,6 +15,7 @@
 
 s_savedata savedata;
 GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2];
+char *GfxBlitterNames[(BLITTER_MAX * 2) + 1] = { "16-Bit Simple 2x", "16-Bit Bilinear" };
 extern SDL_Window *window;
 extern int nativeWidth, nativeHeight;
 extern void video_gl_setup_screen(void);

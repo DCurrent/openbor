@@ -50,6 +50,7 @@ int brightness = 0;
 void initSDL()
 {
 	SDL_DisplayMode video_info;
+	char refresh_rate[32];
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
 
 	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
@@ -71,7 +72,21 @@ void initSDL()
 	SDL_GetCurrentDisplayMode(0, &video_info);
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
-	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+	if(video_info.refresh_rate > 0)
+	{
+		snprintf(refresh_rate, sizeof(refresh_rate), "%d Hz", video_info.refresh_rate);
+	}
+	else
+	{
+		snprintf(refresh_rate, sizeof(refresh_rate), "Unavailable");
+	}
+	gpu_log("Display\n"
+	        "\t%-26s\t%d x %d\n"
+	        "\t%-26s\t%d-bit\n"
+	        "\t%-26s\t%s\n",
+	        "Desktop resolution:", nativeWidth, nativeHeight,
+	        "Desktop color depth:", SDL_BITSPERPIXEL(video_info.format),
+	        "Refresh rate:", refresh_rate);
 }
 
 void video_set_window_title(const char* title)
@@ -207,8 +222,78 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ * Describe the menu settings selected for this initialization. The first
+ * snapshot records Starting Values; later snapshots describe reinitialization
+ * without implying that settings remained fixed throughout the session.
+ */
+static void video_log_values(const s_videomodes *mode)
+{
+	static int starting_values_reported;
+	char fps_limit[48], scale[80];
+	const char *filter = "Disabled";
+	const char *format = "Unknown";
+	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
+
+	/* Decode stored options using the same meanings shown in the video menu.
+	 * Fullscreen sizing is automatic even when a window scale is retained. */
+	switch(savedata.fpslimit)
+	{
+	case 0: snprintf(fps_limit, sizeof(fps_limit), "Disabled"); break;
+	case 1: snprintf(fps_limit, sizeof(fps_limit), "VSync (display refresh)"); break;
+	case 2: snprintf(fps_limit, sizeof(fps_limit), "200 FPS"); break;
+	case 3: snprintf(fps_limit, sizeof(fps_limit), "500 FPS"); break;
+	default: snprintf(fps_limit, sizeof(fps_limit), "Unknown (setting %d)", savedata.fpslimit); break;
+	}
+	if(savedata.fullscreen)
+	{
+		snprintf(scale, sizeof(scale), "Automatic (stored window scale: %.2fx)", (double)savedata.hwscale);
+	}
+	else
+	{
+		snprintf(scale, sizeof(scale), "%.2fx", (double)savedata.hwscale);
+	}
+	if(savedata.swfilter)
+	{
+		filter = savedata.swfilter > 0 && savedata.swfilter < BLITTER_MAX * 2 &&
+		         GfxBlitterNames[savedata.swfilter] ? GfxBlitterNames[savedata.swfilter] : "Unknown";
+	}
+	switch(mode->pixel)
+	{
+	case 1: format = "Indexed 8-bit"; break;
+	case 2: format = "RGB16"; break;
+	case 3: format = "RGB24"; break;
+	case 4: format = "RGB32"; break;
+	}
+
+	/* Keep authored scene dimensions separate from the converted/filtered
+	 * presentation image reported after the selected backend is ready. */
+	gpu_log("%s\n"
+	        "\tMenu options can change these values during play.\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%d x %d\n"
+	        "\t%-26s\t%s (%d bytes per pixel)\n",
+	        starting_values_reported ? "Values at Video Reinitialization" : "Starting Values",
+	        "Video backend requested:", savedata.usegl ? "OpenGL" : "SDL",
+	        "FPS limit:", fps_limit,
+	        "Display mode:", savedata.fullscreen ? "Fullscreen" : "Windowed",
+	        "Display scale:", scale,
+	        "Software filter selected:", filter,
+	        "CPU output filter:", filter_active ? "Active" : "Inactive",
+	        "Scene resolution:", mode->hRes, mode->vRes,
+	        "Scene color format:", format, mode->pixel);
+	starting_values_reported = 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
- * 2026-11-13 - Report mode settings and CPU drawing consequences without profiling.
+ * 2026-11-13 - Report readable starting/reinitialized settings without profiling.
  * Select presentation for a normal game screen. Preserve the original mode
  * for restoration, prepare any CPU conversion/filter surfaces, and choose
  * OpenGL or the SDL streaming-texture path using the existing user settings.
@@ -216,43 +301,40 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 int video_set_mode(s_videomodes videomodes)
 {
 	int requested_gl = savedata.usegl;
-	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
 	int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
+
+	/* Publish the previous measurement window before starting a new graphics
+	 * section. Zero-sized shutdown modes have no new starting settings. */
+	engine_profile_reset("video_mode");
 
 	/* Report the authored scene format before conversion or filtering changes
 	 * the presentation image. These diagnostics run only at mode initialization. */
 	if(report_mode)
 	{
 		gpu_log("========== GRAPHICS INITIALIZATION ==========");
-		gpu_log("Requested presentation=%s; scene=%dx%d, %d-bit; CPU output filter=%s (filter=%d).",
-		        requested_gl ? "OpenGL" : "SDL", videomodes.hRes, videomodes.vRes,
-		        videomodes.pixel * 8, filter_active ? "active" : "inactive", savedata.swfilter);
+		video_log_values(&videomodes);
 		if(videomodes.pixel != 4)
 		{
-			gpu_log("WARNING: The %d-bit main scene uses CPU drawing. Native scene targets require RGB32; converting the finished image for presentation does not accelerate scene drawing. Significant slowdown is possible.", videomodes.pixel * 8);
+			gpu_log("WARNING: The %d-bit main scene uses CPU drawing.\n"
+			        "\tNative scene targets require RGB32.\n"
+			        "\tConverting the finished image for presentation does not accelerate scene drawing.\n"
+			        "\tSignificant slowdown is possible.", videomodes.pixel * 8);
 		}
 		if(!requested_gl)
 		{
-			gpu_log("WARNING: SDL presentation is selected in settings. Scene drawing will use the CPU. Significant slowdown is possible. Native OpenGL capabilities are not tested in this mode.");
+			gpu_log("WARNING: SDL presentation is selected in settings.\n"
+			        "\tScene drawing will use the CPU. Significant slowdown is possible.\n"
+			        "\tNative OpenGL capabilities are not tested in this mode.");
 		}
 #ifndef OPENGL
 		else
 		{
-			gpu_log("WARNING: This build has no native OpenGL backend. Requested OpenGL presentation will use the SDL path with CPU scene drawing. Significant slowdown is possible.");
+			gpu_log("WARNING: This build has no native OpenGL backend.\n"
+			        "\tRequested OpenGL presentation will use the SDL path with CPU scene drawing.\n"
+			        "\tSignificant slowdown is possible.");
 		}
 #endif
 	}
-
-	/* Configuration changes can replace the renderer or its synchronization
-	 * policy. Finish the old measurement window before recording the new mode. */
-	engine_profile_reset("video_mode");
-	engine_profile_log("kind=video_config requested_backend=%s fpslimit=%d "
-	                   "fullscreen=%d scale=%.2f software_filter=%d filter_active=%d "
-	                   "source_width=%d source_height=%d source_bytes=%d",
-	                   savedata.usegl ? "OpenGL" : "SDL", savedata.fpslimit,
-	                   savedata.fullscreen, (double)savedata.hwscale, savedata.swfilter,
-	                   !!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)),
-	                   videomodes.hRes, videomodes.vRes, videomodes.pixel);
 
 	/* Store game dimensions before preprocessing can expand the output image. */
 	stored_videomodes = videomodes;
@@ -321,17 +403,37 @@ int video_set_mode(s_videomodes videomodes)
 	{
 		SDL_RendererInfo information;
 		int information_valid = SDL_GetRendererInfo(renderer, &information) == 0;
-		gpu_log("SDL presentation %s: driver=%s; presentation acceleration=%s; scene drawing=CPU.",
-		        texture ? "ready" : "unavailable",
-		        information_valid && information.name ? information.name : "unknown",
-		        information_valid ? ((information.flags & SDL_RENDERER_ACCELERATED) ? "yes" : "no") : "unknown");
-		gpu_log("SDL presentation acceleration only displays completed images; it does not enable native scene drawing.");
-		engine_profile_log("kind=video_backend backend=SDL native_active=%d driver=%s "
-		                   "requested_vsync=%d actual_vsync=%d refresh_hz=%d output_bytes=%d",
-		                   gpu_is_active(), information_valid && information.name ? information.name : "unknown",
-		                   savedata.fpslimit == 1,
-		                   information_valid ? !!(information.flags & SDL_RENDERER_PRESENTVSYNC) : -1,
-		                   video_current_refresh_rate(), videomodes.pixel);
+		int refresh_rate = video_current_refresh_rate();
+		char refresh_label[32];
+		if(refresh_rate > 0)
+		{
+			snprintf(refresh_label, sizeof(refresh_label), "%d Hz", refresh_rate);
+		}
+		else
+		{
+			snprintf(refresh_label, sizeof(refresh_label), "Unavailable");
+		}
+		gpu_log("Active Presentation\n"
+		        "\t%-26s\tSDL\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\tInactive (CPU scene drawing)\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\t%s\n"
+		        "\t%-26s\t%d-bit (%d bytes per pixel)\n"
+		        "\tSDL acceleration displays completed images; scene drawing stays on the CPU.\n",
+		        "Backend:", "Status:", texture ? "Ready" : "Unavailable",
+		        "Driver:", information_valid && information.name ? information.name : "Unknown",
+		        "Presentation acceleration:", information_valid ?
+		            ((information.flags & SDL_RENDERER_ACCELERATED) ? "Yes" : "No") : "Unknown",
+		        "Native drawing backend:",
+		        "VSync requested:", savedata.fpslimit == 1 ? "Enabled" : "Disabled",
+		        "VSync selected:", information_valid ?
+		            ((information.flags & SDL_RENDERER_PRESENTVSYNC) ? "Enabled" : "Disabled") : "Unknown",
+		        "Display refresh rate:", refresh_label,
+		        "Output color depth:", videomodes.pixel * 8, videomodes.pixel);
 	}
 
 	if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");

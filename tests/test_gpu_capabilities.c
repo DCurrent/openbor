@@ -288,9 +288,9 @@ static void capability_run(SDL_Window *window, capability_case mode)
     if(mode == CAPABILITY_HEALTHY)
     {
         capability_expect(log, "GLSL");
-        capability_expect(log, "maximum texture size");
-        capability_expect(log, "fragment texture units");
-        capability_expect(log, "fragment uniform components");
+        capability_expect(log, "Maximum texture size:");
+        capability_expect(log, "Fragment texture units:");
+        capability_expect(log, "Fragment uniform components:");
         assert(capability_affine_fragments == 1 && capability_legacy_fragments == 0);
     }
     if(mode == CAPABILITY_LOW_UNIFORMS)

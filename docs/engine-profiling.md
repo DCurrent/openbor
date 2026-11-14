@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-12
+Date: 2026-11-13
 
 ## Purpose and scope
 
@@ -67,14 +67,26 @@ normal engine startup recreates its log.
 | `OPENBOR_PROFILE_GPU` | Enabled when supported | Exact value `0` disables GPU timestamps while leaving CPU profiling and native rendering enabled. |
 | `OPENBOR_GPU` | Native renderer enabled when supported | Existing exact value `0` selects software scene drawing while retaining the selected OpenGL presenter. This is independent of timestamp sampling. |
 
-Renderer configuration is logged when the video mode is selected. Check
-`kind=video_config`, `kind=video_backend`, `kind=renderer`, and `kind=gpu_timer`
-before interpreting timing. They identify frame-limit selection, output-filter
-state, dimensions, active native drawing, requested/actual swap interval, driver
-information, and optional timer availability. The palette-cache branch also
-logs `kind=palette_cache` when its resident atlas is enabled, including capacity,
-palette bytes, GPU logical bytes, CPU cache bytes, and the `content_lru` policy.
+Renderer configuration is logged as readable sections when the video mode is
+selected. Check **Starting Values**, **GPU CAPABILITY REPORT**, **Active
+Presentation**, and **GPU Timing** before interpreting timing. They identify
+frame-limit selection, output-filter state, dimensions, active native drawing,
+requested/selected VSync, driver information, and optional timer availability.
+The first settings snapshot is labeled **Starting Values** because the user can
+change these options through the menu. Subsequent snapshots are labeled
+**Values at Video Reinitialization**; neither label implies that the settings
+remain fixed for the full session.
+
+Startup diagnostics use headings, tab-indented labeled rows, readable option
+names and explicit units. For example, the stored frame-limit value `2` appears
+as `200 FPS`. These sections replace the older dense `kind=video_config`,
+`kind=video_backend`, and renderer/cache configuration records. Palette and
+graphics-state cache sections retain capacity, policy and memory sizes.
 OpenGL presentation alone does not establish that scene drawing used the GPU.
+
+**Measurement Settings** and **Script Profiling** describe the profiler's own
+configuration. Periodic frame, timing, counter and script-detail records retain
+their structured fields and window identities for comparison and analysis.
 
 ## Frame sampling and window boundaries
 
@@ -116,12 +128,13 @@ be averaged to reconstruct a run-wide p95.
 
 ## Reading a report
 
-Every record carries a `kind`; window records also carry the same `window` ID.
+Periodic measurement records carry a `kind`; window records also carry the
+same `window` ID. Startup and lifecycle sections use descriptive headings.
 CPU durations and displayed GPU durations are milliseconds. Internal CPU
 accumulation uses integer microseconds; GPU timestamps retain integer
 nanoseconds until reporting.
 
-| Record kind | What it establishes |
+| Record or section | What it establishes |
 | --- | --- |
 | `frame` | Accepted count, full/partial status, frame-ID range, interval and update means, outside-update residual, effective FPS, minimum, p95, and maximum interval. |
 | `phases_exclusive` | Nonoverlapping CPU wall-time checkpoints partitioning the measured update body. Their means sum to `update_mean_ms`. |
@@ -131,8 +144,8 @@ nanoseconds until reporting.
 | `fallback_totals` | Number of declined native operations by reason, including an absent native backend. |
 | `gpu_elapsed` | Completed timestamp samples for one scope, mean per available sample, and sum divided by accepted frame count. |
 | `diagnostics` | Cancelled frames, rejected gaps, late GPU results, clock-read count, and the skipped-reporting-frame marker. |
-| `palette_cache` | Native-cache configuration, including capacity and memory sizes; this is a lifecycle record, not a per-window measurement. |
-| `script_config` | Detailed script-profiling enablement, whole-frame sampling interval, fixed limits, and the explicit `overhead_subtracted=0` policy. |
+| `Renderer Caches` section | Palette and graphics-state cache configuration, including capacities and memory sizes; this is a lifecycle report, not a per-window measurement. |
+| `Script Profiling` section | Detailed script-profiling enablement, whole-frame sampling interval, fixed limits, and the explicit inclusion of instrumentation overhead in measured time. |
 | `script_summary` | Valid detailed, invalid detailed, and nondetailed frame counts; separate detailed/nondetailed interval and update means; detailed clock reads, errors, and registry coverage. |
 | `script_phase` | Per-phase interpreter/native/outside split, using only valid detailed frames as its denominator. |
 | `script_native` | Up to eight native function names per phase, ranked by accumulated exclusive time, with measured calls and per-sample/per-call means. |
@@ -359,7 +372,7 @@ the cache. Resource uploads, clear/readback operations, deletion, recovery, and
 context teardown update or invalidate tracked state as appropriate. No new
 GPU wait, flush, draw reordering, or hot-path `glGet` validation is introduced.
 `OPENBOR_PROFILE=0` leaves state reuse active while disabling its frame reports.
-Startup reports `kind=state_cache state=enabled`, its tracked texture-unit count,
+The startup graphics-state cache section reports its tracked texture-unit count
 and the CPU cache structure's byte size for the current build. This state cache
 does not allocate additional GPU image storage.
 
@@ -504,8 +517,10 @@ is not a palette-only comparison point.
 
 1. Build both revisions with matching compiler/build settings, then keep the
    same game content, machine, resolution, output scaling/filter, and frame
-   limit. Confirm `native_active=1` and actual swap interval in both logs, and
-   `kind=palette_cache state=enabled` in the changed build.
+   limit. Confirm that native drawing and the selected VSync state match in both
+   logs, and that the palette cache is enabled in the changed build. Older logs
+   use `native_active=1` and `kind=palette_cache state=enabled`; current startup
+   sections express those settings with labeled rows.
 2. Reproduce the same stationary view or repeatable route, including the same
    point-light workload. Collect several complete windows after warmup and
    preserve each complete log. Restart the executable before each independent

@@ -256,6 +256,7 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Make presentation failures and CPU drawing modes visible at startup.
+ * 2026-11-13 - Format presentation checks and initialized settings for readers.
  * Create the desktop GL presentation context and its completed-image shader.
  * Preserve live screens across mode changes, validate the presentation path,
  * then enable native scene drawing when the selected output mode supports it.
@@ -264,6 +265,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
 	const char *fallback_reason = "OpenGL initialization failed";
+	const char *gpu_setting = getenv("OPENBOR_GPU");
 
 	/*
 	 * Script-created screens can survive display changes. Drain their latest
@@ -327,7 +329,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	/* Keep the existing frame-pacing selection when recreating the context. */
 	if(SDL_GL_SetSwapInterval(savedata.fpslimit == 1) < 0)
 	{
-		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
+		gpu_log("WARNING: Could not %s vertical sync.\n\tSDL diagnostic: %s",
+		        savedata.fpslimit == 1 ? "enable" : "disable", SDL_GetError());
 	}
 
 #ifdef LOADGL
@@ -370,7 +373,10 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 	/* Presenter support does not establish native scene support. The native
 	 * renderer performs its own checks below unless settings choose CPU drawing. */
-	gpu_log("OpenGL presentation capabilities: fragment shader extension=available; maximum texture=%d; requested texture=%dx%d.",
+	gpu_log("OpenGL Presentation Checks\n"
+	        "\tFragment shader extension:         AVAILABLE\n"
+	        "\tMaximum texture size:              %d pixels per axis\n"
+	        "\tRequested texture size:            %d x %d pixels\n",
 	        maxTextureSize, textureWidth, textureHeight);
 
 	// set proper viewport width/height for high-DPI support
@@ -421,29 +427,62 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 	else
 	{
-		gpu_log("WARNING: CPU output filter %d is active. Scene drawing will use the CPU; OpenGL only presents completed frames. Significant slowdown is possible. Native scene capabilities were not tested because this filter selects software drawing.", savedata.swfilter);
+		gpu_log("WARNING: CPU output filter %d is active.\n"
+		        "\tScene drawing uses the CPU; OpenGL presents the completed frames.\n"
+		        "\tNative scene capabilities were not tested because this filter selects software drawing.\n"
+		        "\tSignificant slowdown is possible.", savedata.swfilter);
 	}
 
-	/* Confirm the active scene backend and driver in the regular engine log.
-	 * GL presentation alone does not indicate whether scene drawing is native. */
+	/* Native probing already prints the driver. Configuration can skip that
+	 * probe, so identify the presenter driver here only for those selections. */
+	if((savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)) ||
+	   (gpu_setting && !strcmp(gpu_setting, "0")))
 	{
 		const char *vendor = (const char *)glGetString(GL_VENDOR);
 		const char *renderer_name = (const char *)glGetString(GL_RENDERER);
 		const char *version = (const char *)glGetString(GL_VERSION);
-		gpu_log("OpenGL presentation ready: vendor=\"%s\"; renderer=\"%s\"; version=\"%s\"; native drawing backend=%s.",
+		gpu_log("Driver\n"
+		        "\tVendor:                            %s\n"
+		        "\tRenderer:                          %s\n"
+		        "\tOpenGL version:                    %s\n",
 		        vendor ? vendor : "unknown", renderer_name ? renderer_name : "unknown",
-		        version ? version : "unknown", gpu_is_active() ? "active" : "inactive (CPU scene drawing)");
-		engine_profile_log("kind=video_backend backend=OpenGL native_active=%d "
-		                   "requested_swap_interval=%d actual_swap_interval=%d refresh_hz=%d output_bytes=%d "
-		                   "vendor=\"%s\" renderer=\"%s\" version=\"%s\"",
-		                   gpu_is_active(), savedata.fpslimit == 1, SDL_GL_GetSwapInterval(),
-		                   video_current_refresh_rate(), videomodes.pixel, vendor ? vendor : "unknown",
-		                   renderer_name ? renderer_name : "unknown", version ? version : "unknown");
+		        version ? version : "unknown");
+	}
+	/* These values describe this initialization. Menu changes can select
+	 * different presentation settings later in the same session. */
+	{
+		int swap_interval = SDL_GL_GetSwapInterval();
+		int refresh_rate = video_current_refresh_rate();
+		char refresh_label[32];
+		if(refresh_rate > 0)
+		{
+			snprintf(refresh_label, sizeof(refresh_label), "%d Hz", refresh_rate);
+		}
+		else
+		{
+			snprintf(refresh_label, sizeof(refresh_label), "Unavailable");
+		}
+		gpu_log("Active Presentation\n"
+		        "\tValues confirmed at this video initialization.\n"
+		        "\tBackend:                           OpenGL\n"
+		        "\tNative drawing backend:            %s\n"
+		        "\tRequested vertical sync:           %s\n"
+		        "\tActual vertical sync:              %s\n"
+		        "\tSwap interval:                     %d\n"
+		        "\tDisplay refresh rate:              %s\n"
+		        "\tOutput color depth:                %d bits\n",
+		        gpu_is_active() ? "Active (supported RGB32 targets)" : "Inactive (CPU scene drawing)",
+		        savedata.fpslimit == 1 ? "Enabled" : "Disabled",
+		        swap_interval == 0 ? "Disabled" : swap_interval < 0 ? "Adaptive" : "Enabled",
+		        swap_interval, refresh_label, videomodes.pixel * 8);
 	}
 	return 1;
 error:
 	/* Release any partial context before the caller constructs an SDL presenter. */
-	gpu_log("WARNING: GPU presentation fallback: %s. Switching to SDL presentation and CPU scene drawing. Significant slowdown is possible.", fallback_reason);
+	gpu_log("WARNING: GPU presentation fallback.\n"
+	        "\tReason: %s.\n"
+	        "\tSwitching to SDL presentation and CPU scene drawing.\n"
+	        "\tSignificant slowdown is possible.", fallback_reason);
 	video_gl_shutdown();
 	savedata.usegl = 0;
 	return 0;
