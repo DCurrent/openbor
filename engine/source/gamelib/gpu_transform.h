@@ -56,8 +56,8 @@ enum gpu_sampling_mode
 };
 
 /*
- * Called synchronously, with vertices in perimeter order. The caller may issue
- * a GL_QUADS draw immediately or append the four vertices to a reusable batch.
+ * Called synchronously, with vertices in perimeter order. The caller may
+ * append the four vertices to a reusable indexed-triangle submission buffer.
  * wrap_source selects a gpu_sampling_mode for the shader's wrapSource uniform.
  * The callback returns nonzero on success; zero stops submission with FAILED.
  * The renderer owns repeats/spans and target synchronization. This helper

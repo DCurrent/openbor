@@ -225,6 +225,13 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     -Wl,--wrap=SDL_GL_GetProcAddress -o "$test_build_dir/test_gpu_capabilities"
 run_test "$test_build_dir/test_gpu_capabilities"
 
+# Inspect real buffer uploads and indexed submissions while injecting failures
+# through the existing GL loader. No production-only diagnostics are required.
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_submission.c \
+    "${test_gpu_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -Wl,--wrap=SDL_GL_GetProcAddress -o "$test_build_dir/test_gpu_submission"
+run_test "$test_build_dir/test_gpu_submission"
+
 # Native suites require a real GL context. Keep lifecycle/capture checks,
 # pixel-level transform comparisons, and presentation transitions separate
 # so a failure identifies the affected boundary.

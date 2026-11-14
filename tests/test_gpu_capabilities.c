@@ -28,6 +28,9 @@ typedef enum capability_case
     CAPABILITY_COMBINED_COMPILE,
     CAPABILITY_AFFINE_ONLY_UNIFORMS,
     CAPABILITY_COLOR_ONLY_UNIFORMS,
+    CAPABILITY_MISSING_BUFFER_ENTRY,
+    CAPABILITY_BUFFER_OBJECT_ALLOCATION,
+    CAPABILITY_BUFFER_STORAGE_ALLOCATION,
     CAPABILITY_COUNT
 } capability_case;
 
@@ -38,7 +41,9 @@ static const char *const capability_names[CAPABILITY_COUNT] =
     "all shader compilation fails", "incomplete framebuffer",
     "disabled by setting", "no current context", "color compile failure",
     "color link failure", "combined shader compile failure",
-    "affine-only uniform capacity", "color-only uniform capacity"
+    "affine-only uniform capacity", "color-only uniform capacity",
+    "missing buffer entry point", "buffer object allocation failure",
+    "buffer storage allocation failure"
 };
 static capability_case capability_mode;
 static unsigned capability_injected_compiles, capability_injected_links;
@@ -46,6 +51,12 @@ static unsigned capability_affine_fragments, capability_legacy_fragments, capabi
 static void (APIENTRY *capability_real_get_integer)(GLenum, GLint *);
 static PFNGLSHADERSOURCEPROC capability_real_shader_source;
 static PFNGLCHECKFRAMEBUFFERSTATUSPROC capability_real_framebuffer_status;
+static PFNGLGENBUFFERSPROC capability_real_gen_buffers;
+static PFNGLDELETEBUFFERSPROC capability_real_delete_buffers;
+static PFNGLBUFFERDATAPROC capability_real_buffer_data;
+static unsigned capability_buffer_generations, capability_buffer_failures;
+static unsigned capability_buffer_count, capability_buffer_deletions;
+static GLuint capability_buffers[2];
 void *__real_SDL_GL_GetProcAddress(const char *name);
 
 /*
@@ -160,7 +171,83 @@ static GLenum APIENTRY capability_framebuffer_status(GLenum target)
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Reject the second startup buffer name after one successful allocation.
+ * Retain acquired names so failure cleanup must release partial resources.
+ */
+static void APIENTRY capability_gen_buffers(GLsizei count, GLuint *buffers)
+{
+    GLsizei index;
+    ++capability_buffer_generations;
+    if(capability_mode == CAPABILITY_BUFFER_OBJECT_ALLOCATION &&
+       capability_buffer_generations == 2)
+    {
+        for(index = 0; index < count; ++index) buffers[index] = 0;
+        ++capability_buffer_failures;
+        return;
+    }
+    capability_real_gen_buffers(count, buffers);
+    if(capability_mode == CAPABILITY_BUFFER_OBJECT_ALLOCATION ||
+       capability_mode == CAPABILITY_BUFFER_STORAGE_ALLOCATION)
+    {
+        /* These startup cases acquire at most the vertex and index objects. */
+        for(index = 0; index < count; ++index)
+        {
+            if(buffers[index])
+            {
+                assert(capability_buffer_count < 2);
+                capability_buffers[capability_buffer_count++] = buffers[index];
+            }
+        }
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Observe explicit cleanup before the failed context itself is destroyed.
+ */
+static void APIENTRY capability_delete_buffers(GLsizei count, const GLuint *buffers)
+{
+    GLsizei index;
+    unsigned acquired;
+    for(index = 0; index < count; ++index)
+    {
+        for(acquired = 0; acquired < capability_buffer_count; ++acquired)
+        {
+            if(buffers[index] && buffers[index] == capability_buffers[acquired])
+            {
+                capability_buffers[acquired] = 0;
+                ++capability_buffer_deletions;
+            }
+        }
+    }
+    capability_real_delete_buffers(count, buffers);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Fail index storage after vertex storage succeeds, leaving a real GL error
+ * that initialization must consume before returning to ordinary presentation.
+ */
+static void APIENTRY capability_buffer_data(GLenum target, GLsizeiptr size,
+                                            const void *data, GLenum usage)
+{
+    if(capability_mode == CAPABILITY_BUFFER_STORAGE_ALLOCATION &&
+       target == GL_ELEMENT_ARRAY_BUFFER)
+    {
+        ++capability_buffer_failures;
+        capability_real_buffer_data((GLenum)0xffffffffu, size, data, usage);
+        return;
+    }
+    capability_real_buffer_data(target, size, data, usage);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Restrict required buffer functions and startup allocations.
  * Intercept only selected capabilities through the existing dynamic GL loader.
  */
 void *__wrap_SDL_GL_GetProcAddress(const char *name)
@@ -171,6 +258,10 @@ void *__wrap_SDL_GL_GetProcAddress(const char *name)
      * failure can be checked after the ordinary GL loader succeeds. */
     if(capability_mode == CAPABILITY_MISSING_ENTRY &&
        (!strcmp(name, "glGenFramebuffers") || !strcmp(name, "glGenFramebuffersEXT")))
+    {
+        return NULL;
+    }
+    if(capability_mode == CAPABILITY_MISSING_BUFFER_ENTRY && !strcmp(name, "glBufferData"))
     {
         return NULL;
     }
@@ -188,6 +279,21 @@ void *__wrap_SDL_GL_GetProcAddress(const char *name)
     {
         capability_real_framebuffer_status = (PFNGLCHECKFRAMEBUFFERSTATUSPROC)entry;
         return entry ? (void *)capability_framebuffer_status : NULL;
+    }
+    if(!strcmp(name, "glGenBuffers"))
+    {
+        capability_real_gen_buffers = (PFNGLGENBUFFERSPROC)entry;
+        return entry ? (void *)capability_gen_buffers : NULL;
+    }
+    if(!strcmp(name, "glDeleteBuffers"))
+    {
+        capability_real_delete_buffers = (PFNGLDELETEBUFFERSPROC)entry;
+        return entry ? (void *)capability_delete_buffers : NULL;
+    }
+    if(!strcmp(name, "glBufferData"))
+    {
+        capability_real_buffer_data = (PFNGLBUFFERDATAPROC)entry;
+        return entry ? (void *)capability_buffer_data : NULL;
     }
     return entry;
 }
@@ -211,6 +317,7 @@ static void capability_expect(const char *log, const char *text)
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Verify unavailable color rules leave ordinary native draws intact.
+ * 2026-11-14 - Require buffered startup success or explicit coherent fallback.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
@@ -218,12 +325,16 @@ static void capability_run(SDL_Window *window, capability_case mode)
     SDL_GLContext context;
     FILE *capture;
     int saved_stdout, native_expected, affine_expected, color_expected, result, index;
+    gpu_renderer_stats before_init;
     long startup_bytes, final_bytes;
     char log[32768];
 
     capability_mode = mode;
     capability_injected_compiles = capability_injected_links = 0;
     capability_affine_fragments = capability_legacy_fragments = capability_color_fragments = 0;
+    capability_buffer_generations = capability_buffer_failures = 0;
+    capability_buffer_count = capability_buffer_deletions = 0;
+    memset(capability_buffers, 0, sizeof(capability_buffers));
     assert(SDL_setenv("OPENBOR_GPU", mode == CAPABILITY_DISABLED ? "0" : "1", 1) == 0);
     context = SDL_GL_CreateContext(window);
     assert(context && LoadGLFunctions());
@@ -239,6 +350,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
     assert(fflush(stdout) == 0);
     saved_stdout = dup(STDOUT_FILENO);
     assert(saved_stdout >= 0 && dup2(fileno(capture), STDOUT_FILENO) >= 0);
+    before_init = *gpu_gl_get_stats();
     result = gpu_gl_init();
     assert(!engine_profile_enabled());
     assert(fflush(stdout) == 0);
@@ -257,6 +369,18 @@ static void capability_run(SDL_Window *window, capability_case mode)
                      mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_ONLY_UNIFORMS;
     assert(result == native_expected && gpu_is_active() == native_expected);
     if(mode == CAPABILITY_INVALID_QUERY) assert(glGetError() == GL_NO_ERROR);
+    if(mode == CAPABILITY_MISSING_BUFFER_ENTRY ||
+       mode == CAPABILITY_BUFFER_OBJECT_ALLOCATION ||
+       mode == CAPABILITY_BUFFER_STORAGE_ALLOCATION)
+    {
+        /* Failed initialization must not draw, touch scene pixels, leak its
+         * acquired buffers, or leave a driver error for the existing backend. */
+        assert(gpu_gl_get_stats()->draws == before_init.draws);
+        assert(gpu_gl_get_stats()->uploads == before_init.uploads);
+        assert(gpu_gl_get_stats()->readbacks == before_init.readbacks);
+        assert(capability_buffer_deletions == capability_buffer_count);
+        assert(glGetError() == GL_NO_ERROR);
+    }
     if(native_expected)
     {
         s_screen *source = test_screen(2, 2, PIXEL_32);
@@ -365,6 +489,12 @@ static void capability_run(SDL_Window *window, capability_case mode)
         "RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering." :
         "RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
     assert(!strstr(strstr(log, "RESULT:") + 1, "RESULT:"));
+    if(native_expected)
+    {
+        capability_expect(log, "Vertex/index buffers:");
+        capability_expect(log, "Buffered submission:");
+        capability_expect(log, "NATIVE - indexed triangles");
+    }
     capability_expect(log, color_expected ?
         "Chroma key execution:              NATIVE - available" :
         "Chroma key execution:              UNAVAILABLE - ignored");
@@ -421,6 +551,19 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "1536");
     }
     if(mode == CAPABILITY_MISSING_ENTRY) capability_expect(log, "glGenFramebuffers");
+    if(mode == CAPABILITY_MISSING_BUFFER_ENTRY)
+    {
+        capability_expect(log, "glBufferData");
+        assert(capability_buffer_generations == 0 && capability_buffer_failures == 0);
+    }
+    if(mode == CAPABILITY_BUFFER_OBJECT_ALLOCATION ||
+       mode == CAPABILITY_BUFFER_STORAGE_ALLOCATION)
+    {
+        capability_expect(log, "WARNING: Native vertex/index buffer allocation failed.");
+        assert(capability_buffer_generations == 2 && capability_buffer_failures == 1);
+        assert(capability_buffer_count ==
+               (mode == CAPABILITY_BUFFER_OBJECT_ALLOCATION ? 1u : 2u));
+    }
     if(mode == CAPABILITY_INVALID_QUERY)
         capability_expect(log, "GPU limits could not be verified");
     if(mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_ALL_COMPILE)
@@ -515,6 +658,6 @@ int main(void)
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU capability log tests passed: startup reports, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
+    puts("GPU capability log tests passed: 20 startup scenarios, buffered submission and allocation cleanup, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
     return 0;
 }

@@ -328,7 +328,12 @@ or fully clipped commands can create none. These counters are therefore not
 one-for-one replacements for accepted queue-command counts. Quad/batch counts
 describe the engine's native submission groups, not physical GPU utilization.
 CPU native spans separate geometry preparation, state/material work, and
-command submission.
+command submission. Buffered submission retains logical quad counts;
+`native_batches` counts indexed-triangle draw calls, one per contiguous
+sampling-mode run. `gpu_submit_ms` includes vertex-buffer preparation/upload,
+indexed drawing and their error checks. Index storage is cached and rebuilt
+only when its capacity must grow or recover from a resource failure. These
+geometry transfers do not increment image-upload counts or byte totals.
 
 ### Drawmethod color-rule accounting
 
@@ -366,8 +371,9 @@ chroma or Substitute.
 ### Cached graphics-state accounting
 
 The native renderer remembers context-local framebuffer, viewport, scissor,
-fixed raster, program, texture-binding, and material-uniform state. Cached
-setters issue a GL call only when its required value changes or the previous
+fixed raster, program, texture-binding, material-uniform, and vertex/index
+binding and attribute-array state. Cached setters issue a GL call only when
+its required value changes or the previous
 state is unknown. This avoids redundant driver calls without reordering draws
 or combining queue entries into batches.
 
@@ -379,8 +385,8 @@ or combining queue entries into batches.
 
 Each successful native quad submission publishes an aggregate delta from
 `gpu_render_quads()`: palette/table/snapshot preparation within that function,
-material/setup, and geometry-wrap handling. Source/target image creation or
-uploads performed by its caller before that boundary are excluded. Clear
+material/setup, geometry binding and geometry-wrap handling. Source/target
+image creation or uploads performed by its caller before that boundary are excluded. Clear
 operations include their target preparation and clear setup. These deltas are
 therefore not limited to setters inside `gpu_state_ms`, nor do they count every
 resource operation. Independent presentation/readback helpers are also excluded
@@ -395,8 +401,9 @@ change, not a cache failure. Logical reuse is evidence of avoided calls, not a
 guaranteed frame-rate improvement.
 
 `gpu_state_ms` does not expand to cover every counted setter. Resource
-preparation remains in its calling phase, transfers remain in `upload_ms` or
-`readback_ms`, and snapshots remain in `dest_copy_ms`. Those nested spans already
+preparation remains in its calling phase, image transfers remain in `upload_ms`
+or `readback_ms`, geometry uploads belong to `gpu_submit_ms`, and snapshots
+remain in `dest_copy_ms`. Those nested spans already
 belong to their enclosing update phases; do not add them to frame time or infer
 per-setter latency by dividing the setup-only span by the wider operation count.
 

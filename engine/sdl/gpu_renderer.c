@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <inttypes.h>
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,10 @@
 #define GPU_COLOR_COMPONENTS 160
 #define GPU_COMBINED_COMPONENTS 352
 #define GPU_FIXED_RASTER_CALLS 6
+#define GPU_GEOMETRY_STATE_CALLS 6
+#define GPU_STREAM_INITIAL_QUADS 1024
+#define GPU_POSITION_ATTRIBUTE 0
+#define GPU_TEXCOORD_ATTRIBUTE 1
 #define GPU_QUERY_CAPACITY 256
 #define GPU_QUERY_TOKEN_BITS 9
 #define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
@@ -71,6 +76,19 @@ static PFNGLUNIFORM1FPROC gpu_Uniform1f;
 static PFNGLUNIFORM2FPROC gpu_Uniform2f;
 static PFNGLUNIFORM3FPROC gpu_Uniform3f;
 static PFNGLACTIVETEXTUREPROC gpu_ActiveTexture;
+static PFNGLGENBUFFERSPROC gpu_GenBuffers;
+static PFNGLBINDBUFFERPROC gpu_BindBuffer;
+static PFNGLBUFFERDATAPROC gpu_BufferData;
+static PFNGLBUFFERSUBDATAPROC gpu_BufferSubData;
+static PFNGLDELETEBUFFERSPROC gpu_DeleteBuffers;
+static PFNGLBINDATTRIBLOCATIONPROC gpu_BindAttribLocation;
+static PFNGLENABLEVERTEXATTRIBARRAYPROC gpu_EnableVertexAttribArray;
+static PFNGLDISABLEVERTEXATTRIBARRAYPROC gpu_DisableVertexAttribArray;
+static PFNGLVERTEXATTRIBPOINTERPROC gpu_VertexAttribPointer;
+/* Core 1.1 function-pointer typedefs are absent from some desktop headers. */
+typedef void (APIENTRYP gpu_draw_elements_fn)(GLenum mode, GLsizei count,
+                                            GLenum type, const void *indices);
+static gpu_draw_elements_fn gpu_DrawElements;
 
 typedef struct gpu_image
 {
@@ -83,12 +101,6 @@ typedef struct gpu_image
     GLuint texture, framebuffer, snapshot;
     struct gpu_image *next;
 } gpu_image;
-
-typedef struct gpu_quad
-{
-    gpu_vertex vertex[4];
-    int wrap;
-} gpu_quad;
 
 typedef struct gpu_uniforms
 {
@@ -142,6 +154,7 @@ typedef struct gpu_state_cache
     int scissor_enabled_valid, scissor_enabled, scissor_rectangle_valid;
     int scissor_rectangle[4];
     int raster_valid, color_mask_valid, clear_color_valid;
+    int geometry_valid;
     gpu_material_state material;
 } gpu_state_cache;
 
@@ -156,8 +169,11 @@ typedef struct gpu_palette_entry
 } gpu_palette_entry;
 
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
-static gpu_quad *quad_buffer;
+static gpu_vertex *vertex_buffer;
+static int *quad_wraps;
 static size_t quad_count, quad_capacity;
+static GLuint vertex_buffer_object, index_buffer_object;
+static size_t stream_capacity, index_capacity, stream_cursor;
 static float bounds_left, bounds_top, bounds_right, bounds_bottom;
 static GLuint program, white_texture, palette_texture, table_texture;
 static gpu_uniforms uniforms;
@@ -543,6 +559,7 @@ static void gpu_fatal(const char *operation)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Report every missing required entry point in the startup log.
+ * 2026-11-14 - Require buffered geometry and explicit vertex attributes.
  * Obtain shader/FBO entry points from SDL's current context. EXT FBO names
  * retain support for the engine's existing desktop compatibility context.
  */
@@ -599,6 +616,16 @@ static int gpu_load_functions(void)
     GPU_LOAD(Uniform2f, PFNGLUNIFORM2FPROC);
     GPU_LOAD(Uniform3f, PFNGLUNIFORM3FPROC);
     GPU_LOAD(ActiveTexture, PFNGLACTIVETEXTUREPROC);
+    GPU_LOAD(GenBuffers, PFNGLGENBUFFERSPROC);
+    GPU_LOAD(BindBuffer, PFNGLBINDBUFFERPROC);
+    GPU_LOAD(BufferData, PFNGLBUFFERDATAPROC);
+    GPU_LOAD(BufferSubData, PFNGLBUFFERSUBDATAPROC);
+    GPU_LOAD(DeleteBuffers, PFNGLDELETEBUFFERSPROC);
+    GPU_LOAD(BindAttribLocation, PFNGLBINDATTRIBLOCATIONPROC);
+    GPU_LOAD(EnableVertexAttribArray, PFNGLENABLEVERTEXATTRIBARRAYPROC);
+    GPU_LOAD(DisableVertexAttribArray, PFNGLDISABLEVERTEXATTRIBARRAYPROC);
+    GPU_LOAD(VertexAttribPointer, PFNGLVERTEXATTRIBPOINTERPROC);
+    GPU_LOAD(DrawElements, gpu_draw_elements_fn);
 #undef GPU_LOAD_FBO
 #undef GPU_LOAD
     return available;
@@ -662,6 +689,170 @@ void gpu_gl_invalidate_state(void)
     /* No GL queries or synchronization are needed. The next native operation
      * restores each required value, including the private program's uniforms. */
     memset(&gl_state, 0, sizeof(gl_state));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Bind the compact vertex stream and its fixed attribute layout once per
+ * ownership period. Explicit shader locations keep the layout suitable for
+ * desktop GL and a future GLES backend.
+ */
+static void gpu_bind_geometry(void)
+{
+    if(gl_state.geometry_valid)
+    {
+        stats.state_reuses += GPU_GEOMETRY_STATE_CALLS;
+        return;
+    }
+    gpu_BindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
+    gpu_BindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
+    gpu_EnableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
+    gpu_EnableVertexAttribArray(GPU_TEXCOORD_ATTRIBUTE);
+    gpu_VertexAttribPointer(GPU_POSITION_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE,
+                            sizeof(gpu_vertex), (const void *)offsetof(gpu_vertex, x));
+    gpu_VertexAttribPointer(GPU_TEXCOORD_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE,
+                            sizeof(gpu_vertex), (const void *)offsetof(gpu_vertex, u));
+    gl_state.geometry_valid = 1;
+    stats.state_changes += GPU_GEOMETRY_STATE_CALLS;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Reject an incomplete buffer update before drawing. Discard capacity claims
+ * so a later attempt rebuilds both stores instead of trusting failed storage.
+ */
+static int gpu_geometry_failure(void)
+{
+    stream_capacity = index_capacity = stream_cursor = 0;
+    native_failure = EP_FALLBACK_RESOURCE;
+    gpu_gl_invalidate_state();
+    while(glGetError() != GL_NO_ERROR)
+    {
+        /* Consume allocation/update errors before coherent CPU fallback. */
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Allocate reusable vertex storage and ordered quad-to-triangle indices.
+ * Grow only for a draw larger than the retained stream; ordinary draws append.
+ */
+static int gpu_reserve_geometry(size_t required)
+{
+    size_t capacity = stream_capacity ? stream_capacity : GPU_STREAM_INITIAL_QUADS;
+    size_t quad;
+    GLuint *indices;
+    const size_t maximum = (size_t)INT_MAX / 6;
+
+    /* Bound draw counts, vertex indices, and signed GL byte offsets before
+     * multiplying. Four vertices per quad fit GLuint under this count limit. */
+    if(required > maximum)
+    {
+        return gpu_geometry_failure();
+    }
+    while(capacity < required)
+    {
+        capacity = capacity > maximum / 2 ? required : capacity * 2;
+    }
+    if(capacity > (size_t)PTRDIFF_MAX / (4 * sizeof(gpu_vertex)) ||
+       capacity > (size_t)PTRDIFF_MAX / (6 * sizeof(GLuint)))
+    {
+        return gpu_geometry_failure();
+    }
+    if(!vertex_buffer_object || !index_buffer_object)
+    {
+        if(!vertex_buffer_object) gpu_GenBuffers(1, &vertex_buffer_object);
+        if(!index_buffer_object) gpu_GenBuffers(1, &index_buffer_object);
+        if(!vertex_buffer_object || !index_buffer_object || glGetError() != GL_NO_ERROR)
+        {
+            return gpu_geometry_failure();
+        }
+    }
+    gpu_bind_geometry();
+
+    /* New storage lets earlier queued draws retain their previous contents.
+     * No explicit GPU wait or overwrite of an in-use vertex range is needed. */
+    if(stream_capacity < capacity)
+    {
+        gpu_BufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(capacity * 4 * sizeof(gpu_vertex)),
+                       NULL, GL_STREAM_DRAW);
+        if(glGetError() != GL_NO_ERROR) return gpu_geometry_failure();
+        stream_capacity = capacity;
+        stream_cursor = 0;
+    }
+    if(index_capacity < capacity)
+    {
+        indices = (GLuint *)malloc(capacity * 6 * sizeof(*indices));
+        if(!indices) return gpu_geometry_failure();
+        /* Shared diagonals belong to exactly one triangle. Preserve each
+         * quad's perimeter order and the original order between quads. */
+        for(quad = 0; quad < capacity; ++quad)
+        {
+            GLuint vertex = (GLuint)(quad * 4);
+            indices[quad * 6] = vertex;
+            indices[quad * 6 + 1] = vertex + 1;
+            indices[quad * 6 + 2] = vertex + 2;
+            indices[quad * 6 + 3] = vertex;
+            indices[quad * 6 + 4] = vertex + 2;
+            indices[quad * 6 + 5] = vertex + 3;
+        }
+        gpu_BufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(capacity * 6 * sizeof(*indices)),
+                       indices, GL_STATIC_DRAW);
+        free(indices);
+        if(glGetError() != GL_NO_ERROR) return gpu_geometry_failure();
+        index_capacity = capacity;
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Append one draw's vertices before any destination write. Reaching the end
+ * orphans the stream, retaining queued draws without a per-draw allocation.
+ */
+static int gpu_upload_geometry(size_t *first_quad)
+{
+    if(!gpu_reserve_geometry(quad_count)) return 0;
+    if(quad_count > stream_capacity - stream_cursor)
+    {
+        gpu_BufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(stream_capacity * 4 * sizeof(gpu_vertex)),
+                       NULL, GL_STREAM_DRAW);
+        if(glGetError() != GL_NO_ERROR) return gpu_geometry_failure();
+        stream_cursor = 0;
+    }
+    gpu_BufferSubData(GL_ARRAY_BUFFER, (GLintptr)(stream_cursor * 4 * sizeof(gpu_vertex)),
+                      (GLsizeiptr)(quad_count * 4 * sizeof(gpu_vertex)), vertex_buffer);
+    if(glGetError() != GL_NO_ERROR) return gpu_geometry_failure();
+    *first_quad = stream_cursor;
+    stream_cursor += quad_count;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Release partially initialized or live geometry buffers while their context
+ * exists, clearing array state before names can be reused by another owner.
+ */
+static void gpu_release_geometry(void)
+{
+    if(vertex_buffer_object || index_buffer_object)
+    {
+        gpu_DisableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
+        gpu_DisableVertexAttribArray(GPU_TEXCOORD_ATTRIBUTE);
+        gpu_BindBuffer(GL_ARRAY_BUFFER, 0);
+        gpu_BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        if(vertex_buffer_object) gpu_DeleteBuffers(1, &vertex_buffer_object);
+        if(index_buffer_object) gpu_DeleteBuffers(1, &index_buffer_object);
+    }
+    vertex_buffer_object = index_buffer_object = 0;
+    stream_capacity = index_capacity = stream_cursor = 0;
+    gl_state.geometry_valid = 0;
 }
 
 /*
@@ -1779,6 +1970,7 @@ static void gpu_uniform_color_bytes(GLint location, gpu_uniform_value *cached, u
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-14 - Keep vertices contiguous and sampling metadata separate.
  * Collect geometry before touching the target. This allows parameter or
  * allocation failure to select software without replaying a partial GPU draw.
  */
@@ -1790,20 +1982,30 @@ static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused
     {
         /* Grow geometrically and retain the allocation between draws. Size
          * checks keep an oversized request on the untouched fallback path. */
+        size_t maximum = (size_t)INT_MAX / 6;
         size_t capacity = quad_capacity ? quad_capacity * 2 : 64;
-        gpu_quad *replacement;
-        if(capacity < quad_capacity || capacity > SIZE_MAX / sizeof(*quad_buffer))
+        gpu_vertex *replacement;
+        int *replacement_wraps;
+        if(capacity > maximum) capacity = maximum;
+        if(capacity <= quad_capacity || capacity > SIZE_MAX / (4 * sizeof(*vertex_buffer)))
         {
             native_failure = EP_FALLBACK_RESOURCE;
             return 0;
         }
-        replacement = (gpu_quad *)realloc(quad_buffer, capacity * sizeof(*quad_buffer));
+        replacement = (gpu_vertex *)realloc(vertex_buffer, capacity * 4 * sizeof(*vertex_buffer));
         if(!replacement)
         {
             native_failure = EP_FALLBACK_RESOURCE;
             return 0;
         }
-        quad_buffer = replacement;
+        vertex_buffer = replacement;
+        replacement_wraps = (int *)realloc(quad_wraps, capacity * sizeof(*quad_wraps));
+        if(!replacement_wraps)
+        {
+            native_failure = EP_FALLBACK_RESOURCE;
+            return 0;
+        }
+        quad_wraps = replacement_wraps;
         quad_capacity = capacity;
     }
     if(!quad_count)
@@ -1838,8 +2040,8 @@ static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused
             bounds_bottom = vertices[i].y;
         }
     }
-    memcpy(quad_buffer[quad_count].vertex, vertices, sizeof(quad_buffer[quad_count].vertex));
-    quad_buffer[quad_count++].wrap = wrap;
+    memcpy(vertex_buffer + quad_count * 4, vertices, 4 * sizeof(*vertex_buffer));
+    quad_wraps[quad_count++] = wrap;
     return 1;
 }
 
@@ -1929,6 +2131,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * 2026-11-12
  * 2026-11-13 - Supply independent affine sample state for either source format.
  * 2026-11-14 - Bind supported chroma and Substitute without changing draw eligibility.
+ * 2026-11-14 - Upload a contiguous vertex stream and submit indexed triangles.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -1938,7 +2141,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                             int source_is_sprite, int primitive, unsigned color,
                             const gpu_affine_sampling *affine)
 {
-    int rectangle[4], i, wrap = -1;
+    int rectangle[4], i, wrap, geometry_ready;
     int indexed = source && source->format == PIXEL_x8;
     int masked = mask != NULL;
     int blend_mode = method->alpha > 0 ? method->alpha : 0;
@@ -1952,7 +2155,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     unsigned substitute_enabled = color_rules_supported
                                 ? method->colors.substitute_enabled & DRAWMETHOD_COLOR_MASK : 0;
     GLuint texture = source ? source->texture : white_texture;
-    size_t q, batches = 0;
+    size_t q, batches = 0, stream_first = 0;
     uint64_t previous_state_changes = stats.state_changes;
     uint64_t previous_state_reuses = stats.state_reuses;
     ep_scope state_scope, submit_scope;
@@ -1978,6 +2181,17 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
         return 0;
     }
     if((blend_mode || method->tintmode) && !gpu_set_tables())
+    {
+        return 0;
+    }
+
+    /* Storage/update failure must still leave the destination untouched.
+     * Include stream preparation in CPU submission timing, separate from
+     * material setup and the existing GPU-to-GPU snapshot measurement. */
+    submit_scope = engine_profile_span_begin();
+    geometry_ready = gpu_upload_geometry(&stream_first);
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    if(!geometry_ready)
     {
         return 0;
     }
@@ -2101,42 +2315,28 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     }
     engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
 
-    /* Adjacent row strips share state and one submission. Queue entries are
-     * never sorted by texture or moved across capture/mutation boundaries. */
+    /* Adjacent row strips share state and one indexed triangle submission.
+     * Keep each wrap run and draw boundary in original painter order. The
+     * fixed index pattern reuses the four vertices without CPU expansion. */
     submit_scope = engine_profile_span_begin();
-    for(q = 0; q < quad_count; q++)
+    for(q = 0; q < quad_count;)
     {
-        if(quad_buffer[q].wrap != wrap)
-        {
-            if(wrap != -1)
-            {
-                glEnd();
-            }
-            wrap = quad_buffer[q].wrap;
-            /* Grouping follows the collected geometry even when the material
-             * value is already resident from a preceding queue entry. */
-            gpu_uniform_integer(uniforms.wrap, &gl_state.material.wrap, wrap);
-            glBegin(GL_QUADS);
-            batches++;
-        }
-        for(i = 0; i < 4; i++)
-        {
-            const gpu_vertex *vertex = &quad_buffer[q].vertex[i];
-            glTexCoord2f(vertex->u, vertex->v);
-            glVertex2f(vertex->x, vertex->y);
-        }
-    }
-    if(wrap != -1)
-    {
-        glEnd();
+        size_t end = q + 1;
+        wrap = quad_wraps[q];
+        while(end < quad_count && quad_wraps[end] == wrap) ++end;
+        gpu_uniform_integer(uniforms.wrap, &gl_state.material.wrap, wrap);
+        gpu_DrawElements(GL_TRIANGLES, (GLsizei)((end - q) * 6), GL_UNSIGNED_INT,
+                         (const void *)(uintptr_t)((stream_first + q) * 6 * sizeof(GLuint)));
+        batches++;
+        q = end;
     }
     if(glGetError() != GL_NO_ERROR)
     {
         gpu_fatal("scene draw");
     }
-    /* CPU submission time includes the existing driver error check. Quads and
-     * begin/end batches remain separate counts because one plane image can
-     * emit many row quads while still sharing a single submission batch. */
+    /* Submission time includes stream upload and driver error checks. Quad
+     * and batch counts retain their meaning: one plane image may emit many
+     * logical row quads while sharing one indexed triangle draw. */
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
     if(chroma_enabled)
@@ -2795,6 +2995,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-13 - Separate supported work from conditional fallback information.
  * 2026-11-14 - Report native-only color rules and explicit ignore behavior.
  * 2026-11-14 - Identify native horizontal/vertical line rectangle coverage.
+ * 2026-11-14 - Report the initialized buffered triangle submission path.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -2818,6 +3019,7 @@ static void gpu_log_capability_result(int native_available)
                 "\tDestination format:                RGB32\n"
                 "\tSource formats:                    Indexed and RGB32\n"
                 "\tDraw methods:                      Supported native operations\n"
+                "\tBuffered submission:               NATIVE - indexed triangles\n"
                 "\tHorizontal/vertical lines:         NATIVE - one rectangle per visible line\n");
         gpu_log("Potential CPU Fallbacks\n"
                 "\tThese conditions may require CPU drawing during gameplay:\n"
@@ -2860,6 +3062,7 @@ static void gpu_log_capability_result(int native_available)
  * 2026-11-13 - Report startup capabilities and fallback costs without profiling.
  * 2026-11-13 - Group startup information into readable fields and checks.
  * 2026-11-14 - Probe optional color rules without retiring earlier native paths.
+ * 2026-11-14 - Validate vertex/index storage before enabling native drawing.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves the existing renderer intact.
  */
@@ -2925,7 +3128,7 @@ int gpu_gl_init(void)
     }
     functions_available = gpu_load_functions();
     gpu_log("Required Functions\n"
-            "\tShader and framebuffer functions:  %s\n",
+            "\tShader, framebuffer and buffer functions: %s\n",
             functions_available ? "AVAILABLE" : "MISSING - see warnings above");
     /* Clear errors left by capability probes before checking our allocations. */
     while(glGetError() != GL_NO_ERROR)
@@ -3023,6 +3226,8 @@ compile_scene_shader:
     }
     gpu_AttachShader(program, vertex);
     gpu_AttachShader(program, fragment);
+    gpu_BindAttribLocation(program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
+    gpu_BindAttribLocation(program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
     gpu_LinkProgram(program);
     gpu_GetProgramiv(program, GL_LINK_STATUS, &linked);
     if(!linked)
@@ -3055,10 +3260,16 @@ compile_scene_shader:
     {
         goto failed;
     }
+    if(!gpu_reserve_geometry(GPU_STREAM_INITIAL_QUADS))
+    {
+        gpu_log("WARNING: Native vertex/index buffer allocation failed.");
+        goto failed;
+    }
     gpu_log("Initialization Checks\n"
             "\t%-34s PASS (compiled and linked)\n"
             "\tShared textures:                   PASS (allocated)\n"
-            "\tRGB32 framebuffer probe:           PASS (1x1 RGBA8 render target)\n",
+            "\tRGB32 framebuffer probe:           PASS (1x1 RGBA8 render target)\n"
+            "\tVertex/index buffers:              PASS (allocated)\n",
             affine_supported ? "Native affine/material shader:" : "Native material shader:");
 
     /* Resolve locations once for this linked program. Cached values update
@@ -3171,6 +3382,7 @@ failed:
     /* Initialization can fail at any stage. Release only acquired resources;
      * dispatch remains unregistered so callers continue with software draws. */
     gpu_gl_invalidate_state();
+    gpu_release_geometry();
     if(vertex)
     {
         gpu_DeleteShader(vertex);
@@ -3253,8 +3465,11 @@ void gpu_gl_shutdown(void)
     glDeleteTextures(1, &white_texture);
     glDeleteTextures(1, &palette_texture);
     glDeleteTextures(1, &table_texture);
-    free(quad_buffer);
-    quad_buffer = NULL;
+    gpu_release_geometry();
+    free(vertex_buffer);
+    free(quad_wraps);
+    vertex_buffer = NULL;
+    quad_wraps = NULL;
     quad_count = quad_capacity = 0;
     program = white_texture = palette_texture = table_texture = 0;
     gpu_reset_palette_cache();
@@ -3288,6 +3503,7 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-14 - Release scene vertex-array state at the presentation boundary.
  * Restore neutral GL state before the existing presenter or YUV renderer
  * draws to the window. Scene drawing restores its own state on its next use.
  */
@@ -3306,6 +3522,10 @@ void gpu_gl_prepare_present(void)
      * the presenter chooses its scaling shader and window-space viewport. */
     gpu_BindFramebuffer(GL_FRAMEBUFFER, 0);
     gpu_UseProgram(0);
+    gpu_DisableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
+    gpu_DisableVertexAttribArray(GPU_TEXCOORD_ATTRIBUTE);
+    gpu_BindBuffer(GL_ARRAY_BUFFER, 0);
+    gpu_BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisable(GL_SCISSOR_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);

@@ -12,9 +12,10 @@ operations. The branch also adds opt-in, general-purpose affine transforms
 for sprites and screens, plus drawmethod chroma keys and final-color Substitute.
 
 Existing OpenGL selection automatically enables native drawing when the
-required shaders and render targets initialize successfully. Existing drawing
-calls select it automatically. `OPENBOR_GPU=0` disables native scene drawing for comparison with
-the existing software renderer and OpenGL presenter.
+required shaders, render targets and geometry buffers initialize successfully.
+Existing drawing calls select it automatically. `OPENBOR_GPU=0` disables native
+scene drawing for comparison with the existing software renderer and OpenGL
+presenter.
 
 The first native target format is `PIXEL_32`. Indexed sprite artwork remains
 indexed in GPU textures and uses a separate palette texture. This is distinct
@@ -30,6 +31,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
+| Native geometry submission | Contiguous vertex uploads and cached triangle indices; draw order and material boundaries retained |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
 | Screen clear/copy | Native operations for supported targets |
@@ -103,14 +105,16 @@ warnings for missing capabilities.
 The native OpenGL capability check reports:
 
 - Driver vendor, renderer name, OpenGL version and GLSL version.
-- Every missing required shader or framebuffer entry point, including the
-  framebuffer extension alternatives.
+- Every missing required shader, framebuffer or buffer entry point, including
+  the framebuffer extension alternatives.
 - Maximum texture size, fragment texture units and fragment-uniform capacity,
   with the native requirements beside the reported limits.
 - Actual shader compilation and linking, including driver diagnostics on
   failure and retries of supported affine/color-rule combinations.
 - Shared texture allocation and a real 1x1 RGBA8 framebuffer completeness
   probe, using the existing white texture without drawing into it.
+- Vertex/index buffer allocation, followed by an explicit
+  `Buffered submission: NATIVE - indexed triangles` execution row.
 
 Each native capability report ends with one of these results:
 
@@ -183,6 +187,46 @@ Drawmethod clipping, tint, blending and color rules continue through the shared
 material shader. Sloped lines retain their existing integer coverage. The
 startup report identifies this rectangle path under **Native Drawing Scope**;
 it requires no additional GPU capability beyond native rectangle drawing.
+
+## Buffered geometry submission
+
+Native scene drawing uploads compact position/texture-coordinate vertices to
+a reusable vertex buffer, then submits indexed triangles with `glDrawElements`.
+The native path no longer calls `glBegin`, `glTexCoord2f`, `glVertex2f` or `glEnd`
+for each batch or vertex. The existing window presenter remains separate.
+Each logical quad retains four vertices, with cached indices selecting
+`0, 1, 2` and `0, 2, 3`. Source sampling and material operations remain in the
+same shaders, now using explicit vertex attributes.
+
+The stream starts with room for 1,024 quads: 64 KiB of vertex storage and
+24 KiB of index storage. Consecutive draws append into unused vertex ranges
+with one `glBufferSubData` upload per nonempty draw. When the next draw will
+not fit, the renderer replaces the vertex buffer store before reusing its
+beginning. Earlier queued draws retain their previous storage. Index storage
+is reused across wraps; a larger individual draw grows both stores
+geometrically. These sizes describe the requested stores, not a limit on
+driver-managed memory for queued work.
+
+Each contiguous sampling-mode run remains one submission. Queue entries,
+repeats, material changes, destination snapshots and self-draw boundaries
+retain their existing order. This change does not combine separate drawing
+commands or expose a new script geometry API. The CPU still prepares transform
+geometry; buffering removes the individual driver call for each vertex and
+texture coordinate.
+
+Required buffer entry points and real storage allocations are checked at
+startup. Missing functions or storage produce the existing prominent software
+fallback warning. Runtime allocation/upload errors reject the draw before
+destination writes, allowing coherent fallback; a later native attempt
+rebuilds the buffer stores. Shutdown releases both buffers while their context
+exists, and presentation clears vertex-array enables and buffer bindings.
+Context recreation initializes fresh storage.
+
+This uses the existing desktop OpenGL baseline without requiring vertex array
+objects, persistent mapping or a new context type. The explicit attributes
+and triangle representation are also suitable for a future GLES backend;
+Android retains its existing renderer in this change. Hardware profiling is
+still needed to establish the frame-time benefit.
 
 ## Sprite residency
 
@@ -297,7 +341,8 @@ remaining engine workload; no speedup is assumed from the allocation alone.
 ## Context-local graphics-state reuse
 
 The native renderer caches framebuffer binding, viewport, scissor, fixed raster
-state, shader program, five texture-unit bindings, and material uniforms.
+state, shader program, five texture-unit bindings, material uniforms, and the
+vertex/index bindings, attribute enables and attribute pointers.
 Cached setters compare the required value with the known current value and
 emit GL calls only for changes or unknown state. Texture filtering and clamp
 parameters are initialized with their texture objects instead of being
@@ -324,8 +369,8 @@ This changes setup frequency, not the sequence or meaning of rendering:
 `gpu_state_changes` and `gpu_state_reuses` report emitted and avoided cached
 setter calls as aggregate deltas for successful native draw/clear operations.
 Quad-submission deltas include palette/table/snapshot preparation inside
-`gpu_render_quads()` and wrap handling outside the existing setup-only
-`gpu_state_ms` span. Caller-side source/target image creation and uploads before
+`gpu_render_quads()`, geometry binding and wrap handling outside the existing
+setup-only `gpu_state_ms` span. Caller-side source/target image creation and uploads before
 that boundary are excluded; clear deltas include target preparation. Independent
 resource/presentation helpers are also excluded from frame counters, while
 internal 64-bit lifetime statistics still count all cached setters. These are

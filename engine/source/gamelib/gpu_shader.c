@@ -8,10 +8,13 @@
 const char *gpu_vertex_shader_source =
     "#version 120\n"
     "uniform vec2 targetSize;\n"
+    "attribute vec2 vertexPosition;\n"
+    "attribute vec2 vertexTexcoord;\n"
     "varying vec2 sourcePosition;\n"
     "/*\n"
     " * Damon V. Caskey\n"
     " * 2026-11-12\n"
+    " * 2026-11-14 - Read explicit buffered position and texture attributes.\n"
     " *\n"
     " * Map logical pixel edges to the target, preserving raw source texels.\n"
     " */\n"
@@ -21,14 +24,14 @@ const char *gpu_vertex_shader_source =
     "     * Geometry arrives in logical destination pixels. Normalize each\n"
     "     * axis to [-1, 1] while retaining the shared screen/texture row origin.\n"
     "     */\n"
-    "    gl_Position = vec4(gl_Vertex.xy * 2.0 / targetSize - 1.0, 0.0, 1.0);\n"
+    "    gl_Position = vec4(vertexPosition * 2.0 / targetSize - 1.0, 0.0, 1.0);\n"
     "\n"
     "    /*\n"
     "     * Preserve source coordinates in texels through interpolation. The\n"
     "     * fragment stage must select a texel before applying palette lookup,\n"
     "     * color-key coverage, or the transform's wrapping rules.\n"
     "     */\n"
-    "    sourcePosition = gl_MultiTexCoord0.xy;\n"
+    "    sourcePosition = vertexTexcoord;\n"
     "}\n";
 
 const char *gpu_fragment_shader_source =
