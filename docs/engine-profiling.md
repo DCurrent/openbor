@@ -335,6 +335,15 @@ indexed drawing and their error checks. Index storage is cached and rebuilt
 only when its capacity must grow or recover from a resource failure. These
 geometry transfers do not increment image-upload counts or byte totals.
 
+Shader-based legacy shear prepares one bounded quad per nonempty instance.
+Compare `gpu_geometry_ms` and `native_quads` when evaluating that change;
+`native_batches` can remain unchanged because the older row quads already
+shared one buffered draw. CPU geometry remains constant with visible row count,
+while the GPU rejects gaps inside the enclosing quad. Startup's **Legacy Shear**
+section identifies shader sampling or retained CPU row setup. Both paths still
+render pixels natively, so CPU row setup alone does not increment the software
+raster or fallback counters.
+
 ### Drawmethod color-rule accounting
 
 The [drawmethod color API](drawmethod-colors.md) adds these fields to the

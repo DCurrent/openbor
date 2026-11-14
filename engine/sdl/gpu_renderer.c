@@ -33,6 +33,8 @@
 #define GPU_AFFINE_COMPONENTS 256
 #define GPU_COLOR_COMPONENTS 160
 #define GPU_COMBINED_COMPONENTS 352
+#define GPU_SHEAR_COMPONENTS 32
+#define GPU_MATERIAL_COMPONENTS 64
 #define GPU_FIXED_RASTER_CALLS 6
 #define GPU_GEOMETRY_STATE_CALLS 6
 #define GPU_STREAM_INITIAL_QUADS 1024
@@ -116,6 +118,7 @@ typedef struct gpu_uniforms
     GLint affine_approximate_x, affine_approximate_y, affine_approximate_d;
     GLint affine_anchor, affine_pivot;
     GLint affine_x[8], affine_y[8], affine_d[8];
+    GLint shear_origin, shear_extent, shear_shift, shear_source, shear_step, shear_clip;
 } gpu_uniforms;
 
 typedef struct gpu_uniform_value
@@ -139,6 +142,7 @@ typedef struct gpu_material_state
     gpu_uniform_value affine_approximate_x, affine_approximate_y, affine_approximate_d;
     gpu_uniform_value affine_anchor, affine_pivot;
     gpu_uniform_value affine_x[8], affine_y[8], affine_d[8];
+    gpu_uniform_value shear_origin, shear_extent, shear_shift, shear_source, shear_step, shear_clip;
 } gpu_material_state;
 
 typedef struct gpu_state_cache
@@ -180,7 +184,7 @@ static gpu_uniforms uniforms;
 static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
-static int initialized, tables_dirty = 1, table_mask, affine_supported, color_rules_supported;
+static int initialized, tables_dirty = 1, table_mask, affine_supported, color_rules_supported, shear_supported;
 static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
 static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
 static int palette_cache_count;
@@ -636,13 +640,14 @@ static int gpu_load_functions(void)
  * 2026-11-12
  * 2026-11-13 - Select optional affine arithmetic without raising legacy limits.
  * 2026-11-14 - Select color rules independently from optional affine support.
+ * 2026-11-14 - Select exact legacy shear independently from other features.
  * Compile one scene shader, preserving the driver's diagnostic on failure.
  */
 static GLuint gpu_compile_shader(GLenum type, const char *source)
 {
     GLuint shader = gpu_CreateShader(type);
     GLint success = 0;
-    char message[4096], defines[96];
+    char message[4096], defines[128];
     const char *parts[2];
     if(!shader)
     {
@@ -653,8 +658,8 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
 
     /* Both internal sources start with the same version directive. Insert
      * capability defines after it, retaining GLSL's required first line. */
-    snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n",
-             affine_supported, color_rules_supported);
+    snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n#define GPU_SHEAR %d\n",
+             affine_supported, color_rules_supported, shear_supported);
     parts[0] = defines;
     parts[1] = strchr(source, '\n') + 1;
     gpu_ShaderSource(shader, 2, parts, NULL);
@@ -2132,6 +2137,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * 2026-11-13 - Supply independent affine sample state for either source format.
  * 2026-11-14 - Bind supported chroma and Substitute without changing draw eligibility.
  * 2026-11-14 - Upload a contiguous vertex stream and submit indexed triangles.
+ * 2026-11-14 - Supply exact legacy shear state through the common material path.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -2139,7 +2145,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
 static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mask,
                             const unsigned char *palette, const s_drawmethod *method,
                             int source_is_sprite, int primitive, unsigned color,
-                            const gpu_affine_sampling *affine)
+                            const gpu_affine_sampling *affine, const gpu_shear_sampling *shear)
 {
     int rectangle[4], i, wrap, geometry_ready;
     int indexed = source && source->format == PIXEL_x8;
@@ -2289,6 +2295,23 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
             }
         }
     }
+    if(shear)
+    {
+        /* Legacy shear owns exact row coverage and clipping-adjusted source
+         * phases. Its uniforms are independent of explicit affine matrices. */
+        gpu_uniform_vector(uniforms.shear_origin, &gl_state.material.shear_origin,
+                           shear->origin[0], shear->origin[1], shear->origin[2]);
+        gpu_uniform_vector(uniforms.shear_extent, &gl_state.material.shear_extent,
+                           shear->extent[0], shear->extent[1], shear->extent[2]);
+        gpu_uniform_pair(uniforms.shear_shift, &gl_state.material.shear_shift,
+                         shear->shift[0], shear->shift[1]);
+        gpu_uniform_pair(uniforms.shear_source, &gl_state.material.shear_source,
+                         shear->source[0], shear->source[1]);
+        gpu_uniform_pair(uniforms.shear_step, &gl_state.material.shear_step,
+                         shear->step[0], shear->step[1]);
+        gpu_uniform_pair(uniforms.shear_clip, &gl_state.material.shear_clip,
+                         shear->clip[0], shear->clip[1]);
+    }
     if(affine)
     {
         /* Geometry and color remain separate. These small per-draw values
@@ -2385,6 +2408,7 @@ static int gpu_preflight_quad(const gpu_vertex vertices[4], int wrap, void *user
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Preflight all affine repeats before the first target write.
+ * 2026-11-14 - Prepare shader shear independently for each repeated instance.
  * Apply existing repeat/span semantics using the same prepared source image.
  * Collect each instance before drawing, and reject overflowing spans before
  * submission so software fallback cannot repeat already-composited instances.
@@ -2458,6 +2482,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
         for(i = 0; i < method->xrepeat; i++)
         {
             gpu_affine_sampling affine;
+            gpu_shear_sampling shear;
             int use_affine = method->config & DRAWMETHOD_CONFIG_AFFINE;
             ep_scope geometry_scope;
             int geometry_result;
@@ -2467,7 +2492,9 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
             geometry_scope = engine_profile_span_begin();
             geometry_result = use_affine
                             ? gpu_transform_draw_affine(&parameters, method, &affine, gpu_collect_quad, NULL)
-                            : gpu_transform_draw(&parameters, method, gpu_collect_quad, NULL);
+                            : gpu_transform_draw_sampled(&parameters, method,
+                                                         shear_supported ? &shear : NULL,
+                                                         gpu_collect_quad, NULL);
             engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
             if(geometry_result == GPU_TRANSFORM_FAILED && native_failure == EP_FALLBACK_OTHER)
             {
@@ -2475,7 +2502,8 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
             }
             if(geometry_result == GPU_TRANSFORM_FAILED ||
                !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0,
-                                 use_affine ? &affine : NULL))
+                                 use_affine ? &affine : NULL,
+                                 !use_affine && shear_supported && shear.enabled ? &shear : NULL))
             {
                 /* Earlier instances may already have changed the target.
                  * Only failure before any submission can safely fall back. */
@@ -2639,7 +2667,7 @@ static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
         ep_scope geometry_scope = engine_profile_span_begin();
         int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
         engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
-        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL))
+        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL, NULL))
         {
             return 1;
         }
@@ -2852,7 +2880,7 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     }
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
-    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL))
+    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL, NULL))
     {
         return 1;
     }
@@ -2996,6 +3024,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-14 - Report native-only color rules and explicit ignore behavior.
  * 2026-11-14 - Identify native horizontal/vertical line rectangle coverage.
  * 2026-11-14 - Report the initialized buffered triangle submission path.
+ * 2026-11-14 - Distinguish shader shear from retained CPU row preparation.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3036,6 +3065,18 @@ static void gpu_log_capability_result(int native_available)
         gpu_log("RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
         gpu_log("WARNING: Scene drawing will use CPU software rendering. Significant slowdown is possible.");
     }
+    gpu_log("Legacy Shear\n"
+            "\tLegacy shear setup:                %s\n"
+            "\tSampling:                          Existing 8.8 rounding and clipped source phase\n"
+            "\tManual affine:                     Takes priority over legacy shear\n"
+            "\tImages exceeding 65535 per axis:    CPU row geometry; native pixels when otherwise supported\n",
+            !native_available ? "UNAVAILABLE - software renderer" :
+            shear_supported ? "NATIVE - shader sampling, one quad" :
+                              "CPU - row geometry; native pixels");
+    if(native_available && !shear_supported)
+    {
+        gpu_log("WARNING: Legacy shear shader unavailable; retaining CPU row geometry with native pixel rendering.");
+    }
     gpu_log("Color Rules\n"
             "\tChroma key execution:              %s\n"
             "\tSubstitute execution:              %s\n"
@@ -3063,6 +3104,7 @@ static void gpu_log_capability_result(int native_available)
  * 2026-11-13 - Group startup information into readable fields and checks.
  * 2026-11-14 - Probe optional color rules without retiring earlier native paths.
  * 2026-11-14 - Validate vertex/index storage before enabling native drawing.
+ * 2026-11-14 - Preserve existing capabilities when optional shear is unavailable.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves the existing renderer intact.
  */
@@ -3071,7 +3113,10 @@ int gpu_gl_init(void)
     GLuint vertex = 0, fragment = 0;
     GLenum limits_error;
     GLint linked = 0, units = 0, fragment_components = 0;
-    int digit, functions_available, shader_variants[4], variant_count = 0, variant_index = 0;
+    int digit, functions_available, shader_variants[8], variant_count = 0, variant_index = 0;
+    const int base_variants[4] = {3, 1, 2, 0};
+    const int base_components[4] = {GPU_COMBINED_COMPONENTS, GPU_AFFINE_COMPONENTS,
+                                    GPU_COLOR_COMPONENTS, GPU_MATERIAL_COMPONENTS};
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
@@ -3083,7 +3128,7 @@ int gpu_gl_init(void)
     /* State and object names from a previous context must never influence
      * setup of its replacement, including initialization failure retries. */
     gpu_gl_invalidate_state();
-    affine_supported = color_rules_supported = 0;
+    affine_supported = color_rules_supported = shear_supported = 0;
     maximum_texture_size = 0;
     gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
@@ -3151,25 +3196,35 @@ int gpu_gl_init(void)
             /* Consume any remaining errors from the three independent queries. */
         }
     }
-    /* Optional features have independent variants. Prefer retaining affine
-     * support if the combined program exceeds a driver's resources; a failed
-     * affine-only compiler can still accept color rules without affine. */
-    if(fragment_components >= GPU_COMBINED_COMPONENTS) shader_variants[variant_count++] = 3;
-    if(fragment_components >= GPU_AFFINE_COMPONENTS) shader_variants[variant_count++] = 1;
-    if(fragment_components >= GPU_COLOR_COMPONENTS) shader_variants[variant_count++] = 2;
-    shader_variants[variant_count++] = 0;
+    /* Preserve the existing affine/color preference. Try shader shear beside
+     * each material combination, then retain that same combination without
+     * shear before reducing another capability. Six extra uniforms consume
+     * 14 scalar components, or 24 with conservative vec4 packing; reserve 32. */
+    for(digit = 0; digit < 4; ++digit)
+    {
+        if(fragment_components >= base_components[digit] + GPU_SHEAR_COMPONENTS)
+        {
+            shader_variants[variant_count++] = base_variants[digit] | 4;
+        }
+        if(fragment_components >= base_components[digit] || !base_variants[digit])
+        {
+            shader_variants[variant_count++] = base_variants[digit];
+        }
+    }
     gpu_log("Resource Limits\n"
             "\t%-34s %-16s %s\n"
             "\t%-34s %-16d %d pixels per axis\n"
             "\t%-34s %-16d %d\n"
             "\t%-34s %-16d %d for native affine\n"
-            "\t%-34s %-16d %d for color rules; %d with affine\n",
+            "\t%-34s %-16d %d for color rules; %d with affine\n"
+            "\t%-34s %-16d %d additional to the selected shader\n",
             "Capability", "Available", "Required",
             "Maximum texture size:", maximum_texture_size, 1536,
             "Fragment texture units:", units, GPU_TEXTURE_UNITS,
             "Fragment uniform components:", fragment_components, GPU_AFFINE_COMPONENTS,
             "Color-rule uniform components:", fragment_components, GPU_COLOR_COMPONENTS,
-            GPU_COMBINED_COMPONENTS);
+            GPU_COMBINED_COMPONENTS,
+            "Legacy shear uniform components:", fragment_components, GPU_SHEAR_COMPONENTS);
     if(fragment_components < GPU_AFFINE_COMPONENTS)
     {
         gpu_log("WARNING: Insufficient fragment uniform components for native affine transforms.\n"
@@ -3212,6 +3267,7 @@ int gpu_gl_init(void)
 compile_scene_shader:
     affine_supported = (shader_variants[variant_index] & 1) != 0;
     color_rules_supported = (shader_variants[variant_index] & 2) != 0;
+    shear_supported = (shader_variants[variant_index] & 4) != 0;
     vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
     fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_fragment_shader_source);
     if(!vertex || !fragment)
@@ -3313,6 +3369,12 @@ compile_scene_shader:
     GPU_UNIFORM(affine_approximate_d, "affineApproximateD");
     GPU_UNIFORM(affine_anchor, "affineAnchor");
     GPU_UNIFORM(affine_pivot, "affinePivot");
+    GPU_UNIFORM(shear_origin, "shearOrigin");
+    GPU_UNIFORM(shear_extent, "shearExtent");
+    GPU_UNIFORM(shear_shift, "shearShift");
+    GPU_UNIFORM(shear_source, "shearSource");
+    GPU_UNIFORM(shear_step, "shearStep");
+    GPU_UNIFORM(shear_clip, "shearClip");
     for(digit = 0; digit < 8; ++digit)
     {
         char name[32];
@@ -3372,10 +3434,13 @@ shader_failed:
         gpu_log("WARNING: Optional scene shader features failed; trying another native variant.\n"
                 "\tAffine requested by retry:         %s\n"
                 "\tColor rules requested by retry:    %s\n"
+                "\tLegacy shear requested by retry:   %s\n"
                 "\tIf native affine is unavailable:   CPU software rendering\n"
-                "\tIf color rules are unavailable:    Ignored; no software implementation.",
+                "\tIf color rules are unavailable:    Ignored; no software implementation.\n"
+                "\tIf shader shear is unavailable:    CPU row geometry; native pixels.",
                 (shader_variants[variant_index] & 1) ? "Yes" : "No",
-                (shader_variants[variant_index] & 2) ? "Yes" : "No");
+                (shader_variants[variant_index] & 2) ? "Yes" : "No",
+                (shader_variants[variant_index] & 4) ? "Yes" : "No");
         goto compile_scene_shader;
     }
 failed:

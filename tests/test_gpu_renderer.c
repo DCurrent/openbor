@@ -450,6 +450,213 @@ static void test_sprite_mask(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Select indexed texels through signed shear before applying palette, tint,
+ * destination opacity and the optional source/final color rules.
+ */
+static void test_shear_palette_materials(void)
+{
+    s_screen *source = test_screen(4, 4, PIXEL_x8);
+    s_screen *target = test_screen(12, 8, PIXEL_32);
+    unsigned *palette = (unsigned *)source->palette;
+    unsigned remap[256] = {0};
+    const unsigned background = 0x00317bcdu;
+    int sign, policy, x, y, channel;
+
+    /* Indexed coverage distinguishes transparent zero from visible black.
+     * Different row patterns make a wrong sheared texel change its material. */
+    palette[0] = remap[0] = 0x00ffffffu;
+    palette[1] = 0;
+    palette[2] = 0x00d98b43u; palette[3] = 0x0012a6e8u;
+    remap[1] = 0x0042a135u;
+    remap[2] = 0x006c2be7u; remap[3] = 0x00e87329u;
+    for(y = 0; y < source->height; ++y)
+        for(x = 0; x < source->width; ++x)
+            source->data[y * source->width + x] = (unsigned char)((x + y) % 4);
+
+    for(sign = -1; sign <= 1; sign += 2)
+    {
+        for(policy = 0; policy < 4; ++policy)
+        {
+            s_drawmethod method = plainmethod;
+            const unsigned *active_palette = palette;
+            unsigned long fallbacks, readbacks;
+            method.config |= DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY;
+            method.shiftx = sign * 128;
+            /* Crop left/top while keeping fractional right edges intact;
+             * the transform suite separately checks clipped source phase. */
+            method.clipx = 3; method.clipy = 3; method.clipw = 7; method.cliph = 3;
+            if(policy == 1)
+            {
+                method.table = (unsigned char *)remap;
+                active_palette = remap;
+                method.tintmode = 2; method.tintcolor = 0x0092c7efu;
+                method.alpha = 6;
+            }
+            if(policy == 2)
+            {
+                method.fillcolor = 0x00ab731fu;
+                method.colors.chroma_enabled = 1u << 2;
+                method.colors.chroma[2] = palette[2];
+                method.colors.substitute_enabled = 1u << 3;
+                method.colors.substitute[3].match = method.fillcolor;
+                method.colors.substitute[3].replacement = 0x00091119u;
+            }
+            if(policy == 3)
+            {
+                method.alpha = 6;
+                method.channelr = 17; method.channelg = 128; method.channelb = 251;
+            }
+            assert(gpu_draw_box(target, 0, 0, target->width, target->height, background, &plainmethod));
+            fallbacks = gpu_gl_get_stats()->fallback_draws;
+            readbacks = gpu_gl_get_stats()->readbacks;
+            assert(gpu_draw_screen(target, source, 4, 2, &method));
+            assert(gpu_gl_get_stats()->fallback_draws == fallbacks);
+            assert(gpu_gl_get_stats()->readbacks == readbacks);
+            gpu_sync_cpu(target);
+
+            /* At unit scale, the destination row's lower edge determines
+             * its integer staircase offset. Apply the independently known
+             * source index before reconstructing the existing color rules. */
+            for(y = 0; y < target->height; ++y)
+            {
+                for(x = 0; x < target->width; ++x)
+                {
+                    int sy = y - 2;
+                    int sx = x - 4 - (int)floor((double)(sy + 1) * method.shiftx / 256.0);
+                    unsigned expected = background;
+                    if(sx >= 0 && sx < source->width && sy >= 0 && sy < source->height &&
+                       x >= method.clipx && x < method.clipx + method.clipw &&
+                       y >= method.clipy && y < method.clipy + method.cliph)
+                    {
+                        unsigned index = source->data[sy * source->width + sx];
+                        if(index && !(policy == 2 && index == 2))
+                        {
+                            unsigned color = method.fillcolor ? method.fillcolor : active_palette[index];
+                            const unsigned opacity[3] = {method.channelr, method.channelg, method.channelb};
+                            expected = 0;
+                            for(channel = 0; channel < 24; channel += 8)
+                            {
+                                unsigned value = color >> channel;
+                                if(method.tintmode)
+                                    value = gpu_shader_blend_reference((int)method.tintmode,
+                                            method.tintcolor >> channel, value);
+                                if(policy == 3)
+                                    value = gpu_shader_channel_reference(value, background >> channel,
+                                                                        opacity[channel / 8]);
+                                else if(method.alpha > 0)
+                                    value = gpu_shader_blend_reference(method.alpha, value, background >> channel);
+                                expected |= (value & 255u) << channel;
+                            }
+                            if(policy == 2 && expected == method.colors.substitute[3].match)
+                                expected = method.colors.substitute[3].replacement;
+                        }
+                    }
+                    if(test_pixel(target, x, y) != expected)
+                    {
+                        fprintf(stderr, "shear material sign%d policy%d pixel(%d,%d): expected %06x, actual %06x\n",
+                                sign, policy, x, y, expected, test_pixel(target, x, y));
+                        assert(0);
+                    }
+                }
+            }
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Preserve RLE sprite pivots, masked texel selection and material precedence
+ * while a vertically enlarged source crosses signed shear and clip boundaries.
+ */
+static void test_shear_sprite_mask(void)
+{
+    const unsigned char indices[4] = {1, 2, 3, 0};
+    const unsigned char opacities[4] = {255, 128, 0, 64};
+    const unsigned background = 0x0032579bu;
+    unsigned remap[256] = {0};
+    s_sprite *sprite = test_sprite(indices);
+    s_sprite *mask = test_sprite(opacities);
+    s_screen *target = test_screen(20, 18, PIXEL_32);
+    const int draw_x = 8, draw_y = 8;
+    int sign, flip, x, y, channel;
+    remap[0] = 0x00ffffffu;
+    remap[1] = 0; remap[2] = 0x00e0a060u; remap[3] = 0x0017b9dau;
+    sprite->centerx = sprite->centery = 1;
+    sprite->mask = mask;
+
+    /* Both pivots contribute before reflection. Enlarging the one source
+     * row to four destination rows gives the mask a visible staircase. */
+    for(sign = -1; sign <= 1; sign += 2)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod method = plainmethod;
+            unsigned long fallbacks, readbacks;
+            int origin_x, origin_y, shift;
+            method.centerx = 2; method.centery = 1;
+            method.scaley = 1024; method.shiftx = sign * 128;
+            method.config |= (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                           | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            method.clipx = 3; method.clipy = 1; method.clipw = 13; method.cliph = 14;
+            method.table = (unsigned char *)remap;
+            method.alpha = 6; method.tintmode = 1; method.tintcolor = 0x00ffffffu;
+            method.channelr = method.channelg = method.channelb = 0;
+            origin_x = draw_x + (flip & 1 ? 3 - 4 : -3);
+            origin_y = draw_y + (flip & 2 ? 8 - 4 : -8);
+            shift = flip & 2 ? -method.shiftx : method.shiftx;
+            assert(gpu_draw_box(target, 0, 0, target->width, target->height, background, &plainmethod));
+            fallbacks = gpu_gl_get_stats()->fallback_draws;
+            readbacks = gpu_gl_get_stats()->readbacks;
+            assert(gpu_draw_sprite(target, sprite, draw_x, draw_y, &method));
+            assert(gpu_gl_get_stats()->fallback_draws == fallbacks);
+            assert(gpu_gl_get_stats()->readbacks == readbacks);
+            gpu_sync_cpu(target);
+
+            /* Unit horizontal scale makes the flipped source column exact.
+             * Mask opacity owns compositing even with conflicting tint and
+             * channel settings; index zero still preserves the background. */
+            for(y = 0; y < target->height; ++y)
+            {
+                int left = origin_x + (int)floor((double)(y + 1 - draw_y) * shift / 256.0);
+                for(x = 0; x < target->width; ++x)
+                {
+                    int column = x - left;
+                    unsigned expected = background;
+                    if(y >= origin_y && y < origin_y + 4 && column >= 0 && column < 4 &&
+                       x >= method.clipx && x < method.clipx + method.clipw &&
+                       y >= method.clipy && y < method.clipy + method.cliph)
+                    {
+                        int sx = flip & 1 ? 3 - column : column;
+                        if(indices[sx])
+                        {
+                            unsigned color = remap[indices[sx]];
+                            expected = 0;
+                            for(channel = 0; channel < 24; channel += 8)
+                                expected |= gpu_shader_channel_reference(color >> channel, background >> channel,
+                                                                         opacities[sx]) << channel;
+                        }
+                    }
+                    if(test_pixel(target, x, y) != expected)
+                    {
+                        fprintf(stderr, "shear sprite sign%d flip%d pixel(%d,%d): expected %06x, actual %06x\n",
+                                sign, flip, x, y, expected, test_pixel(target, x, y));
+                        assert(0);
+                    }
+                }
+            }
+        }
+    }
+    gpu_release_sprite(mask); gpu_release_sprite(sprite);
+    free(mask); free(sprite);
+    release_test_screen(target);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  *
  * Exercise affine source selection before palette, fill, tint and compositing
@@ -887,6 +1094,8 @@ int main(void)
     test_indexed_palette();
     test_blend_modes();
     test_sprite_mask();
+    test_shear_palette_materials();
+    test_shear_sprite_mask();
     test_affine_palette_materials();
     test_affine_sprite_mask();
     test_affine_queue_replay();
@@ -906,6 +1115,6 @@ int main(void)
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU renderer tests passed: captures, ordering, palette, blend, affine, coherence, recreation.");
+    puts("GPU renderer tests passed: captures, ordering, palette, blend, shear, affine, coherence, recreation.");
     return 0;
 }

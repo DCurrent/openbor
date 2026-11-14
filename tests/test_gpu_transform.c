@@ -229,6 +229,168 @@ static void test_scale_and_flip(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Check optional shear sampling against hand values and the unchanged row
+ * geometry contract, including clipped phases and extreme reflected shifts.
+ */
+static void test_sampled_shear_contract(void)
+{
+    gpu_transform_parameters p = {8, 1, 10, 1, 2, 0, 0, 0, 0};
+    s_drawmethod m = method();
+    gpu_shear_sampling sampling;
+    capture_state sampled, legacy;
+    const int extreme_shifts[] = {INT_MAX, INT_MIN};
+    int width, index, vertex;
+
+    /* One fixed unit crosses the right clip at width 10. The old geometry
+     * drops its leftmost pixel and retains a 255/256 source phase. Width 11
+     * leaves eight pixels and an unshifted first source sample. */
+    m.shiftx = 1;
+    for(width = 10; width <= 11; ++width)
+    {
+        p.target_width = width;
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&legacy, 0, sizeof(legacy));
+        assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(legacy.count == 1 && legacy.quads[0].wrap == GPU_SAMPLE_FIXED8);
+        near_value(legacy.quads[0].vertices[0].x, width == 10 ? 3 : 2);
+        near_value(legacy.quads[0].vertices[2].x, 10);
+        near_value(legacy.quads[0].vertices[0].u + 0.5, width == 10 ? 255.0 / 256.0 : 0);
+        assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
+        near_value(sampled.quads[0].vertices[0].x, 2);
+        near_value(sampled.quads[0].vertices[2].x, 10);
+        near_value(sampling.origin[0], 2);
+        near_value(sampling.origin[1], 1);
+        near_value(sampling.origin[2], 1);
+        near_value(sampling.extent[0], 8);
+        near_value(sampling.extent[1], 0);
+        near_value(sampling.extent[2], 1);
+        near_value(sampling.shift[0], 0);
+        near_value(sampling.shift[1], 1);
+        near_value(sampling.source[0], 1792);
+        near_value(sampling.source[1], 0);
+        near_value(sampling.step[0], -256);
+        near_value(sampling.step[1], -256);
+        near_value(sampling.clip[0], 0);
+        near_value(sampling.clip[1], width);
+    }
+
+    /* Integer reciprocal steps become zero above scale 65536. Keep the old
+     * constant source coordinate instead of inventing a minimum unit step. */
+    p = (gpu_transform_parameters){2, 2, 16, 16, 0, 0, 0, 0, 0};
+    m.scalex = m.scaley = 65537;
+    memset(&sampled, 0, sizeof(sampled));
+    memset(&legacy, 0, sizeof(legacy));
+    assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(legacy.count == 16 && sampling.enabled && sampled.count == 1);
+    near_value(sampling.step[0], 0);
+    near_value(sampling.step[1], 0);
+    near_value(sampling.source[0], 512);
+    near_value(sampling.source[1], 512);
+    for(index = 0; index < legacy.count; ++index)
+    {
+        assert(legacy.quads[index].wrap == GPU_SAMPLE_FIXED8);
+        for(vertex = 0; vertex < 4; ++vertex)
+        {
+            near_value(legacy.quads[index].vertices[vertex].u, 2);
+            near_value(legacy.quads[index].vertices[vertex].v, 2);
+        }
+    }
+
+    /* Vertical reflection negates the signed shift in wider arithmetic. Only
+     * the bottom row intersects the target for either integer extreme, so
+     * large dormant travel must not reject its bounded native intersection. */
+    p = (gpu_transform_parameters){8, 3, 16, 16, 2, 3, 0, 0, 0};
+    m = method();
+    m.config |= DRAWMETHOD_CONFIG_FLIP_Y;
+    for(index = 0; index < 2; ++index)
+    {
+        m.shiftx = extreme_shifts[index];
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&legacy, 0, sizeof(legacy));
+        assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(legacy.count == 1 && legacy.quads[0].wrap == GPU_SAMPLE_FIXED8);
+        assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
+        near_value(sampling.shift[0], index == 0 ? -8388608 : 8388608);
+        near_value(sampling.shift[1], index == 0 ? 1 : 0);
+        near_value(sampling.extent[2], 1);
+        near_value(sampling.source[1], 0);
+        near_value(sampling.step[1], 256);
+        for(vertex = 0; vertex < 4; ++vertex)
+        {
+            near_value(sampled.quads[0].vertices[vertex].x, legacy.quads[0].vertices[vertex].x);
+            near_value(sampled.quads[0].vertices[vertex].y, legacy.quads[0].vertices[vertex].y);
+        }
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Bound optional sampler precision without requesting CPU pixel fallback.
+ * Large visible shear uses one callback; empty coverage submits no geometry.
+ */
+static void test_sampled_shear_limits(void)
+{
+    gpu_transform_parameters p;
+    int *dimensions[] = {&p.source_width, &p.source_height, &p.target_width, &p.target_height};
+    s_drawmethod m = method();
+    gpu_shear_sampling sampling;
+    capture_state sampled, legacy;
+    unsigned dimension;
+
+    m.shiftx = 1;
+    for(dimension = 0; dimension < sizeof(dimensions) / sizeof(dimensions[0]); ++dimension)
+    {
+        p = (gpu_transform_parameters){2, 2, 8, 8, 0, 0, 0, 0, 0};
+        *dimensions[dimension] = 65535;
+        memset(&sampled, 0, sizeof(sampled));
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
+
+        /* The next dimension is still valid native geometry. Explicitly
+         * require the ordinary rows, rather than FAILED or partial emission. */
+        *dimensions[dimension] = 65536;
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&legacy, 0, sizeof(legacy));
+        assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(!sampling.enabled && legacy.count > 0 && sampled.count == legacy.count);
+        assert(sampled.quads[0].wrap == GPU_SAMPLE_FIXED8);
+        assert(!memcmp(sampled.quads, legacy.quads, (size_t)legacy.count * sizeof(legacy.quads[0])));
+    }
+
+    /* Sixty thousand visible rows must fit the same one-quad callback
+     * contract without enlarging the capture helper's fixed capacity. */
+    p = (gpu_transform_parameters){4, 60000, 512, 60000, 0, 0, 0, 0, 0};
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
+    near_value(sampling.extent[2], 60000);
+    near_value(sampled.quads[0].vertices[0].x, 0);
+    near_value(sampled.quads[0].vertices[0].y, 0);
+    near_value(sampled.quads[0].vertices[2].x, 238);
+    near_value(sampled.quads[0].vertices[2].y, 60000);
+
+    /* Entirely horizontal clipping and a width below one destination pixel
+     * both complete native handling without invoking the callback. */
+    p = (gpu_transform_parameters){8, 4, 16, 16, 100, 0, 0, 0, 0};
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_EMPTY);
+    assert(!sampling.enabled && sampled.count == 0);
+    p.source_width = 1;
+    p.x = 0;
+    m.scalex = 128;
+    sampling.enabled = 1;
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_EMPTY);
+    assert(!sampling.enabled && sampled.count == 0);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Check inverse rotation sampling at exact quarter-turns with nonuniform scale.
@@ -619,6 +781,7 @@ static void test_affine_validation(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-14 - Exercise optional shear sampling and retained native rows.
  *
  * Run the standalone renderer arithmetic suite and report a concise result.
  */
@@ -628,6 +791,8 @@ int main(void)
      * paths to ensure invalid inputs cannot leave partially submitted work. */
     test_blends();
     test_scale_and_flip();
+    test_sampled_shear_contract();
+    test_sampled_shear_limits();
     test_rotation();
     test_plane();
     test_water();

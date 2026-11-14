@@ -601,6 +601,120 @@ static int64_t gpu_fixed_floor(int64_t value)
     return value >= 0 ? value / 256 : -((-value + 255) / 256);
 }
 
+typedef struct gpu_shear_setup
+{
+    int64_t origin_x, width, clip_left, clip_right, bottom, rows, shift;
+    int64_t source_x, source_y, step_x, step_y;
+} gpu_shear_setup;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Floor a signed numerator by a positive divisor when trimming the monotonic
+ * shear sequence. C truncation alone would lose negative boundary rows.
+ */
+static int64_t gpu_floor_divide(int64_t numerator, int64_t divisor)
+{
+    int64_t quotient = numerator / divisor;
+    return quotient - (numerator % divisor < 0);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Replace a legacy row walk with bounded shader sampling parameters. Exact
+ * whole/byte pairs preserve snapped coverage and clipping-dependent phase.
+ * Unsupported precision retains the existing native row geometry.
+ */
+static int gpu_prepare_shear(const gpu_transform_parameters *parameters,
+                             const gpu_shear_setup *setup,
+                             gpu_shear_sampling *sampling, float rectangle[4])
+{
+    int64_t lower, upper, first, last, divisor, origin, final_origin, bottom, rows;
+    int64_t origin_whole, width_whole, shift_whole, source_y;
+    int64_t left, right;
+
+    /* Byte products fit exact 24-bit integer-valued floats for this domain.
+     * The existing scale setup separately bounds fixed extents to 2^29.
+     * Larger images retain row geometry without changing their pixels. */
+    if(parameters->source_width > 65535 || parameters->source_height > 65535 ||
+       parameters->target_width > 65535 || parameters->target_height > 65535)
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+    if(setup->width < 256)
+    {
+        return GPU_TRANSFORM_EMPTY;
+    }
+
+    /* Rows visit at least one pixel exactly when their fixed-point origin
+     * lies inside [clip_left + 256 - width, clip_right - 256]. Intersect that
+     * interval with the monotonic bottom-to-top recurrence in constant time. */
+    lower = setup->clip_left + 256 - setup->width;
+    upper = setup->clip_right - 256;
+    divisor = setup->shift > 0 ? setup->shift : -setup->shift;
+    if(setup->shift > 0)
+    {
+        first = -gpu_floor_divide(upper - setup->origin_x, divisor);
+        last = gpu_floor_divide(setup->origin_x - lower, divisor);
+    }
+    else
+    {
+        first = -gpu_floor_divide(setup->origin_x - lower, divisor);
+        last = gpu_floor_divide(upper - setup->origin_x, divisor);
+    }
+    if(first < 0) first = 0;
+    if(last >= setup->rows) last = setup->rows - 1;
+    if(first > last)
+    {
+        return GPU_TRANSFORM_EMPTY;
+    }
+
+    /* Rebase every phase together after trimming. The remaining origins are
+     * bounded by the clip interval and source extent, even for large shifts
+     * or distant pivots that produce only a small visible intersection. */
+    origin = setup->origin_x - first * setup->shift;
+    rows = last - first + 1;
+    final_origin = origin - (rows - 1) * setup->shift;
+    source_y = setup->source_y + first * setup->step_y;
+    bottom = setup->bottom - first;
+    origin_whole = gpu_fixed_floor(origin);
+    width_whole = gpu_fixed_floor(setup->width);
+    shift_whole = gpu_fixed_floor(setup->shift);
+
+    /* Bound a single destination rectangle around all surviving row spans.
+     * The shader rejects staircase gaps using each row's original clipped
+     * fixed-point coverage, rather than continuously skewing the artwork. */
+    left = gpu_fixed_floor(origin < final_origin ? origin : final_origin);
+    right = gpu_fixed_floor((origin > final_origin ? origin : final_origin) + setup->width);
+    if(left < setup->clip_left / 256) left = setup->clip_left / 256;
+    if(right > setup->clip_right / 256) right = setup->clip_right / 256;
+    rectangle[0] = (float)left;
+    rectangle[1] = (float)(bottom - rows);
+    rectangle[2] = (float)right;
+    rectangle[3] = (float)bottom;
+
+    /* Each byte is nonnegative even for negative shear. Products of a row
+     * index or reciprocal step with a byte stay below 2^24; splitting the
+     * whole part avoids rounding large fixed-point origins or extents. */
+    sampling->origin[0] = (float)origin_whole;
+    sampling->origin[1] = (float)(origin - origin_whole * 256);
+    sampling->origin[2] = (float)bottom;
+    sampling->extent[0] = (float)width_whole;
+    sampling->extent[1] = (float)(setup->width - width_whole * 256);
+    sampling->extent[2] = (float)rows;
+    sampling->shift[0] = (float)shift_whole;
+    sampling->shift[1] = (float)(setup->shift - shift_whole * 256);
+    sampling->source[0] = (float)setup->source_x;
+    sampling->source[1] = (float)source_y;
+    sampling->step[0] = (float)setup->step_x;
+    sampling->step[1] = (float)setup->step_y;
+    sampling->clip[0] = (float)(setup->clip_left / 256);
+    sampling->clip[1] = (float)(setup->clip_right / 256);
+    sampling->enabled = 1;
+    return GPU_TRANSFORM_DRAWN;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-12
@@ -652,12 +766,14 @@ static int gpu_scale_span(int64_t dx, int64_t width, int64_t xmin, int64_t xmax,
  * Damon V. Caskey
  * 2026-11-12
  *
+ * 2026-11-14 - Supply exact shear sampling when the native shader supports it.
  * Keep existing fixed-point scale/flip sampling instead of shifting downscaled
  * artwork to a different texel. Ordinary scaling remains one GPU quad. Shear
- * uses row quads because the legacy rasterizer snaps each shifted row to whole
- * destination pixels; a continuously skewed quad would change its sampling.
+ * uses one shader-sampled quad or retains its established row geometry when
+ * that representation is unavailable; continuous skew would change sampling.
  */
 static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod *m,
+                          gpu_shear_sampling *shear,
                           gpu_transform_emit_quad emit, void *userdata)
 {
     int64_t x = (int64_t)p->x * 256;
@@ -779,6 +895,22 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
                              u0, v0, u1, v0 + rows * delta, GPU_SAMPLE_FIXED8, emit, userdata);
     }
 
+    if(shear)
+    {
+        gpu_shear_setup setup = {dx, width, xmin, xmax, gpu_fixed_floor(end_y),
+                                rows, shift, source_x, source_y, step_x, step_y};
+        float rectangle[4];
+        int result = gpu_prepare_shear(p, &setup, shear, rectangle);
+        if(result == GPU_TRANSFORM_EMPTY) return result;
+        if(result == GPU_TRANSFORM_DRAWN)
+        {
+            /* UV attributes are unused for this mode. Pixel centers and the
+             * exact setup above supply source coordinates in the shader. */
+            return gpu_emit_rect(rectangle[0], rectangle[1], rectangle[2], rectangle[3],
+                                 0.0f, 0.0f, 0.0f, 0.0f, GPU_SAMPLE_SHEAR, emit, userdata);
+        }
+    }
+
     /* Sheared rows receive independently clipped, integer-aligned spans.
      * Their source row stays constant across each one-pixel-high quad. After
      * clipping, span offsets remain bounded by the validated image width. */
@@ -803,16 +935,20 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Dispatch explicit affine matrices before dormant legacy state.
+ * 2026-11-14 - Prepare optional shader shear without changing family priority.
  *
  * Select exactly one existing transformation family. Validate before emission,
  * and leave repeats, painter ordering, materials and target synchronization to
  * the renderer. Disabled methods retain the ordinary untransformed fast path.
  */
-int gpu_transform_draw(const gpu_transform_parameters *p, const s_drawmethod *method,
-                       gpu_transform_emit_quad emit, void *userdata)
+int gpu_transform_draw_sampled(const gpu_transform_parameters *p, const s_drawmethod *method,
+                               gpu_shear_sampling *shear,
+                               gpu_transform_emit_quad emit, void *userdata)
 {
     s_drawmethod plain;
     const s_drawmethod *m = method;
+
+    if(shear) shear->enabled = 0;
 
     /* Invalid geometry cannot supply safe reciprocal scales, clipping bounds,
      * or texture coordinates. Reject it before choosing a transform family. */
@@ -877,5 +1013,17 @@ int gpu_transform_draw(const gpu_transform_parameters *p, const s_drawmethod *me
     {
         return gpu_draw_rotate(p, m, emit, userdata);
     }
-    return gpu_draw_scale(p, m, emit, userdata);
+    return gpu_draw_scale(p, m, shear, emit, userdata);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Retain geometry-only callers and the native row fallback contract. Optional
+ * sampling state is supplied explicitly by a capable renderer instead.
+ */
+int gpu_transform_draw(const gpu_transform_parameters *p, const s_drawmethod *method,
+                       gpu_transform_emit_quad emit, void *userdata)
+{
+    return gpu_transform_draw_sampled(p, method, NULL, emit, userdata);
 }

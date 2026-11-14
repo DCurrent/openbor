@@ -24,7 +24,7 @@ typedef enum submission_failure
 typedef struct submission_trace
 {
     unsigned draws, immediate_calls, vertex_storage, vertex_updates, index_storage;
-    uint64_t elements;
+    uint64_t elements, vertex_bytes;
 } submission_trace;
 
 static submission_trace submission_calls;
@@ -98,7 +98,8 @@ static void APIENTRY submission_data(GLenum target, GLsizeiptr size,
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Reject one vertex upload through normal GL validation without submitting it.
+ * Count uploaded geometry and reject one vertex update through normal GL
+ * validation without submitting the rejected payload.
  */
 static void APIENTRY submission_update(GLenum target, GLintptr offset,
                                        GLsizeiptr size, const void *data)
@@ -110,6 +111,11 @@ static void APIENTRY submission_update(GLenum target, GLintptr offset,
         ++submission_failures;
         submission_real_update(target, offset, (GLsizeiptr)-1, data);
         return;
+    }
+    /* Retain actual payload size so one batch cannot conceal many row quads. */
+    if(target == GL_ARRAY_BUFFER && size > 0)
+    {
+        submission_calls.vertex_bytes += (uint64_t)size;
     }
     submission_real_update(target, offset, size, data);
 }
@@ -231,6 +237,72 @@ static void submission_verify(s_screen *screen, const unsigned *expected, const 
             assert(0);
         }
     }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Prove safe legacy shear uploads four vertices and submits six real indices
+ * while preserving signed row rounding, both flips and the drawmethod pivot.
+ */
+static void test_submission_shear(void)
+{
+    s_screen *source = test_screen(7, 9, PIXEL_32);
+    s_screen *target = test_screen(32, 24, PIXEL_32);
+    unsigned expected[32 * 24];
+    const int draw_x = 12, draw_y = 6;
+    int sign, flip, sx, sy;
+    submission_fill_source(source);
+
+    /* Unit scales give an independent staircase: each source row is shifted
+     * from its destination lower edge, then its whole span rounds downward. */
+    for(sign = -1; sign <= 1; sign += 2)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod method = plainmethod;
+            unsigned long fallbacks, readbacks;
+            int origin_x, origin_y, shift;
+            method.shiftx = sign * 128;
+            method.centerx = 2; method.centery = 3;
+            method.config |= (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                           | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            origin_x = draw_x + (flip & 1 ? method.centerx - source->width : -method.centerx);
+            origin_y = draw_y + (flip & 2 ? method.centery - source->height : -method.centery);
+            shift = flip & 2 ? -method.shiftx : method.shiftx;
+            memset(expected, 0, sizeof(expected));
+            for(sy = 0; sy < source->height; ++sy)
+            {
+                int y = origin_y + (flip & 2 ? source->height - 1 - sy : sy);
+                int left = origin_x + (int)floor((double)(y + 1 - draw_y) * shift / 256.0);
+                for(sx = 0; sx < source->width; ++sx)
+                {
+                    int x = left + (flip & 1 ? source->width - 1 - sx : sx);
+                    assert(x >= 0 && x < target->width && y >= 0 && y < target->height);
+                    expected[y * target->width + x] =
+                        ((unsigned *)source->data)[sy * source->width + sx];
+                }
+            }
+
+            /* Clear before tracing. Readback follows the assertions so the
+             * measured operation consists only of the native image draw. */
+            assert(gpu_clear_screen(target));
+            fallbacks = gpu_gl_get_stats()->fallback_draws;
+            readbacks = gpu_gl_get_stats()->readbacks;
+            memset(&submission_calls, 0, sizeof(submission_calls));
+            assert(gpu_draw_screen(target, source, draw_x, draw_y, &method));
+            assert(submission_calls.draws == 1 && submission_calls.elements == 6);
+            assert(submission_calls.vertex_updates == 1);
+            assert(submission_calls.vertex_bytes == 4 * sizeof(gpu_vertex));
+            assert(submission_calls.vertex_bytes == 64);
+            assert(submission_calls.immediate_calls == 0);
+            assert(gpu_gl_get_stats()->fallback_draws == fallbacks);
+            assert(gpu_gl_get_stats()->readbacks == readbacks);
+            submission_verify(target, expected, "single-quad legacy shear");
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
 }
 
 /*
@@ -437,6 +509,7 @@ int main(void)
             test_submission_stream();
             test_submission_failures();
         }
+        test_submission_shear();
         test_submission_external_state();
         assert(submission_calls.immediate_calls == 0);
         gpu_gl_shutdown();
@@ -452,6 +525,7 @@ int main(void)
     SDL_DestroyWindow(window);
     SDL_Quit();
     printf("GPU buffered submission tests passed: streamed indexed triangles, VBO rollover, "
-           "three atomic failure/retry cases, vertex-state restoration and context recreation.\n");
+           "six-index/64-byte shear, three atomic failure/retry cases, "
+           "vertex-state restoration and context recreation.\n");
     return 0;
 }

@@ -39,10 +39,33 @@ static unsigned plane_drift_corrections;
 static unsigned rotation_bounds_corrections;
 static unsigned rotation_sample_corrections;
 static unsigned compared_draws;
+static unsigned compared_shear_draws;
 static unsigned compared_lines;
 static unsigned compared_affine_draws;
 static unsigned compared_axis_lines;
-static uint64_t axis_profile_time;
+static uint64_t transform_profile_time;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Give optimized transform geometry deterministic collection boundaries.
+ */
+static uint64_t transform_profile_clock(void)
+{
+    /* Advance only at fixture boundaries so draw work stays in one frame. */
+    return transform_profile_time;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Inspect counter reports directly without printing one table per fixture.
+ */
+static void transform_profile_log(const char *line)
+{
+    /* Keep the ordinary report path active while suppressing fixture noise. */
+    assert(line);
+}
 
 /*
  * Damon V. Caskey
@@ -244,6 +267,7 @@ static s_screen *make_screen(int width, int height)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-14 - Count safe shear geometry around the same pixel-tested draw.
  *
  * Compare one real software draw with the GPU draw, printing exact context on
  * failure. Rotation may reveal valid pixels formerly cut off by its old bounds.
@@ -252,7 +276,9 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
                          s_drawmethod *method, int family, int x, int y)
 {
     gfx_entry entry;
-    int pixel, differences = 0;
+    int pixel, differences = 0, covered = 0;
+    int measure_shear = family == 0 && method->shiftx != 0;
+    uint64_t frame = 0, shear_quads = 0;
 
     /* Reset each target through its owning path. Software receives a current
      * CPU shadow, while native clear preserves a GPU-resident comparison. */
@@ -278,7 +304,40 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
         gfx_draw_rotate(reference, &entry, x, y, 0, 0, method);
     }
 
+    /* These small fixed-point fixtures fit the dedicated shear sampler.
+     * Count only native drawing, excluding the oracle, clear and readback. */
+    if(measure_shear)
+    {
+        engine_profile_set_hooks(transform_profile_clock, transform_profile_log);
+        engine_profile_configure(1, 1, 0);
+        transform_profile_time = 1000;
+        frame = engine_profile_frame_begin(1, native, native);
+        assert(frame);
+    }
     assert(gpu_draw_screen(native, source, x, y, method));
+    if(measure_shear)
+    {
+        const ep_report *report;
+        int fallback;
+        transform_profile_time = 2000;
+        engine_profile_frame_end(frame);
+        transform_profile_time = 11000;
+        assert(engine_profile_frame_begin(1, native, native) == 0);
+        report = engine_profile_last_report();
+        shear_quads = report->counts[EP_COUNT_NATIVE_QUADS];
+        assert(report->frames == 1 && shear_quads <= 1);
+        assert(report->counts[EP_COUNT_NATIVE_DRAWS] == shear_quads);
+        assert(report->counts[EP_COUNT_NATIVE_BATCHES] == shear_quads);
+        assert(report->counts[EP_COUNT_READBACKS] == 0);
+        assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
+        for(fallback = 0; fallback < EP_FALLBACK_COUNT; ++fallback)
+        {
+            assert(report->fallbacks[fallback] == 0);
+        }
+        engine_profile_configure(0, 1, 0);
+        engine_profile_set_hooks(NULL, NULL);
+        ++compared_shear_draws;
+    }
     gpu_sync_cpu(native);
     /* Ordinary transforms compare directly with production software. Plane
      * drift and rotation bounds/sampling use independent canonical mappings;
@@ -287,6 +346,7 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
     {
         unsigned expected = ((unsigned *)reference->data)[pixel] & 0x00ffffffu;
         unsigned actual = ((unsigned *)native->data)[pixel] & 0x00ffffffu;
+        covered += expected != 0;
         if(family == 2)
         {
             unsigned canonical = canonical_plane_pixel(source, reference, method, x, y,
@@ -329,6 +389,7 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
         }
     }
     assert(differences == 0);
+    if(measure_shear && covered) assert(shear_quads == 1);
     ++compared_draws;
 }
 
@@ -375,6 +436,89 @@ static void test_scale(s_screen *source, s_screen *reference, s_screen *native)
             }
         }
     }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Preserve legacy row rounding with odd image extents, truncated reciprocal
+ * scales and signed shear carries at target and drawmethod clip boundaries.
+ */
+static void test_shear_boundaries(s_screen *reference, s_screen *native)
+{
+    const struct
+    {
+        int scalex, scaley, shift, centerx, centery, x, y;
+        int clipx, clipy, clipw, cliph;
+    } fixtures[] =
+    {
+        {255, 257,    1,  2,  3, 24, 24,  0,  0,  0, 0},
+        {257, 255,   -1, -2, 11, 24, 30,  0,  0,  0, 0},
+        {173, 300,  257,  3,  2,  2,  2,  0,  0,  0, 0},
+        {300, 173, -257,  3,  2, 62, 62,  0,  0,  0, 0},
+        {319, 383,  127,  3,  2, 24, 24, 22, 23, 11, 9},
+        {383, 319, -127,  3,  2, 24, 24, 22, 23, 11, 9},
+        {129, 513, -255,  6,  4,  2, 62,  0,  0,  0, 0},
+        {513, 129,  255,  6,  4, 62,  2,  0,  0,  0, 0}
+    };
+    s_screen *source = make_screen(13, 9);
+    unsigned fixture;
+    int pixel, flip;
+
+    /* Odd dimensions keep scaled edges fractional. Unique nonzero pixels
+     * expose reciprocal-phase errors as well as missing staircase coverage. */
+    for(pixel = 0; pixel < source->width * source->height; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = 0x00100000u | (unsigned)(pixel + 1);
+    }
+    for(fixture = 0; fixture < sizeof(fixtures) / sizeof(fixtures[0]); ++fixture)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod method = plainmethod;
+            method.scalex = fixtures[fixture].scalex;
+            method.scaley = fixtures[fixture].scaley;
+            method.shiftx = fixtures[fixture].shift;
+            method.centerx = fixtures[fixture].centerx;
+            method.centery = fixtures[fixture].centery;
+            method.clipx = fixtures[fixture].clipx;
+            method.clipy = fixtures[fixture].clipy;
+            method.clipw = fixtures[fixture].clipw;
+            method.cliph = fixtures[fixture].cliph;
+            method.config |= (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                           | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            compare_draw(source, reference, native, &method, 0,
+                         fixtures[fixture].x, fixtures[fixture].y);
+        }
+    }
+    gpu_release_screen(source);
+    free(source);
+
+    /* One fixed-point byte beyond the right clip changes both visit count
+     * and source phase. Merely scissoring an otherwise identical quad cannot
+     * preserve these two target widths' different first destination pixels. */
+    source = make_screen(8, 1);
+    for(pixel = 0; pixel < 8; ++pixel)
+        ((unsigned *)source->data)[pixel] = 0x00100001u + (unsigned)pixel;
+    for(pixel = 10; pixel <= 11; ++pixel)
+    {
+        s_screen *clipped_reference = make_screen(pixel, 1);
+        s_screen *clipped_native = make_screen(pixel, 1);
+        s_drawmethod method = plainmethod;
+        int x, first = pixel == 10 ? 3 : 2;
+        method.shiftx = 1;
+        compare_draw(source, clipped_reference, clipped_native, &method, 0, 2, 0);
+        for(x = 0; x < pixel; ++x)
+        {
+            unsigned expected = x >= first && x < 10
+                              ? ((unsigned *)source->data)[x - first] : 0;
+            assert((((unsigned *)clipped_native->data)[x] & 0x00ffffffu) == expected);
+        }
+        gpu_release_screen(clipped_reference); gpu_release_screen(clipped_native);
+        free(clipped_reference); free(clipped_native);
+    }
+    gpu_release_screen(source);
+    free(source);
 }
 
 /*
@@ -521,6 +665,7 @@ static void compare_affine_draw(s_screen *source, s_screen *reference, s_screen 
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Keep manual affine priority over dormant fixed-point shear.
  *
  * Exercise affine image coverage, sampling, clipping and dormant legacy
  * settings, including legitimate samples immediately beside texel edges.
@@ -565,6 +710,10 @@ static void test_affine(s_screen *source, s_screen *reference, s_screen *native)
                 method.affine = matrices[matrix];
                 method.centerx = 3;
                 method.centery = 2;
+                /* Stored scale and shear must not alter a selected matrix,
+                 * including opposite signs under either flip convention. */
+                method.scalex = 173; method.scaley = 319;
+                method.shiftx = flip & 1 ? -257 : 257;
                 if(location == 3)
                 {
                     method.clipx = 4; method.clipy = 5;
@@ -705,26 +854,6 @@ static void test_lines(s_screen *reference, s_screen *native)
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Give the axis-line geometry counters deterministic collection boundaries.
- */
-static uint64_t axis_line_profile_clock(void)
-{
-    return axis_profile_time;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Inspect counter reports directly without printing one table per fixture.
- */
-static void axis_line_profile_log(const char *line)
-{
-    assert(line);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
  * Compare one-rectangle axis lines with independently enumerated native pixel
  * draws. Patterned destinations exercise material sampling while existing
  * counters prove that visible lines no longer expand into per-pixel geometry.
@@ -744,7 +873,7 @@ static void test_axis_line_materials(s_screen *reference, s_screen *native)
     /* Each native reference point writes a distinct pixel. Separate snapshot
      * timing therefore cannot affect its blend input, and its unchanged box
      * path also supports shader-only chroma and final-color substitution. */
-    engine_profile_set_hooks(axis_line_profile_clock, axis_line_profile_log);
+    engine_profile_set_hooks(transform_profile_clock, transform_profile_log);
     for(fixture = 0; fixture < (int)(sizeof(endpoints) / sizeof(endpoints[0])); ++fixture)
     {
         int sx = endpoints[fixture][0], sy = endpoints[fixture][1];
@@ -827,13 +956,13 @@ static void test_axis_line_materials(s_screen *reference, s_screen *native)
                 /* Count only the optimized line, excluding oracle draws and
                  * subsequent pixel readback. Empty clipping emits no geometry. */
                 engine_profile_configure(1, 1, 0);
-                axis_profile_time = 1000;
+                transform_profile_time = 1000;
                 frame = engine_profile_frame_begin(1, native, native);
                 assert(frame);
                 assert(gpu_draw_line(native, sx, sy, ex, ey, color, &method));
-                axis_profile_time = 2000;
+                transform_profile_time = 2000;
                 engine_profile_frame_end(frame);
-                axis_profile_time = 11000;
+                transform_profile_time = 11000;
                 assert(engine_profile_frame_begin(1, native, native) == 0);
                 report = engine_profile_last_report();
                 assert(report->frames == 1);
@@ -917,6 +1046,7 @@ int main(void)
         ((unsigned *)source->data)[pixel] = 0x00100000u | (unsigned)(pixel + 1);
     }
     test_scale(source, reference, native);
+    test_shear_boundaries(reference, native);
     test_water(source, reference, native);
     test_plane(source, reference, native);
     test_rotate(source, reference, native);
@@ -930,11 +1060,12 @@ int main(void)
     free(source); free(reference); free(native);
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context); SDL_DestroyWindow(window); SDL_Quit();
-    printf("GPU transform pixel tests passed: %u draws, %u affine draws, %u lines, "
+    printf("GPU transform pixel tests passed: %u draws (%u shear draws with one-quad counters), "
+           "%u affine draws, %u lines, "
            "%u axis-line material images with one-quad counters; "
            "corrected legacy pixels: plane boundaries=%u, rotation coverage=%u, "
            "rotation sampling=%u.\n",
-           compared_draws, compared_affine_draws, compared_lines, compared_axis_lines, plane_drift_corrections,
+           compared_draws, compared_shear_draws, compared_affine_draws, compared_lines, compared_axis_lines, plane_drift_corrections,
            rotation_bounds_corrections, rotation_sample_corrections);
     return 0;
 }

@@ -26,7 +26,8 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | RGB32 screens and scene composition | GPU textures and framebuffer objects |
 | Indexed sprites, source palettes and remaps | Cached index textures, bounded resident palette atlas, and draw-time palette lookup |
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
-| Existing scale, flip, rotation, shear, water and plane transforms | GPU pixel sampling with existing transform parameters |
+| Existing scale, flip, rotation, water and plane transforms | GPU pixel sampling with existing transform parameters |
+| Legacy shear | One bounded quad and exact shader row sampling; existing native row geometry retained when shader setup is unavailable |
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
@@ -115,6 +116,8 @@ The native OpenGL capability check reports:
   probe, using the existing white texture without drawing into it.
 - Vertex/index buffer allocation, followed by an explicit
   `Buffered submission: NATIVE - indexed triangles` execution row.
+- Optional legacy shear sampling, including its extra uniform allowance and
+  explicit shader-versus-CPU row-setup status.
 
 Each native capability report ends with one of these results:
 
@@ -133,6 +136,16 @@ color-only and legacy variants. Missing color support is reported as
 `UNAVAILABLE - ignored`, with an explicit notice that no CPU implementation
 exists. Color settings never force an otherwise native draw onto the CPU.
 Software drawing ignores both controls without a per-draw warning.
+
+The separate **Legacy Shear** checklist reports
+`NATIVE - shader sampling, one quad` when its optional shader is active.
+Otherwise a working native renderer reports
+`CPU - row geometry; native pixels`, with a warning that row setup remains on
+the CPU. Shear compilation/linking failure retries the same affine/color
+combination without shader shear before reducing another capability. Its six
+uniforms contain 14 scalar components; initialization reserves 32 additional
+components to allow conservative vector packing. Existing shader thresholds
+and affine/color preference remain unchanged.
 
 Missing capabilities that require software fallback produce `WARNING` records
 with the cause, the work that moves to the CPU, and the statement
@@ -227,6 +240,51 @@ objects, persistent mapping or a new context type. The explicit attributes
 and triangle representation are also suitable for a future GLES backend;
 Android retains its existing renderer in this change. Hardware profiling is
 still needed to establish the frame-time benefit.
+
+## Exact legacy shear on the GPU
+
+Legacy `shiftx` shear keeps its established image, including the staircase
+coverage created by snapping each row to whole destination pixels. The native
+shader evaluates that coverage and selects the source texel from the current
+destination pixel. The CPU prepares the fixed-point transform once, trims the
+monotonic visible row interval using its endpoints, and emits one bounded quad.
+It no longer constructs a separate quad for every visible shear row.
+
+The mapping preserves integer reciprocal scales (`65536 / scale`), both flips,
+sprite and drawmethod pivots, source phase after bottom clipping, and source
+phase after right clipping. Signed divisions retain floor behavior. Whole and
+byte parts carry the 8.8 values into the shader without rounding large fixed
+coordinates to a neighboring sample. Color keying, palettes, opacity masks,
+fills, tint, blend modes, chroma and Substitute still follow the common material
+path after the shader selects the texel.
+
+Right clipping is part of sampling, beyond the final scissor rectangle. For
+example, an 8x1 source at `(2, 0)`, unit scale and `shiftx = 1` covers destination
+columns `2..9` on a width-11 target. A width-10 target clips one fixed-point unit
+off its right edge, producing columns `3..9` and source texels `0..6`. The shader
+retains that existing phase change rather than treating shear as continuous
+affine skew.
+
+Manual affine settings keep their existing priority. Plane, water and rotation
+also keep their existing dispatch precedence over legacy scale/shear. Repeats
+retain their order and individual destination snapshots. No script API or
+drawmethod setting changes are required.
+
+The compact exact representation supports source and target axes up to 65,535
+pixels, alongside the existing scale/pivot/range checks. These limits keep
+integer-valued float intermediates below the exact 24-bit range after row
+trimming. Larger images, or a renderer without the optional shear shader,
+retain the existing native row geometry and GPU pixel rendering. No additional
+software rasterizer is introduced. Startup makes the execution path and this
+potential CPU setup explicit.
+
+This reduces CPU geometry preparation and vertex upload from work proportional
+to visible rows to constant work per instance. Buffered submission already
+combined those rows into one draw call, so a lower draw-call count is not the
+expected benefit. The enclosing rectangle can cover gaps between sheared rows;
+the shader rejects those pixels before texture sampling. Hardware frame-time
+measurements determine the resulting balance between less CPU work and more
+fragment coverage.
 
 ## Sprite residency
 

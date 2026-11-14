@@ -31,6 +31,10 @@ typedef enum capability_case
     CAPABILITY_MISSING_BUFFER_ENTRY,
     CAPABILITY_BUFFER_OBJECT_ALLOCATION,
     CAPABILITY_BUFFER_STORAGE_ALLOCATION,
+    CAPABILITY_SHEAR_COMPILE,
+    CAPABILITY_SHEAR_LINK,
+    CAPABILITY_SHEAR_ONLY_UNIFORMS,
+    CAPABILITY_COLOR_SHEAR_UNIFORMS,
     CAPABILITY_COUNT
 } capability_case;
 
@@ -43,11 +47,17 @@ static const char *const capability_names[CAPABILITY_COUNT] =
     "color link failure", "combined shader compile failure",
     "affine-only uniform capacity", "color-only uniform capacity",
     "missing buffer entry point", "buffer object allocation failure",
-    "buffer storage allocation failure"
+    "buffer storage allocation failure", "shear compile failure",
+    "shear link failure", "shear-only uniform capacity",
+    "color and shear uniform capacity"
 };
 static capability_case capability_mode;
 static unsigned capability_injected_compiles, capability_injected_links;
 static unsigned capability_affine_fragments, capability_legacy_fragments, capability_color_fragments;
+static unsigned capability_shear_fragments, capability_last_fragment_variant;
+static unsigned capability_draw_elements, capability_elements;
+typedef void (APIENTRYP capability_draw_fn)(GLenum, GLsizei, GLenum, const void *);
+static capability_draw_fn capability_real_draw_elements;
 static void (APIENTRY *capability_real_get_integer)(GLenum, GLint *);
 static PFNGLSHADERSOURCEPROC capability_real_shader_source;
 static PFNGLCHECKFRAMEBUFFERSTATUSPROC capability_real_framebuffer_status;
@@ -63,6 +73,7 @@ void *__real_SDL_GL_GetProcAddress(const char *name);
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Cover independent color and affine resource thresholds.
+ * 2026-11-14 - Check shear budgets independently of retained material features.
  * Restrict one reported resource without changing the actual test context.
  */
 static void APIENTRY capability_get_integer(GLenum name, GLint *value)
@@ -79,6 +90,14 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
     else if(capability_mode == CAPABILITY_COLOR_ONLY_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
     {
         *value = 160;
+    }
+    else if(capability_mode == CAPABILITY_SHEAR_ONLY_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    {
+        *value = 96;
+    }
+    else if(capability_mode == CAPABILITY_COLOR_SHEAR_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    {
+        *value = 192;
     }
     else if(capability_mode == CAPABILITY_INVALID_QUERY && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
     {
@@ -105,6 +124,7 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Reject color and combined variants independently.
+ * 2026-11-14 - Reject optional shear without losing affine or color features.
  * Exercise genuine compiler/linker failures for the selected shader variant.
  */
 static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
@@ -114,7 +134,7 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
     PFNGLGETSHADERIVPROC get_shader =
         (PFNGLGETSHADERIVPROC)__real_SDL_GL_GetProcAddress("glGetShaderiv");
     GLint type;
-    int part, affine = 0, legacy = 0, color = 0;
+    int part, affine = 0, legacy = 0, color = 0, shear = 0;
 
     /* The source define identifies the optional implementation. Valid legacy
      * retries still compile and link on the real driver. */
@@ -124,16 +144,20 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
         if(strstr(strings[part], "#define GPU_AFFINE 1")) affine = 1;
         if(strstr(strings[part], "#define GPU_AFFINE 0")) legacy = 1;
         if(strstr(strings[part], "#define GPU_COLOR_RULES 1")) color = 1;
+        if(strstr(strings[part], "#define GPU_SHEAR 1")) shear = 1;
     }
     if(type == GL_FRAGMENT_SHADER)
     {
         capability_affine_fragments += affine;
         capability_legacy_fragments += legacy;
         capability_color_fragments += color;
+        capability_shear_fragments += shear;
+        capability_last_fragment_variant = (unsigned)(affine | (color << 1) | (shear << 2));
         if(capability_mode == CAPABILITY_ALL_COMPILE ||
            (capability_mode == CAPABILITY_AFFINE_COMPILE && affine) ||
            (capability_mode == CAPABILITY_COLOR_COMPILE && color) ||
-           (capability_mode == CAPABILITY_COMBINED_COMPILE && affine && color))
+           (capability_mode == CAPABILITY_COMBINED_COMPILE && affine && color) ||
+           (capability_mode == CAPABILITY_SHEAR_COMPILE && shear))
         {
             const GLchar *invalid = "#version 120\n#error injected_capability_compile_failure\n";
             ++capability_injected_compiles;
@@ -141,7 +165,8 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
             return;
         }
         if((capability_mode == CAPABILITY_AFFINE_LINK && affine) ||
-           (capability_mode == CAPABILITY_COLOR_LINK && color))
+           (capability_mode == CAPABILITY_COLOR_LINK && color) ||
+           (capability_mode == CAPABILITY_SHEAR_LINK && shear))
         {
             /* Vertex output uses vec2. A used vec3 input compiles separately
              * but must fail the real program's interface-link validation. */
@@ -246,8 +271,24 @@ static void APIENTRY capability_buffer_data(GLenum target, GLsizeiptr size,
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Distinguish one shader-sampled shear quad from retained CPU row geometry.
+ * Keep the ordinary indexed submission active for the pixel comparison.
+ */
+static void APIENTRY capability_submit_elements(GLenum mode, GLsizei count,
+                                                GLenum type, const void *indices)
+{
+    assert(mode == GL_TRIANGLES && type == GL_UNSIGNED_INT && count > 0);
+    ++capability_draw_elements;
+    capability_elements += (unsigned)count;
+    capability_real_draw_elements(mode, count, type, indices);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Restrict required buffer functions and startup allocations.
+ * 2026-11-14 - Observe native shear geometry without production test hooks.
  * Intercept only selected capabilities through the existing dynamic GL loader.
  */
 void *__wrap_SDL_GL_GetProcAddress(const char *name)
@@ -295,6 +336,11 @@ void *__wrap_SDL_GL_GetProcAddress(const char *name)
         capability_real_buffer_data = (PFNGLBUFFERDATAPROC)entry;
         return entry ? (void *)capability_buffer_data : NULL;
     }
+    if(!strcmp(name, "glDrawElements"))
+    {
+        capability_real_draw_elements = (capability_draw_fn)entry;
+        return entry ? (void *)capability_submit_elements : NULL;
+    }
     return entry;
 }
 
@@ -315,16 +361,69 @@ static void capability_expect(const char *log, const char *text)
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Preserve legacy row snapping and source colors in every native variant.
+ * Missing optional shear keeps native pixels while retaining three CPU rows.
+ */
+static void capability_check_shear(int shear_expected)
+{
+    static const unsigned colors[] =
+    {
+        0x00112335, 0x0047596b,
+        0x007d8fa1, 0x00b3c5d7,
+        0x00e91b2d, 0x003f5163
+    };
+    const unsigned background = 0x0013579b;
+    s_screen *source = test_screen(2, 3, PIXEL_32);
+    s_screen *target = test_screen(8, 6, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    gpu_renderer_stats before;
+    int x, y;
+
+    memcpy(source->data, colors, sizeof(colors));
+    method.shiftx = 256;
+    assert(gpu_draw_box(target, 0, 0, 8, 6, background, &plainmethod));
+    before = *gpu_gl_get_stats();
+    capability_draw_elements = capability_elements = 0;
+    assert(gpu_draw_screen(target, source, 1, 1, &method));
+    assert(gpu_gl_get_stats()->draws == before.draws + 1);
+    assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    assert(capability_draw_elements == 1);
+    assert(capability_elements == (shear_expected ? 6u : 18u));
+    gpu_sync_cpu(target);
+    /* Legacy traversal shifts the top source row by one pixel, then advances
+     * right by one pixel per row. Check untouched pixels as well as content. */
+    for(y = 0; y < target->height; ++y)
+    {
+        for(x = 0; x < target->width; ++x)
+        {
+            unsigned expected = background;
+            if(y >= 1 && y <= 3 && x >= y + 1 && x <= y + 2)
+            {
+                expected = colors[(y - 1) * 2 + x - y - 1];
+            }
+            assert(test_pixel(target, x, y) == expected);
+        }
+    }
+    assert(glGetError() == GL_NO_ERROR);
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Verify unavailable color rules leave ordinary native draws intact.
  * 2026-11-14 - Require buffered startup success or explicit coherent fallback.
+ * 2026-11-14 - Retain independent features and native pixels without shear.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
 {
     SDL_GLContext context;
     FILE *capture;
-    int saved_stdout, native_expected, affine_expected, color_expected, result, index;
+    int saved_stdout, native_expected, affine_expected, color_expected, shear_expected, result, index;
     gpu_renderer_stats before_init;
     long startup_bytes, final_bytes;
     char log[32768];
@@ -332,6 +431,8 @@ static void capability_run(SDL_Window *window, capability_case mode)
     capability_mode = mode;
     capability_injected_compiles = capability_injected_links = 0;
     capability_affine_fragments = capability_legacy_fragments = capability_color_fragments = 0;
+    capability_shear_fragments = capability_last_fragment_variant = 0;
+    capability_draw_elements = capability_elements = 0;
     capability_buffer_generations = capability_buffer_failures = 0;
     capability_buffer_count = capability_buffer_deletions = 0;
     memset(capability_buffers, 0, sizeof(capability_buffers));
@@ -361,12 +462,21 @@ static void capability_run(SDL_Window *window, capability_case mode)
                       mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK ||
                       mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COLOR_LINK ||
                       mode == CAPABILITY_COMBINED_COMPILE || mode == CAPABILITY_AFFINE_ONLY_UNIFORMS ||
-                      mode == CAPABILITY_COLOR_ONLY_UNIFORMS;
+                      mode == CAPABILITY_COLOR_ONLY_UNIFORMS || mode == CAPABILITY_SHEAR_COMPILE ||
+                      mode == CAPABILITY_SHEAR_LINK || mode == CAPABILITY_SHEAR_ONLY_UNIFORMS ||
+                      mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
     affine_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_COLOR_COMPILE ||
                       mode == CAPABILITY_COLOR_LINK || mode == CAPABILITY_COMBINED_COMPILE ||
-                      mode == CAPABILITY_AFFINE_ONLY_UNIFORMS;
+                      mode == CAPABILITY_AFFINE_ONLY_UNIFORMS || mode == CAPABILITY_SHEAR_COMPILE ||
+                      mode == CAPABILITY_SHEAR_LINK;
     color_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_AFFINE_COMPILE ||
-                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_ONLY_UNIFORMS;
+                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_ONLY_UNIFORMS ||
+                     mode == CAPABILITY_SHEAR_COMPILE || mode == CAPABILITY_SHEAR_LINK ||
+                     mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
+    shear_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_AFFINE_COMPILE ||
+                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_COMPILE ||
+                     mode == CAPABILITY_COLOR_LINK || mode == CAPABILITY_COMBINED_COMPILE ||
+                     mode == CAPABILITY_SHEAR_ONLY_UNIFORMS || mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
     assert(result == native_expected && gpu_is_active() == native_expected);
     if(mode == CAPABILITY_INVALID_QUERY) assert(glGetError() == GL_NO_ERROR);
     if(mode == CAPABILITY_MISSING_BUFFER_ENTRY ||
@@ -465,6 +575,9 @@ static void capability_run(SDL_Window *window, capability_case mode)
         }
         assert(gpu_gl_get_stats()->fallback_draws == color_fallbacks);
         assert(gpu_gl_get_stats()->draws > color_draws);
+        assert(capability_last_fragment_variant ==
+               (unsigned)(affine_expected | (color_expected << 1) | (shear_expected << 2)));
+        capability_check_shear(shear_expected);
         release_test_screen(target);
         release_test_screen(source);
     }
@@ -494,6 +607,18 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "Vertex/index buffers:");
         capability_expect(log, "Buffered submission:");
         capability_expect(log, "NATIVE - indexed triangles");
+        capability_expect(log, "Legacy shear setup:");
+        capability_expect(log, shear_expected ?
+            "NATIVE - shader sampling, one quad" : "CPU - row geometry; native pixels");
+        if(!shear_expected)
+            capability_expect(log, "WARNING: Legacy shear shader unavailable; retaining CPU row geometry with native pixel rendering.");
+        else
+            assert(!strstr(log, "WARNING: Legacy shear shader unavailable;"));
+    }
+    else
+    {
+        capability_expect(log, "Legacy shear setup:");
+        capability_expect(log, "UNAVAILABLE - software renderer");
     }
     capability_expect(log, color_expected ?
         "Chroma key execution:              NATIVE - available" :
@@ -509,7 +634,8 @@ static void capability_run(SDL_Window *window, capability_case mode)
     assert(!strstr(log, "Unavailable effects will use CPU software rendering"));
     if(!color_expected)
         capability_expect(log, "WARNING: Chroma and Substitute rules are unavailable and will be ignored.");
-    if(mode != CAPABILITY_HEALTHY)
+    if(mode != CAPABILITY_HEALTHY && mode != CAPABILITY_SHEAR_COMPILE &&
+       mode != CAPABILITY_SHEAR_LINK)
     {
         capability_expect(log, "WARNING:");
         capability_expect(log, "CPU");
@@ -519,6 +645,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, "If native affine is unavailable:   CPU software rendering");
         capability_expect(log, "If color rules are unavailable:    Ignored; no software implementation.");
+        capability_expect(log, "Legacy shear requested by retry:");
     }
     /* A capable native backend can still be hosted by llvmpipe. Its separate
      * software-driver warning must not be confused with an engine fallback. */
@@ -529,14 +656,15 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "Fragment texture units:");
         capability_expect(log, "Fragment uniform components:");
         assert(capability_affine_fragments == 1 && capability_legacy_fragments == 0);
-        assert(capability_color_fragments == 1);
+        assert(capability_color_fragments == 1 && capability_shear_fragments == 1);
     }
     if(mode == CAPABILITY_LOW_UNIFORMS)
     {
         capability_expect(log, "fragment uniform components");
         capability_expect(log, "64");
         capability_expect(log, "256");
-        assert(capability_affine_fragments == 0);
+        assert(capability_affine_fragments == 0 && capability_color_fragments == 0);
+        assert(capability_shear_fragments == 0);
     }
     if(mode == CAPABILITY_LOW_TEXTURE_UNITS)
     {
@@ -570,37 +698,66 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, "shader compilation failed");
         capability_expect(log, "injected_capability_compile_failure");
-        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 4u : 2u));
+        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 8u : 4u));
+        if(mode == CAPABILITY_ALL_COMPILE)
+        {
+            assert(capability_affine_fragments == 4 && capability_legacy_fragments == 4);
+            assert(capability_color_fragments == 4 && capability_shear_fragments == 4);
+        }
     }
     if(mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "shader link failed");
-        assert(capability_injected_links == 2);
+        assert(capability_injected_links == 4);
     }
     if(mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "affine");
-        assert(capability_affine_fragments == 2);
+        assert(capability_affine_fragments == 4 && capability_color_fragments == 3);
+        assert(capability_shear_fragments == 3);
     }
     if(mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COMBINED_COMPILE)
     {
         capability_expect(log, "shader compilation failed");
-        assert(capability_injected_compiles == 1);
-        assert(capability_affine_fragments == 2 && capability_color_fragments == 1);
+        assert(capability_injected_compiles == 2);
+        assert(capability_affine_fragments == 3 && capability_color_fragments == 2);
+        assert(capability_shear_fragments == 2);
     }
     if(mode == CAPABILITY_COLOR_LINK)
     {
         capability_expect(log, "shader link failed");
-        assert(capability_injected_links == 1);
-        assert(capability_affine_fragments == 2 && capability_color_fragments == 1);
+        assert(capability_injected_links == 2);
+        assert(capability_affine_fragments == 3 && capability_color_fragments == 2);
+        assert(capability_shear_fragments == 2);
     }
     if(mode == CAPABILITY_AFFINE_ONLY_UNIFORMS)
     {
         assert(capability_affine_fragments == 1 && capability_color_fragments == 0);
+        assert(capability_shear_fragments == 0);
     }
     if(mode == CAPABILITY_COLOR_ONLY_UNIFORMS)
     {
         assert(capability_affine_fragments == 0 && capability_color_fragments == 1);
+        assert(capability_shear_fragments == 0);
+    }
+    if(mode == CAPABILITY_SHEAR_ONLY_UNIFORMS)
+    {
+        assert(capability_affine_fragments == 0 && capability_color_fragments == 0);
+        assert(capability_shear_fragments == 1);
+    }
+    if(mode == CAPABILITY_COLOR_SHEAR_UNIFORMS)
+    {
+        assert(capability_affine_fragments == 0 && capability_color_fragments == 1);
+        assert(capability_shear_fragments == 1);
+    }
+    if(mode == CAPABILITY_SHEAR_COMPILE || mode == CAPABILITY_SHEAR_LINK)
+    {
+        capability_expect(log, mode == CAPABILITY_SHEAR_COMPILE ?
+            "shader compilation failed" : "shader link failed");
+        assert(capability_injected_compiles == (mode == CAPABILITY_SHEAR_COMPILE ? 1u : 0u));
+        assert(capability_injected_links == (mode == CAPABILITY_SHEAR_LINK ? 1u : 0u));
+        assert(capability_affine_fragments == 2 && capability_color_fragments == 2);
+        assert(capability_shear_fragments == 1 && capability_legacy_fragments == 0);
     }
     if(mode == CAPABILITY_INCOMPLETE_FRAMEBUFFER)
         capability_expect(log, "RGB32 framebuffer probe failed");
@@ -616,6 +773,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Include optional shear failures and separate uniform budgets.
  * Exercise capability reports with all profiling disabled from process start.
  */
 int main(void)
@@ -658,6 +816,6 @@ int main(void)
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU capability log tests passed: 20 startup scenarios, buffered submission and allocation cleanup, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
+    puts("GPU capability log tests passed: 24 startup scenarios, optional shear and retained row geometry, buffered submission and allocation cleanup, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
     return 0;
 }
