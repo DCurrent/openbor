@@ -1,9 +1,8 @@
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Verify color-policy validation and complete production software draws.
- * The native fixture reuses these independent pixel expectations so a GPU
- * fallback cannot conceal differences in coverage or composition.
+ * Share fixture construction while keeping native color expectations separate
+ * from CPU checks. Software draws ignore these optional hardware effects.
  */
 #include <assert.h>
 #include <stddef.h>
@@ -128,6 +127,7 @@ static void colors_release_sprite(s_sprite *sprite)
     free(sprite);
 }
 
+#ifdef COLOR_GPU_TEST
 /*
  * Damon V. Caskey
  * 2026-11-14
@@ -162,67 +162,6 @@ static void colors_verify(s_screen *screen, const unsigned *expected, const char
         }
     }
     ++color_images_checked;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Reject incomplete or conflicting changes without mutating stored settings.
- */
-static void colors_test_setters(void)
-{
-    s_drawmethod method = plainmethod;
-    s_drawmethod_colors before;
-    unsigned index;
-    assert(DRAWMETHOD_COLOR_SLOTS == 5);
-    assert(!drawmethod_colors_active(&method));
-    assert(drawmethod_set_substitute(&method, 0, 0, 0x010101));
-    before = method.colors;
-    assert(!drawmethod_set_substitute(&method, 5, 2, 3));
-    assert(!drawmethod_set_substitute(&method, 1, 0, 2));
-    assert(!drawmethod_set_substitute(&method, 1, 0x010101, 2));
-    assert(!drawmethod_set_substitute(&method, 1, 2, 0));
-    assert(!drawmethod_set_substitute(&method, 1, 2, 2));
-    assert(!drawmethod_set_substitute(&method, 1, 0x1000000, 3));
-    assert(!drawmethod_set_substitute_enabled(&method, 32));
-    assert(memcmp(&before, &method.colors, sizeof(before)) == 0);
-
-    /* Disabling preserves values; enabling validates the complete live list. */
-    assert(drawmethod_set_substitute_enabled(&method, 0));
-    assert(method.colors.substitute[0].replacement == 0x010101);
-    assert(drawmethod_set_substitute(&method, 1, 0, 2));
-    before = method.colors;
-    assert(!drawmethod_set_substitute_enabled(&method, 3));
-    assert(memcmp(&before, &method.colors, sizeof(before)) == 0);
-    assert(drawmethod_set_substitute_enabled(&method, 1));
-    assert(drawmethod_substitute_color(&method, 0xff000000) == 0x010101);
-    assert(drawmethod_substitute_color(&method, 0xff123456) == 0xff123456);
-
-    for(index = 0; index < DRAWMETHOD_COLOR_SLOTS; ++index)
-    {
-        assert(drawmethod_set_chroma(&method, index, index * 0x010101));
-    }
-    before = method.colors;
-    assert(!drawmethod_set_chroma(&method, 5, 0));
-    assert(!drawmethod_set_chroma(&method, 0, 0x1000000));
-    assert(!drawmethod_set_chroma_enabled(&method, 32));
-    assert(memcmp(&before, &method.colors, sizeof(before)) == 0);
-    assert(drawmethod_chroma_matches(&method, 0xff000000));
-    assert(drawmethod_chroma_matches(&method, 0xff040404));
-    assert(!drawmethod_chroma_matches(&method, 0x050505));
-    assert(drawmethod_set_chroma_enabled(&method, 0));
-    assert(!drawmethod_chroma_matches(&method, 0));
-
-    /* Internal callers also receive one replacement, never recursive mapping. */
-    method.colors.substitute[1].match = 0x010101;
-    method.colors.substitute[1].replacement = 0x020202;
-    method.colors.substitute_enabled = 3;
-    assert(!drawmethod_substitutes_valid(&method.colors));
-    assert(drawmethod_substitute_color(&method, 0) == 0x010101);
-    method.config = 0;
-    assert(!drawmethod_colors_active(&method));
-    method = plainmethod;
-    assert(!method.colors.substitute_enabled && !method.colors.chroma_enabled);
 }
 
 /*
@@ -594,7 +533,7 @@ static void colors_test_self_draw(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Run the same complete-image assertions on software and real native drawing.
+ * Check native drawing against independently authored complete images.
  */
 static void colors_run_suite(void)
 {
@@ -611,63 +550,87 @@ static void colors_run_suite(void)
     colors_test_self_draw();
 }
 
-#ifndef COLOR_GPU_TEST
+#else
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Unsupported output formats must decline rather than drop active rules.
+ * Compare ordinary software draws with the same draws carrying active rules.
+ * Every format must still render, with no color-rule implementation or error.
  */
-static void colors_test_format_rejection(void)
+static void colors_test_cpu_ignored(int format, int geometry)
 {
-    s_screen *source = colors_screen(4, 1, PIXEL_16, 0);
-    s_screen *target = colors_screen(8, 2, PIXEL_16, 0);
-    s_drawmethod method = plainmethod;
-    unsigned char before[32];
-    memset(target->data, 0x5a, sizeof(before));
-    memcpy(before, target->data, sizeof(before));
-    assert(drawmethod_set_substitute(&method, 0, 0, 0x010101));
-    putscreen(target, source, 2, 1, &method);
-    assert(memcmp(before, target->data, sizeof(before)) == 0);
-    colors_release_screen(target);
+    const unsigned char indices[4] = {1, 0, 2, 0};
+    const unsigned values[8] = {0, 0x123456, 0x789ABC, 0xFFFFFF,
+                                0xFFFFFF, 0x789ABC, 0x123456, 0};
+    s_screen *source = colors_screen(4, 2, format, 0);
+    s_screen *targets[2] = {colors_screen(20, 12, format, 0),
+                            colors_screen(20, 12, format, 0)};
+    s_sprite *sprite = colors_sprite(indices, 1);
+    s_drawmethod ordinary = plainmethod, active;
+    s_drawmethod *methods[2] = {&ordinary, &active};
+    unsigned char before[COLOR_EXPECTED_PIXELS * sizeof(unsigned)];
+    size_t bytes = (size_t)20 * 12 * pixelbytes[format];
+    int side, i;
+
+    pixelformat = format;
+    for(i = 0; i < 8; ++i)
+    {
+        if(format == PIXEL_32) ((unsigned *)source->data)[i] = values[i];
+        else if(format == PIXEL_16) ((unsigned short *)source->data)[i] = (unsigned short)values[i];
+        else source->data[i] = (unsigned char)values[i];
+    }
+    if(format == PIXEL_16) ((unsigned short *)sprite->palette)[2] = 0x1234;
+    else ((unsigned *)sprite->palette)[2] = 0x123456;
+    if(geometry == 1) ordinary.scalex = ordinary.scaley = 512;
+    if(geometry == 2)
+    {
+        ordinary.config |= DRAWMETHOD_CONFIG_AFFINE;
+        ordinary.affine.m00 = ordinary.affine.m11 = 2;
+    }
+    ordinary.xrepeat = 2; ordinary.xspan = 7;
+    ordinary.clipx = 1; ordinary.clipw = 18; ordinary.cliph = 12;
+    active = ordinary;
+    assert(drawmethod_set_chroma(&active, 0, 0x123456));
+    assert(drawmethod_set_substitute(&active, 0, 0, 0x010101));
+    memset(before, 0x55, bytes);
+    for(side = 0; side < 2; ++side)
+    {
+        memcpy(targets[side]->data, before, bytes);
+        putscreen(targets[side], source, 2, 1, methods[side]);
+        putsprite(2, 6, sprite, targets[side], methods[side]);
+        putbox(15, 8, 3, 2, 0x123456, targets[side], methods[side]);
+        putpixel(17, 10, 0, targets[side], methods[side]);
+        putline(1, 11, 18, 11, 0, targets[side], methods[side]);
+    }
+    assert(memcmp(before, targets[0]->data, bytes) != 0);
+    assert(memcmp(targets[0]->data, targets[1]->data, bytes) == 0);
+    ++color_images_checked;
+    colors_release_screen(targets[0]);
+    colors_release_screen(targets[1]);
     colors_release_screen(source);
+    colors_release_sprite(sprite);
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Chroma needs resolved RGB even when a fill would replace visible colors.
- */
-static void colors_test_missing_palette_rejection(void)
-{
-    s_screen *source = colors_screen(4, 1, PIXEL_x8, 0);
-    s_screen *target = colors_screen(8, 3, PIXEL_32, COLOR_BACKGROUND);
-    s_drawmethod method = plainmethod;
-    unsigned expected[COLOR_EXPECTED_PIXELS];
-    source->palette = NULL;
-    memset(source->data, 1, 4);
-    method.fillcolor = 0x123456;
-    assert(drawmethod_set_chroma(&method, 0, 0xcc00cc));
-    colors_expected(expected, target, COLOR_BACKGROUND);
-    putscreen(target, source, 2, 1, &method);
-    colors_verify(target, expected, "missing palette is an explicit failure before writes");
-    colors_release_screen(target);
-    colors_release_screen(source);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Execute validation and CPU pixel coverage without requiring a GL context.
+ * Verify the hardware-only policy without needing a graphics context.
  */
 int main(void)
 {
+    const int formats[] = {PIXEL_8, PIXEL_16, PIXEL_32};
+    unsigned format;
+    int geometry;
     assert(sizeof(void *) == 8);
-    pixelformat = PIXEL_32;
-    colors_test_setters();
-    colors_run_suite();
-    colors_test_format_rejection();
-    colors_test_missing_palette_rejection();
-    printf("Drawmethod color tests passed: validation and %u complete software images.\n", color_images_checked);
+    for(format = 0; format < sizeof(formats) / sizeof(formats[0]); ++format)
+    {
+        for(geometry = 0; geometry < 3; ++geometry)
+        {
+            colors_test_cpu_ignored(formats[format], geometry);
+        }
+    }
+    printf("Drawmethod color tests passed: %u ordinary CPU images unchanged by color rules (8/16/32-bit).\n",
+           color_images_checked);
     return 0;
 }
 #endif

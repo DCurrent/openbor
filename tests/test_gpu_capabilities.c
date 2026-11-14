@@ -210,7 +210,7 @@ static void capability_expect(const char *log, const char *text)
 /*
  * Damon V. Caskey
  * 2026-11-13
- * 2026-11-14 - Verify optional color fallback preserves ordinary native draws.
+ * 2026-11-14 - Verify unavailable color rules leave ordinary native draws intact.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
@@ -263,6 +263,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
         s_screen *target = test_screen(4, 4, PIXEL_32);
         s_drawmethod method = plainmethod;
         const unsigned background = 0x0013579b, foreground = 0x00c2a468;
+        unsigned long color_fallbacks, color_draws;
 
         /* Startup validation must not populate scene image ownership, trigger
          * readback, or leave an error for the first real operation. */
@@ -283,8 +284,10 @@ static void capability_run(SDL_Window *window, capability_case mode)
         assert(gpu_draw_screen(target, source, 1, 1, &plainmethod));
         gpu_sync_cpu(target);
         assert(test_pixel(target, 1, 1) == foreground);
-        /* Independently gated color draws must decline before modifying a
-         * target, even when the preferred fallback keeps affine native. */
+        /* Unavailable optional rules are ignored without declining an
+         * ordinary native draw or changing its unmodified source color. */
+        color_fallbacks = gpu_gl_get_stats()->fallback_draws;
+        color_draws = gpu_gl_get_stats()->draws;
         method = plainmethod;
         method.colors.substitute_enabled = 1u << 4;
         method.colors.substitute[4].match = foreground;
@@ -292,17 +295,52 @@ static void capability_run(SDL_Window *window, capability_case mode)
         for(index = 0; index < 4; ++index)
         {
             assert(gpu_draw_box(target, 0, 0, 4, 4, background, &plainmethod));
-            assert(gpu_draw_screen(target, source, 0, 0, &method) == color_expected);
+            assert(gpu_draw_screen(target, source, 0, 0, &method));
             gpu_sync_cpu(target);
-            assert(test_pixel(target, 0, 0) == (color_expected ? 0x00335577u : background));
+            assert(test_pixel(target, 0, 0) == (color_expected ? 0x00335577u : foreground));
         }
         method.colors.substitute_enabled = 0;
         method.colors.chroma_enabled = 1u << 4;
         method.colors.chroma[4] = foreground;
         assert(gpu_draw_box(target, 0, 0, 4, 4, background, &plainmethod));
-        assert(gpu_draw_screen(target, source, 0, 0, &method) == color_expected);
+        assert(gpu_draw_screen(target, source, 0, 0, &method));
         gpu_sync_cpu(target);
-        assert(test_pixel(target, 0, 0) == background);
+        assert(test_pixel(target, 0, 0) == (color_expected ? background : foreground));
+
+        /* Seed a matching palette and chroma mask, then remove the palette
+         * without resetting shader state. An ordinary indexed fill remains
+         * native: unavailable source chroma is ignored, while supported
+         * Substitute still processes the final fill color. */
+        {
+            s_screen *indexed = test_screen(2, 2, PIXEL_x8);
+            unsigned char *palette = indexed->palette;
+            memset(indexed->data, 1, 4);
+            ((unsigned *)palette)[1] = foreground;
+            method.fillcolor = foreground;
+            method.colors.substitute_enabled = 1u << 4;
+            assert(gpu_draw_box(target, 0, 0, 4, 4, background, &plainmethod));
+            assert(gpu_draw_screen(target, indexed, 0, 0, &method));
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) == (color_expected ? background : foreground));
+            indexed->palette = NULL;
+            assert(gpu_draw_screen(target, indexed, 0, 0, &method));
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) == (color_expected ? 0x00335577u : foreground));
+            method.colors.substitute_enabled = 0;
+            assert(gpu_draw_screen(target, indexed, 0, 0, &method));
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) == foreground);
+            /* Restoring the palette must restore valid chroma after its
+             * previous ignored draw cleared the effective shader mask. */
+            indexed->palette = palette;
+            method.fillcolor = background;
+            assert(gpu_draw_screen(target, indexed, 0, 0, &method));
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) == (color_expected ? foreground : background));
+            release_test_screen(indexed);
+        }
+        assert(gpu_gl_get_stats()->fallback_draws == color_fallbacks);
+        assert(gpu_gl_get_stats()->draws > color_draws);
         release_test_screen(target);
         release_test_screen(source);
     }
@@ -327,23 +365,30 @@ static void capability_run(SDL_Window *window, capability_case mode)
         "RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering." :
         "RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
     assert(!strstr(strstr(log, "RESULT:") + 1, "RESULT:"));
-    if(native_expected)
-    {
-        capability_expect(log, color_expected ?
-            "Chroma key execution:              NATIVE - available" :
-            "Chroma key execution:              CPU SOFTWARE - native variant unavailable");
-        capability_expect(log, color_expected ?
-            "Substitute execution:              NATIVE - available" :
-            "Substitute execution:              CPU SOFTWARE - native variant unavailable");
-        capability_expect(log, "5 chroma keys; 5 substitutes");
-        if(!color_expected)
-            capability_expect(log, "WARNING: Chroma and Substitute draws will use CPU software rendering.");
-    }
+    capability_expect(log, color_expected ?
+        "Chroma key execution:              NATIVE - available" :
+        "Chroma key execution:              UNAVAILABLE - ignored");
+    capability_expect(log, color_expected ?
+        "Substitute execution:              NATIVE - available" :
+        "Substitute execution:              UNAVAILABLE - ignored");
+    capability_expect(log, "5 chroma keys; 5 substitutes");
+    capability_expect(log, "RGB32 native targets");
+    capability_expect(log, "Software implementation:           None; rules ignored");
+    capability_expect(log, "Other drawing paths:               Rules ignored; ordinary drawing continues");
+    assert(!strstr(log, "Chroma and Substitute draws will use CPU software rendering"));
+    assert(!strstr(log, "Unavailable effects will use CPU software rendering"));
+    if(!color_expected)
+        capability_expect(log, "WARNING: Chroma and Substitute rules are unavailable and will be ignored.");
     if(mode != CAPABILITY_HEALTHY)
     {
         capability_expect(log, "WARNING:");
         capability_expect(log, "CPU");
         capability_expect(log, "Significant slowdown is possible.");
+    }
+    if(capability_injected_compiles || capability_injected_links)
+    {
+        capability_expect(log, "If native affine is unavailable:   CPU software rendering");
+        capability_expect(log, "If color rules are unavailable:    Ignored; no software implementation.");
     }
     /* A capable native backend can still be hosted by llvmpipe. Its separate
      * software-driver warning must not be confused with an engine fallback. */
@@ -470,6 +515,6 @@ int main(void)
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU capability log tests passed: startup reports, explicit CPU fallback warnings, profiler opt-out, no draw-time spam.");
+    puts("GPU capability log tests passed: startup reports, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
     return 0;
 }

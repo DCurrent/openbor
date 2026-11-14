@@ -96,10 +96,9 @@ typedef enum ep_counter
     EP_COUNT_GPU_QUERY_PAIRS,
     EP_COUNT_GPU_QUERY_DROPPED,
     EP_COUNT_GPU_QUERY_SKIPPED,
-    /* Opt-in color policies count actual native and software drawing use. */
+    /* Color rules are shader-only; count actual native use. */
     EP_COUNT_NATIVE_CHROMA_DRAWS,
     EP_COUNT_NATIVE_SUBSTITUTE_DRAWS,
-    EP_COUNT_COLOR_SOFTWARE_DRAWS,
     EP_COUNT_COUNT
 } ep_counter;
 
@@ -118,7 +117,6 @@ typedef enum ep_fallback
     EP_FALLBACK_MASK,
     EP_FALLBACK_TRANSFORM,
     EP_FALLBACK_OTHER,
-    EP_FALLBACK_COLOR_RULES,
     EP_FALLBACK_COUNT
 } ep_fallback;
 

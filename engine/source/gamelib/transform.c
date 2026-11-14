@@ -16,7 +16,6 @@
 #include "sprite.h"
 #include "transform.h"
 #include "gpu.h"
-#include "drawmethod_color.h"
 
 static transpixelfunc pfp;
 static unsigned int fillcolor;
@@ -54,7 +53,6 @@ static unsigned char *cur_spr; // for sprite only
 static int spf, dpf, dpb, spb; //pixelformat
 
 static int wpcond;
-static const s_drawmethod *color_method;
 
 static int xmin, xmax, ymin, ymax;
 
@@ -329,91 +327,8 @@ void draw_pixel_sprite(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, i
 
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Apply opt-in source chroma and final Substitute rules to one RGB32 sample.
- * Geometry has already selected a covered source location. Keep palette
- * coverage, fill, independent opacity masks and byte-domain blending in
- * their established order, then protect only contributing output pixels.
- */
-static void write_color_pixel(void)
-{
-    unsigned source, destination, result, opacity = 255;
-    int contributes = 1;
-
-    /* Indexed zero is still source transparency before palette resolution.
-     * Ignore the unused RGB32 byte when deciding truecolor key coverage. */
-    if(spf == PIXEL_x8 || spf == PIXEL_8)
-    {
-        unsigned index = *cur_src;
-        if(transbg && !index)
-        {
-            return;
-        }
-        /* Filled draws need no palette unless RGB chroma must inspect the
-         * original source color. Initialization rejects that missing input. */
-        source = table ? ((const unsigned *)table)[index] & 0x00ffffffu
-                       : fillcolor & 0x00ffffffu;
-    }
-    else if(spf == PIXEL_32)
-    {
-        source = *(const unsigned *)cur_src & 0x00ffffffu;
-        if(transbg && !source)
-        {
-            return;
-        }
-    }
-    else
-    {
-        return;
-    }
-
-    /* Chroma observes the palette-resolved source before fill or lighting. */
-    if(drawmethod_chroma_matches(color_method, source))
-    {
-        return;
-    }
-    if(fillcolor)
-    {
-        source = fillcolor & 0x00ffffffu;
-    }
-    destination = *(const unsigned *)cur_dest & 0x00ffffffu;
-
-    /* Decode mask coverage independently of the source sprite's RLE runs.
-     * A zero mask retains the legacy blend equation but cannot trigger an
-     * output substitution that would paint nominally transparent coverage. */
-    if(ptr_src_mask && handle_src->screen->magic == sprite_magic)
-    {
-        opacity = (unsigned char)sprite_get_pixel(handle_src->sprite->mask, x_src, y_src);
-        result = blend_channel32(source, destination, opacity);
-        contributes = opacity != 0;
-    }
-    else
-    {
-        result = pfp32 ? pfp32(source, destination) : source;
-        contributes = color_method->tintmode != 0 || color_method->alpha != 6 ||
-                      color_method->channelr || color_method->channelg || color_method->channelb;
-    }
-    result &= 0x00ffffffu;
-    *(unsigned *)cur_dest = contributes ? drawmethod_substitute_color(color_method, result) : result;
-}
-
 void draw_pixel_gfx(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, int sy)
 {
-    /* The legacy plane path addresses samples directly instead of through
-     * writepixelswitch. Opted-in draws use the same coverage-aware writer. */
-    if(color_method)
-    {
-        if(dx >= MAX(0, xmin) && dx < MIN(trans_dw, xmax) &&
-           dy >= MAX(0, ymin) && dy < MIN(trans_dh, ymax))
-        {
-            dest_seek(dx, dy);
-            src_seek(sx, sy);
-            write_color_pixel();
-        }
-        return;
-    }
     //drawfp(dest, src, dx, dy, sx, sy);
     switch(src->screen->magic)
     {
@@ -771,20 +686,6 @@ void calc_wp_cond()
 
 void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *drawmethod)
 {
-    /* Reject an unsupported destination before synchronizing or changing it.
-     * All transform entry points already stop when the source width is zero. */
-    color_method = NULL;
-    if(drawmethod_colors_active(drawmethod) && !gpu_require_color_target(dest, drawmethod))
-    {
-        trans_sw = trans_sh = 0;
-        return;
-    }
-    if(drawmethod_colors_active(drawmethod))
-    {
-        /* Direct transform callers need the same material and clip setup as
-         * the public screen/sprite dispatchers before selecting the writer. */
-        drawmethod_global_init(drawmethod);
-    }
 
     /* All software transform loops enter here once, outside the pixel loop.
      * Resolve render-target sources and preserve destination pixels before
@@ -851,27 +752,6 @@ void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *dr
         return;
     }
 
-    /* Direct sprite and bitmap entry points share the screen source-format
-     * contract. An unsupported source must not silently lose active rules. */
-    if(drawmethod_colors_active(drawmethod) &&
-       spf != PIXEL_x8 && spf != PIXEL_8 && spf != PIXEL_32)
-    {
-        gpu_color_rules_error("Chroma and Substitute require an indexed or RGB32 drawing source.");
-        trans_sw = trans_sh = 0;
-        return;
-    }
-
-    /* Palette-free indexed fills are valid, but an RGB source key cannot
-     * inspect an absent palette. Reject missing inputs once before writing. */
-    if(drawmethod_colors_active(drawmethod) &&
-       (spf == PIXEL_x8 || spf == PIXEL_8) && !table &&
-       (drawmethod->colors.chroma_enabled || !drawmethod->fillcolor))
-    {
-        gpu_color_rules_error("Indexed color-rule drawing requires a palette unless only a fill is substituted.");
-        trans_sw = trans_sh = 0;
-        return;
-    }
-
     trans_dw = dest->width;
     trans_dh = dest->height;
 
@@ -931,13 +811,6 @@ void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *dr
     span_dest = dpb * trans_dw;
     transbg = (drawmethod->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY || src->screen->magic == sprite_magic); // check color key, we'll need this for screen and bitmap
     calc_wp_cond();
-    if(drawmethod_colors_active(drawmethod))
-    {
-        /* Select once per draw. Disabled rules keep the original specialized
-         * loops with no additional branch in their pixel bodies. */
-        color_method = drawmethod;
-        wpcond = 48;
-    }
 
     if(!trans_sw)
     {
@@ -1836,24 +1709,6 @@ void gfx_draw_water(s_screen *dest, gfx_entry *src, int x, int y, int centerx, i
         {
             sbeginx = 0;
             sendx = sw;
-        }
-        if(color_method)
-        {
-            /* Water's historical loop clips only to the target. New color
-             * rules also retain the drawmethod clip used by native drawing. */
-            int left = MAX(dbeginx, MAX(0, xmin));
-            int right = MIN(dendx, MIN(dw, xmax));
-            if(y < MAX(0, ymin) || y >= MIN(dh, ymax) || left >= right)
-            {
-                dbeginx = dendx = sbeginx = sendx = 0;
-            }
-            else
-            {
-                sbeginx += left - dbeginx;
-                sendx = sbeginx + right - left;
-                dbeginx = left;
-                dendx = right;
-            }
         }
         if(pixelformat == PIXEL_8 && !transbg && src->screen->magic == screen_magic)
         {

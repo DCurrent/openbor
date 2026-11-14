@@ -1,14 +1,37 @@
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Run the production CPU and GPU draw paths against identical complete-image
- * expectations, then verify native state reuse and resource-transfer costs.
+ * Check native color effects against independent complete-image expectations,
+ * then verify actual execution counters, state reuse and resource transfers.
  */
 #include <SDL.h>
 #include "gpu_renderer.h"
 #include "loadgl.h"
+#include "engine_profile.h"
 #define COLOR_GPU_TEST 1
 #include "test_drawmethod_colors.c"
+
+static uint64_t color_profile_time;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Give the execution counters a deterministic completed collection window.
+ */
+static uint64_t colors_profile_clock(void)
+{
+    return color_profile_time;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Counter assertions consume the report directly without printing its table.
+ */
+static void colors_profile_log(const char *line)
+{
+    assert(line);
+}
 
 /*
  * Damon V. Caskey
@@ -64,12 +87,10 @@ int main(void)
 {
     SDL_Window *window;
     SDL_GLContext context;
-    unsigned software_images;
+    const ep_report *report;
+    uint64_t frame;
     assert(sizeof(void *) == 8);
     pixelformat = PIXEL_32;
-    colors_test_setters();
-    colors_run_suite();
-    software_images = color_images_checked;
     if(SDL_Init(SDL_INIT_VIDEO) != 0) return 77;
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     window = SDL_CreateWindow("OpenBOR color tests", 0, 0, 64, 64,
@@ -83,15 +104,29 @@ int main(void)
     }
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
+    engine_profile_set_hooks(colors_profile_clock, colors_profile_log);
+    engine_profile_configure(1, 1, 0);
+    color_profile_time = 1000;
+    frame = engine_profile_frame_begin(1, &window, NULL);
+    assert(frame);
     colors_run_suite();
     colors_test_native_cache();
+    color_profile_time = 2000;
+    engine_profile_frame_end(frame);
+    color_profile_time = 11000;
+    assert(engine_profile_frame_begin(1, &window, NULL) == 0);
+    report = engine_profile_last_report();
+    assert(report->frames == 1);
+    assert(report->counts[EP_COUNT_NATIVE_CHROMA_DRAWS] > 0);
+    assert(report->counts[EP_COUNT_NATIVE_SUBSTITUTE_DRAWS] > 0);
+    assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
     assert(gpu_gl_get_stats()->draws > 0);
     assert(gpu_gl_get_stats()->fallback_draws == 0);
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    printf("GPU color tests passed: %u software and %u native complete images; no native fallback.\n",
-           software_images, color_images_checked - software_images);
+    printf("GPU color tests passed: %u native complete images; active color counters, no software draws or fallback.\n",
+           color_images_checked);
     return 0;
 }

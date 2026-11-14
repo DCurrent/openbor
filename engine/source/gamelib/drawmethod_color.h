@@ -10,61 +10,6 @@
 /*
  * Damon V. Caskey
  * 2026-11-14
- * Identify opt-in color processing without changing disabled drawmethods.
- */
-static inline int drawmethod_colors_active(const s_drawmethod *method)
-{
-    /* The normal enabled flag remains the owner of all drawmethod effects. */
-    return method && (method->config & DRAWMETHOD_CONFIG_ENABLED) &&
-           ((method->colors.chroma_enabled | method->colors.substitute_enabled) &
-            DRAWMETHOD_COLOR_MASK);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Test resolved source RGB before fill, lighting, masks or destination blends.
- */
-static inline int drawmethod_chroma_matches(const s_drawmethod *method, unsigned color)
-{
-    unsigned slot;
-    /* Packed screen colors reserve the high byte; key matching uses RGB only. */
-    color &= 0xFFFFFFu;
-    for(slot = 0; slot < DRAWMETHOD_COLOR_SLOTS; ++slot)
-    {
-        if((method->colors.chroma_enabled & (1u << slot)) &&
-           (method->colors.chroma[slot] & 0xFFFFFFu) == color)
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
- * Replace one completed RGB result. Replacements are never tested again.
- */
-static inline unsigned drawmethod_substitute_color(const s_drawmethod *method, unsigned color)
-{
-    unsigned slot;
-    /* Keep an unmatched packed value intact; comparisons ignore its high byte. */
-    const unsigned rgb = color & 0xFFFFFFu;
-    for(slot = 0; slot < DRAWMETHOD_COLOR_SLOTS; ++slot)
-    {
-        if((method->colors.substitute_enabled & (1u << slot)) &&
-           (method->colors.substitute[slot].match & 0xFFFFFFu) == rgb)
-        {
-            return method->colors.substitute[slot].replacement & 0xFFFFFFu;
-        }
-    }
-    return color;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-14
  * Reject duplicate active matches and replacements that remain intercepted.
  */
 static inline int drawmethod_substitutes_valid(const s_drawmethod_colors *colors)

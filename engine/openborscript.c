@@ -35,7 +35,6 @@
 #include "models.h"
 #include "scriptcommon.h"
 #include "gpu.h"
-#include "drawmethod_color.h"
 #include <float.h>
 #include <limits.h>
 #include <stdint.h>

@@ -177,8 +177,8 @@ test_software_sources=(engine/source/gamelib/gpu.c
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
-# Validate color-rule updates and actual software coverage before requiring a
-# graphics context. These same image expectations are reused by native tests.
+# Optional hardware color rules must leave ordinary CPU drawing unchanged,
+# including target formats that do not support native color effects.
 "$test_compiler" "${test_flags[@]}" tests/test_drawmethod_colors.c \
     "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_drawmethod_colors"
@@ -242,8 +242,8 @@ done
     -o "$test_build_dir/test_gpu_transform_gl"
 run_test "$test_build_dir/test_gpu_transform_gl"
 
-# Link both production renderers, avoiding the shared GPU dispatch source
-# twice, so fallback and native color policies face identical pixel oracles.
+# Link real dispatch and queue code while checking native color effects against
+# independent expected pixels. The fixture rejects any software draw or fallback.
 test_color_native_sources=("${test_gpu_sources[@]}")
 for test_color_source in "${test_software_sources[@]}"; do
     if [[ $test_color_source != engine/source/gamelib/gpu.c ]]; then

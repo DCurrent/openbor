@@ -29,18 +29,6 @@ unsigned char *blendtables[MAX_BLENDINGS];
 
 /*
  * Damon V. Caskey
- * 2026-11-14
- * Keep the optional color-policy material hook outside geometry-only tests.
- */
-void drawmethod_global_init(s_drawmethod *method)
-{
-    /* The full color fixture links the real pixel-format implementation. */
-    assert(!method || !(method->colors.chroma_enabled | method->colors.substitute_enabled));
-    (void)method;
-}
-
-/*
- * Damon V. Caskey
  * 2026-11-13
  * Supply the unused 16-bit blend callback for this geometry-only fixture.
  */

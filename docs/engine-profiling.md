@@ -337,22 +337,20 @@ existing `counts_mean` and `counts_max` records:
 
 | Field | Meaning |
 | --- | --- |
-| `native_chroma_draws` | Successful, nonempty native submissions with at least one chroma key enabled. |
-| `native_substitute_draws` | Successful, nonempty native submissions with at least one Substitute pair enabled. |
-| `color_software_draws` | High-level software draw dispatches with active chroma or Substitute rules. |
+| `native_chroma_draws` | Successful, nonempty native submissions executing at least one chroma key. |
+| `native_substitute_draws` | Successful, nonempty native submissions executing at least one Substitute pair. |
 
-One native submission may increment both native fields. They do not count
-matching pixels, substitutions performed, unique sprites, or unique queue
-entries. Native repeats can create multiple submissions; software dispatch
-counts cover the enclosing draw and its repeats and may include clipped work.
-Do not add these fields together as a total draw count or compare them as
-identical units of raster work.
+One native submission may increment both fields. They count rules actually
+executing in the shader, not merely enabled settings. Ignored rules increment
+neither field. The counters do not count matching pixels, substitutions
+performed, unique sprites, or unique queue entries. Native repeats can create
+multiple submissions; do not add both fields as a total draw count.
 
-Fallback reason `color_rules` identifies a native draw declined because the
-selected shader lacks color-rule support. Other causes, including an absent
-backend, unsupported geometry, or missing resources, keep their own reasons.
-Read those reasons alongside `color_software_draws`, `software_ms`, transfer
-counts, and the enclosing frame phases.
+These controls have no CPU implementation. Missing shader support leaves
+ordinary native drawing available and ignores the rules; existing software
+draws also ignore them. There is no software-color counter or color-rule
+fallback reason. Other causes, including an absent backend, unsupported
+geometry, or missing resources, retain their existing fallback reasons.
 
 Startup's separate **Color Rules** checklist reports capability with profiling
 disabled as well. The counters establish actual native-path use during sampled

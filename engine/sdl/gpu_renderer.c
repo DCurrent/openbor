@@ -17,7 +17,6 @@
 #include "gpu.h"
 #include "gpu_shader.h"
 #include "gpu_transform.h"
-#include "drawmethod_color.h"
 #include "gpu_renderer.h"
 #include "engine_profile.h"
 
@@ -1929,7 +1928,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Supply independent affine sample state for either source format.
- * 2026-11-14 - Bind optional chroma and final Substitute state per draw.
+ * 2026-11-14 - Bind supported chroma and Substitute without changing draw eligibility.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -1946,6 +1945,12 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     int needs_destination = masked || blend_mode != 0;
     int self_draw = source == target;
     int fill = primitive || method->fillcolor != 0;
+    /* Optional color rules never move an ordinary draw to software. Indexed
+     * fill can proceed without a palette, but cannot resolve source chroma. */
+    unsigned chroma_enabled = color_rules_supported && (!indexed || palette)
+                            ? method->colors.chroma_enabled & DRAWMETHOD_COLOR_MASK : 0;
+    unsigned substitute_enabled = color_rules_supported
+                                ? method->colors.substitute_enabled & DRAWMETHOD_COLOR_MASK : 0;
     GLuint texture = source ? source->texture : white_texture;
     size_t q, batches = 0;
     uint64_t previous_state_changes = stats.state_changes;
@@ -1958,17 +1963,12 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     {
         return 1;
     }
-    if(drawmethod_colors_active(method) && !color_rules_supported)
-    {
-        native_failure = EP_FALLBACK_COLOR_RULES;
-        return 0;
-    }
     if(blend_mode > MAX_BLENDINGS || method->tintmode > MAX_BLENDINGS)
     {
         native_failure = EP_FALLBACK_BLEND;
         return 0;
     }
-    if(indexed && !palette && (!fill || method->colors.chroma_enabled))
+    if(indexed && !palette && !fill)
     {
         native_failure = EP_FALLBACK_PALETTE;
         return 0;
@@ -2045,27 +2045,27 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                         method->channelg / 255.0f, method->channelb / 255.0f);
     if(color_rules_supported)
     {
-        /* Enabled masks are independent from RGB zero. Only active slots
+        /* Effective masks are independent from RGB zero. Only active slots
          * require values; disabling all rules does not add texture reads or
-         * destination copies, and later draws cannot inherit earlier masks. */
+         * destination copies. Ignored chroma also clears any earlier mask. */
         gpu_uniform_integer(uniforms.chroma_enabled, &gl_state.material.chroma_enabled,
-                            (int)method->colors.chroma_enabled);
+                            (int)chroma_enabled);
         gpu_uniform_integer(uniforms.substitute_enabled, &gl_state.material.substitute_enabled,
-                            (int)method->colors.substitute_enabled);
-        if(method->colors.chroma_enabled)
+                            (int)substitute_enabled);
+        if(chroma_enabled)
         {
             gpu_uniform_integer(uniforms.primitive_source, &gl_state.material.primitive_source, primitive);
         }
-        if(method->colors.chroma_enabled || method->colors.substitute_enabled)
+        if(chroma_enabled || substitute_enabled)
         {
             for(i = 0; i < DRAWMETHOD_COLOR_SLOTS; ++i)
             {
-                if(method->colors.chroma_enabled & (1u << i))
+                if(chroma_enabled & (1u << i))
                 {
                     gpu_uniform_color_bytes(uniforms.chroma_keys[i], &gl_state.material.chroma_keys[i],
                                             method->colors.chroma[i]);
                 }
-                if(method->colors.substitute_enabled & (1u << i))
+                if(substitute_enabled & (1u << i))
                 {
                     gpu_uniform_color_bytes(uniforms.substitute_match[i], &gl_state.material.substitute_match[i],
                                             method->colors.substitute[i].match);
@@ -2139,11 +2139,11 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
      * emit many row quads while still sharing a single submission batch. */
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
-    if(method->colors.chroma_enabled)
+    if(chroma_enabled)
     {
         engine_profile_count(EP_COUNT_NATIVE_CHROMA_DRAWS, 1);
     }
-    if(method->colors.substitute_enabled)
+    if(substitute_enabled)
     {
         engine_profile_count(EP_COUNT_NATIVE_SUBSTITUTE_DRAWS, 1);
     }
@@ -2779,12 +2779,13 @@ static int gpu_probe_rgb32_target(void)
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-13 - Separate supported work from conditional fallback information.
- * 2026-11-14 - Report independent chroma and Substitute availability.
+ * 2026-11-14 - Report native-only color rules and explicit ignore behavior.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
 static void gpu_log_capability_result(int native_available)
 {
+    int native_colors = native_available && color_rules_supported;
     if(native_available)
     {
         if(affine_supported)
@@ -2795,20 +2796,6 @@ static void gpu_log_capability_result(int native_available)
         {
             gpu_log("RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.");
             gpu_log("WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.");
-        }
-        gpu_log("Color Rules\n"
-                "\tChroma key execution:              %s\n"
-                "\tSubstitute execution:              %s\n"
-                "\tSlots per drawmethod:              %d chroma keys; %d substitutes\n"
-                "\tDestination format:                RGB32\n"
-                "\tChroma matching:                   Source RGB after palette lookup, before effects\n"
-                "\tSubstitute matching:               Final RGB bytes after blending\n",
-                color_rules_supported ? "NATIVE - available" : "CPU SOFTWARE - native variant unavailable",
-                color_rules_supported ? "NATIVE - available" : "CPU SOFTWARE - native variant unavailable",
-                DRAWMETHOD_COLOR_SLOTS, DRAWMETHOD_COLOR_SLOTS);
-        if(!color_rules_supported)
-        {
-            gpu_log("WARNING: Chroma and Substitute draws will use CPU software rendering. Significant slowdown is possible.");
         }
         /* Startup validates this backend, not every future resource or effect.
          * State these restrictions before gameplay can encounter a fallback. */
@@ -2830,6 +2817,22 @@ static void gpu_log_capability_result(int native_available)
     {
         gpu_log("RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
         gpu_log("WARNING: Scene drawing will use CPU software rendering. Significant slowdown is possible.");
+    }
+    gpu_log("Color Rules\n"
+            "\tChroma key execution:              %s\n"
+            "\tSubstitute execution:              %s\n"
+            "\tSlots per drawmethod:              %d chroma keys; %d substitutes\n"
+            "\tDestination format:                RGB32 native targets\n"
+            "\tSoftware implementation:           None; rules ignored\n"
+            "\tOther drawing paths:               Rules ignored; ordinary drawing continues\n"
+            "\tChroma matching:                   Source RGB after palette lookup, before effects\n"
+            "\tSubstitute matching:               Final RGB bytes after blending\n",
+            native_colors ? "NATIVE - available" : "UNAVAILABLE - ignored",
+            native_colors ? "NATIVE - available" : "UNAVAILABLE - ignored",
+            DRAWMETHOD_COLOR_SLOTS, DRAWMETHOD_COLOR_SLOTS);
+    if(!native_colors)
+    {
+        gpu_log("WARNING: Chroma and Substitute rules are unavailable and will be ignored. Ordinary drawing continues.");
     }
     gpu_log("========== END GPU CAPABILITY REPORT ==========");
 }
@@ -2962,7 +2965,7 @@ int gpu_gl_init(void)
         gpu_log("WARNING: Insufficient fragment uniform components for color rules in the preferred shader.\n"
                 "\tAvailable:                         %d\n"
                 "\tRequired with selected transforms: %d\n"
-                "\tChroma and Substitute draws may use CPU software rendering.",
+                "\tChroma and Substitute may be unavailable and ignored.",
                 fragment_components, fragment_components >= GPU_AFFINE_COMPONENTS
                                      ? GPU_COMBINED_COMPONENTS : GPU_COLOR_COMPONENTS);
     }
@@ -3142,7 +3145,8 @@ shader_failed:
         gpu_log("WARNING: Optional scene shader features failed; trying another native variant.\n"
                 "\tAffine requested by retry:         %s\n"
                 "\tColor rules requested by retry:    %s\n"
-                "\tUnavailable effects will use CPU software rendering.",
+                "\tIf native affine is unavailable:   CPU software rendering\n"
+                "\tIf color rules are unavailable:    Ignored; no software implementation.",
                 (shader_variants[variant_index] & 1) ? "Yes" : "No",
                 (shader_variants[variant_index] & 2) ? "Yes" : "No");
         goto compile_scene_shader;

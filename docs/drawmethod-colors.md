@@ -17,10 +17,14 @@ and dots, lines, and boxes, using an RGB32 destination. Existing transforms,
 clipping, repeat order, palette lookup, and blend behavior remain in effect.
 
 The native renderer executes supported color rules in its fragment shader.
-The software renderer implements the same contract when native drawing is
-unavailable. These are reusable drawmethod controls; public programmable
-materials and RGB24 asset loading remain separate work. Games must opt into
-these rules explicitly.
+These controls have no software implementation. If a rule cannot execute,
+the draw proceeds normally with that rule ignored. CPU draws ignore both
+controls, including draws to indexed or RGB16 destinations. Valid settings
+remain stored in the drawmethod for later supported native draws.
+
+These are reusable drawmethod controls; public programmable materials and
+RGB24 asset loading remain separate work. Games must opt into these rules
+explicitly.
 
 ## Processing order
 
@@ -217,35 +221,40 @@ Here `entity_handle` is a valid entity pointer. Passing `NULL()` selects common
 script state instead. Getter components and validation match the constant-based
 API.
 
-## Native execution, fallback, and logging
+## Native execution, availability, and logging
 
 When native scene drawing initializes, startup and video reinitialization add
 a separate **Color Rules** section in `Logs/OpenBorLog.txt`. It states whether
 chroma and Substitute are native, their five-slot capacities, RGB32 destination
 scope, and matching order. Read these rows alongside the general scene/affine
 result; the existing `NATIVE` result line alone does not establish native
-color-rule availability. If no native backend initializes, the general
-`SOFTWARE` result applies to all scene drawing, including these rules.
+color-rule availability. If no native backend initializes, scene drawing uses
+the ordinary software renderer and ignores these shader-only controls.
 
 The renderer attempts supported combined and individual shader variants.
 If the combined program cannot initialize, it prefers retaining existing
 native affine support, then tries color-only and legacy variants as applicable.
-Missing native color support therefore preserves usable native operations,
-while draws with active color rules use software. Startup explicitly warns
-that significant slowdown is possible. Warnings are not repeated for each draw.
+Missing native color support preserves usable native operations and ignores
+the color rules. Startup reports `UNAVAILABLE - ignored` and explains that
+these rules have no CPU implementation. The rules never force an otherwise
+supported native draw onto the CPU. No per-draw warning is emitted.
 
-Rules that need an unsupported destination format are a different condition:
-active color rules require RGB32 in both renderers. Normal runtime logs an
-error and shuts down instead of silently ignoring the rules or quantizing a
-near-black replacement back into black. Indexed chroma also requires a usable
-palette, even when fill will later replace the visible color. Substitute-only
-indexed fills can use the supplied fill color without a palette.
+Execution requires an RGB32 native destination. Other destinations and draws
+that already require software retain their ordinary rendering behavior without
+chroma or Substitute. There is no color-rule format error or shutdown.
+
+Indexed chroma also needs a usable source palette. If an indexed fill has no
+palette, chroma is ignored for that draw while the native fill and any supported
+Substitute rules still execute. The existing palette requirement for an unfilled
+indexed draw remains unchanged.
+
+Availability affects execution only. Script argument types, colors, masks,
+and complete Substitute pairs still receive the validation described above.
 
 With profiling enabled, `native_chroma_draws` and `native_substitute_draws`
-confirm successful native submissions with those rules active.
-`color_software_draws` counts high-level software draw dispatches with active
-color rules. Declining native color support uses fallback reason `color_rules`;
-other limitations retain their own reasons. These counts do not measure matched
+confirm successful native submissions with those rules actually executing.
+Ignored rules do not increment those counters. There is no software-color
+counter or color-rule fallback reason. These counts do not measure matched
 pixels or prove hardware acceleration. See
 [color-rule accounting](engine-profiling.md#drawmethod-color-rule-accounting).
 
@@ -266,12 +275,14 @@ channel. Existing mask/opacity behavior still controls partial transparency.
 Exact RGB rules provide no color range, alpha gradient, palette-index identity,
 or programmable shading language.
 
-Run `bash tests/run_gpu_tests.sh` for validation. Current coverage includes
-13 complete software images and 13 complete native images, all five slots,
-palette/fill order, blend-produced matches, source coverage, zero opacity,
+Run `bash tests/run_gpu_tests.sh` for validation. Coverage includes complete
+native images, all five slots, palette/fill order, blend-produced matches,
+source coverage, zero opacity,
 primitive colors, repeat/affine geometry, queue copies, self-draws, and state
-reuse without unnecessary transfers. Capability fixtures also exercise optional
-shader compilation/linking failures and reduced resource limits.
+reuse without unnecessary transfers. Software checks verify that configured
+rules leave ordinary rendering unchanged. Capability fixtures exercise optional
+shader compilation/linking failures, reduced resource limits, and native draws
+that ignore unavailable rules without switching to software.
 
 The runner also links the production script APIs to verify constant lookup,
 common/object/legacy call forms, atomic validation, getters, reset behavior,

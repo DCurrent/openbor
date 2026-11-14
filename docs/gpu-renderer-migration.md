@@ -28,7 +28,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Existing scale, flip, rotation, shear, water and plane transforms | GPU pixel sampling with existing transform parameters |
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
-| Five chroma keys and five Substitute pairs per drawmethod | Optional native shader rules with equivalent software behavior for RGB32 destinations |
+| Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; lines retain integer point coverage |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
@@ -44,9 +44,9 @@ The affine contract from the separate transform experiment is available through
 `changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
 and curve mappings, public programmable shaders and 24-bit asset loading remain
 separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
-for opt-in chroma coverage and final-output substitutions. Active color rules
-require RGB32 output; requesting them on another destination format is an
-explicit runtime error, rather than an 8/16-bit software fallback.
+for opt-in chroma coverage and final-output substitutions. Color rules execute
+only on supported native RGB32 draws. Software draws and unsupported native
+color capabilities ignore those settings while retaining ordinary drawing.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
@@ -125,11 +125,12 @@ five slots for each, RGB32 destination scope, and matching order. The general
 result above continues to describe scene/affine availability; consult the
 color rows to establish native color-rule support. If an optional combination
 fails, initialization prefers preserving native affine support before trying
-color-only and legacy variants. Missing color support produces an explicit
-startup slowdown warning, and active color-rule draws use software without
-repeated draw-time warning spam.
+color-only and legacy variants. Missing color support is reported as
+`UNAVAILABLE - ignored`, with an explicit notice that no CPU implementation
+exists. Color settings never force an otherwise native draw onto the CPU.
+Software drawing ignores both controls without a per-draw warning.
 
-Missing capabilities and initialization failures produce `WARNING` records
+Missing capabilities that require software fallback produce `WARNING` records
 with the cause, the work that moves to the CPU, and the statement
 `Significant slowdown is possible.` For example, insufficient affine capacity
 produces these records during initialization:
@@ -410,9 +411,10 @@ The suites cover:
   capture ordering, and fresh residency after actual context recreation.
 - Cached-state reuse with pixel verification across material, texture, target,
   clipping, presentation, resource replacement, and context transitions.
-- Chroma/Substitute complete-image comparisons, all five slots, palette/fill
+- Chroma/Substitute native complete-image checks, all five slots, palette/fill
   ordering, blend-created matches, zero-opacity exclusions, primitive source
-  colors, queue snapshots, repeats, affine draws, and overlapping self-draws.
+  colors, queue snapshots, repeats, affine draws, and overlapping self-draws;
+  ignored-rule checks preserve ordinary software output and native availability.
 - Native transform output compared with production CPU rendering.
 - Affine geometry and pixels checked against independent mappings, including
   adjacent fractional translations, clipped pivots/flips, material effects,
