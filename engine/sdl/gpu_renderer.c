@@ -2558,9 +2558,10 @@ static int gpu_clip_line(int *x1, int *y1, int *x2, int *y2, int width, int heig
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Retain the engine's integer line coverage while batching visible points
- * into one GPU draw. This avoids implementation-dependent GL line endpoints
- * and keeps all color blending and framebuffer access off the CPU.
+ * 2026-11-14 - Rasterize horizontal and vertical lines as one rectangle.
+ * Retain the engine's integer line coverage while preparing one GPU draw.
+ * Axis-aligned lines use inclusive rectangles; slopes retain visible points.
+ * Material processing and framebuffer access remain on the GPU.
  */
 static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
                          unsigned color, const s_drawmethod *drawmethod)
@@ -2591,51 +2592,64 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     }
     dx = abs(ex - sx);
     dy = abs(ey - sy);
-    step_x = ex < sx ? -1 : 1;
-    step_y = ey < sy ? -1 : 1;
     quad_count = 0;
     geometry_scope = engine_profile_span_begin();
 
-    /* Walk the dominant axis with the engine's integer error threshold.
-     * Each covered pixel becomes a unit quad; collect the entire line before
-     * drawing so scratch-allocation failures leave the target unchanged. */
-    if(dx > dy)
+    if(!dx || !dy)
     {
-        threshold = dx >> 1;
-        while(sx != ex)
-        {
-            if(!gpu_collect_rectangle((float)sx, (float)sy, 1.0f, 1.0f))
-            {
-                goto fallback;
-            }
-            sx += step_x;
-            if((threshold -= dy) <= 0)
-            {
-                sy += step_y;
-                threshold += dx;
-            }
-        }
+        /* Clipped endpoints bound each inclusive extent to the target size.
+         * One rectangle covers the same pixels once in either direction,
+         * including a zero-length point, without CPU pixel enumeration. */
+        geometry_ready = gpu_collect_rectangle((float)(sx < ex ? sx : ex),
+                                                (float)(sy < ey ? sy : ey),
+                                                (float)(dx + 1), (float)(dy + 1));
     }
     else
     {
-        threshold = dy >> 1;
-        while(sy != ey)
+        step_x = ex < sx ? -1 : 1;
+        step_y = ey < sy ? -1 : 1;
+
+        /* Sloped lines retain the engine's integer error threshold. Collect
+         * every point before drawing so allocation failure leaves the target
+         * unchanged and the caller can still use its existing fallback. */
+        if(dx > dy)
         {
-            if(!gpu_collect_rectangle((float)sx, (float)sy, 1.0f, 1.0f))
+            threshold = dx >> 1;
+            while(sx != ex)
             {
-                goto fallback;
-            }
-            sy += step_y;
-            if((threshold -= dx) <= 0)
-            {
+                if(!gpu_collect_rectangle((float)sx, (float)sy, 1.0f, 1.0f))
+                {
+                    goto fallback;
+                }
                 sx += step_x;
-                threshold += dy;
+                if((threshold -= dy) <= 0)
+                {
+                    sy += step_y;
+                    threshold += dx;
+                }
             }
         }
+        else
+        {
+            threshold = dy >> 1;
+            while(sy != ey)
+            {
+                if(!gpu_collect_rectangle((float)sx, (float)sy, 1.0f, 1.0f))
+                {
+                    goto fallback;
+                }
+                sy += step_y;
+                if((threshold -= dx) <= 0)
+                {
+                    sx += step_x;
+                    threshold += dy;
+                }
+            }
+        }
+        /* Both axis loops stop before the endpoint. Append it explicitly
+         * before the shared material, clipping, and submission path. */
+        geometry_ready = gpu_collect_rectangle((float)ex, (float)ey, 1.0f, 1.0f);
     }
-    /* Both axis loops stop before the endpoint. Appending it explicitly also
-     * covers zero-length lines through the same material and clipping path. */
-    geometry_ready = gpu_collect_rectangle((float)ex, (float)ey, 1.0f, 1.0f);
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
     if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL))
@@ -2780,6 +2794,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-13
  * 2026-11-13 - Separate supported work from conditional fallback information.
  * 2026-11-14 - Report native-only color rules and explicit ignore behavior.
+ * 2026-11-14 - Identify native horizontal/vertical line rectangle coverage.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -2802,7 +2817,8 @@ static void gpu_log_capability_result(int native_available)
         gpu_log("Native Drawing Scope\n"
                 "\tDestination format:                RGB32\n"
                 "\tSource formats:                    Indexed and RGB32\n"
-                "\tDraw methods:                      Supported native operations\n");
+                "\tDraw methods:                      Supported native operations\n"
+                "\tHorizontal/vertical lines:         NATIVE - one rectangle per visible line\n");
         gpu_log("Potential CPU Fallbacks\n"
                 "\tThese conditions may require CPU drawing during gameplay:\n"
                 "\t  - 8-bit or 16-bit destination screens\n"

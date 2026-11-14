@@ -23,6 +23,7 @@
 #include "loadgl.h"
 #include "transform.h"
 #include "draw.h"
+#include "engine_profile.h"
 
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
@@ -40,6 +41,8 @@ static unsigned rotation_sample_corrections;
 static unsigned compared_draws;
 static unsigned compared_lines;
 static unsigned compared_affine_draws;
+static unsigned compared_axis_lines;
+static uint64_t axis_profile_time;
 
 /*
  * Damon V. Caskey
@@ -701,6 +704,175 @@ static void test_lines(s_screen *reference, s_screen *native)
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Give the axis-line geometry counters deterministic collection boundaries.
+ */
+static uint64_t axis_line_profile_clock(void)
+{
+    return axis_profile_time;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Inspect counter reports directly without printing one table per fixture.
+ */
+static void axis_line_profile_log(const char *line)
+{
+    assert(line);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Compare one-rectangle axis lines with independently enumerated native pixel
+ * draws. Patterned destinations exercise material sampling while existing
+ * counters prove that visible lines no longer expand into per-pixel geometry.
+ */
+static void test_axis_line_materials(s_screen *reference, s_screen *native)
+{
+    const int endpoints[][4] = {
+        {0, 0, 63, 0}, {63, 63, 0, 63},
+        {0, 0, 0, 63}, {63, 63, 63, 0},
+        {-100, 24, 100, 24}, {26, 100, 26, -100},
+        {-5, 0, 0, 0}, {20, 20, 20, 20},
+        {-1, -1, 64, -1}, {64, -1, 64, 64}
+    };
+    const unsigned color = 0x0090a0b0u;
+    int fixture, policy, clipped, pixel;
+
+    /* Each native reference point writes a distinct pixel. Separate snapshot
+     * timing therefore cannot affect its blend input, and its unchanged box
+     * path also supports shader-only chroma and final-color substitution. */
+    engine_profile_set_hooks(axis_line_profile_clock, axis_line_profile_log);
+    for(fixture = 0; fixture < (int)(sizeof(endpoints) / sizeof(endpoints[0])); ++fixture)
+    {
+        int sx = endpoints[fixture][0], sy = endpoints[fixture][1];
+        int ex = endpoints[fixture][2], ey = endpoints[fixture][3];
+        int left = sx < ex ? sx : ex, right = sx > ex ? sx : ex;
+        int top = sy < ey ? sy : ey, bottom = sy > ey ? sy : ey;
+        for(policy = 0; policy < 8; ++policy)
+        {
+            for(clipped = 0; clipped < 2; ++clipped)
+            {
+                s_drawmethod method = plainmethod;
+                const ep_report *report;
+                uint64_t frame;
+                int covered = 0, fallback;
+
+                if(policy == 1 || policy == 3 || policy == 4 || policy == 7)
+                {
+                    method.alpha = 6;
+                }
+                if(policy == 2)
+                {
+                    method.alpha = 2;
+                    method.tintmode = 4;
+                    method.tintcolor = 0x00705090u;
+                }
+                if(policy == 3)
+                {
+                    method.channelr = 73; method.channelg = 129; method.channelb = 211;
+                }
+                if(policy == 4)
+                {
+                    method.channelr = method.channelg = method.channelb = 0;
+                }
+                if(policy == 5)
+                {
+                    method.colors.chroma_enabled = 1;
+                    method.colors.chroma[0] = color;
+                }
+                if(policy == 6 || policy == 7)
+                {
+                    method.colors.substitute_enabled = 1;
+                    method.colors.substitute[0].match = policy == 6 ? color : 0x00506070u;
+                    method.colors.substitute[0].replacement = 0x00091119u;
+                }
+                if(clipped)
+                {
+                    method.clipx = 16; method.clipy = 16;
+                    method.clipw = 32; method.cliph = 32;
+                }
+
+                /* Seed identical CPU images outside the measured draw. The
+                 * blend-created substitution fixture uses a known half blend;
+                 * the remaining policies retain varied destination colors. */
+                engine_profile_configure(0, 1, 0);
+                gpu_prepare_cpu_write(reference);
+                gpu_prepare_cpu_write(native);
+                for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
+                {
+                    int x = pixel % reference->width, y = pixel / reference->width;
+                    unsigned background = policy == 7 ? 0x00102030u
+                        : (unsigned)(x * 3) | ((unsigned)(y * 3) << 8)
+                          | ((unsigned)((x + y) * 2) << 16);
+                    ((unsigned *)reference->data)[pixel] = background;
+                    ((unsigned *)native->data)[pixel] = background;
+                    if(x >= left && x <= right && y >= top && y <= bottom &&
+                       (!clipped || (x >= 16 && x < 48 && y >= 16 && y < 48)))
+                    {
+                        ++covered;
+                    }
+                }
+                for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
+                {
+                    int x = pixel % reference->width, y = pixel / reference->width;
+                    if(x >= left && x <= right && y >= top && y <= bottom)
+                    {
+                        assert(gpu_draw_box(reference, x, y, 1, 1, color, &method));
+                    }
+                }
+
+                /* Count only the optimized line, excluding oracle draws and
+                 * subsequent pixel readback. Empty clipping emits no geometry. */
+                engine_profile_configure(1, 1, 0);
+                axis_profile_time = 1000;
+                frame = engine_profile_frame_begin(1, native, native);
+                assert(frame);
+                assert(gpu_draw_line(native, sx, sy, ex, ey, color, &method));
+                axis_profile_time = 2000;
+                engine_profile_frame_end(frame);
+                axis_profile_time = 11000;
+                assert(engine_profile_frame_begin(1, native, native) == 0);
+                report = engine_profile_last_report();
+                assert(report->frames == 1);
+                assert(report->counts[EP_COUNT_NATIVE_DRAWS] == (unsigned)(covered != 0));
+                assert(report->counts[EP_COUNT_NATIVE_QUADS] == (unsigned)(covered != 0));
+                assert(report->counts[EP_COUNT_NATIVE_BATCHES] == (unsigned)(covered != 0));
+                assert(report->counts[EP_COUNT_READBACKS] == 0);
+                assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
+                for(fallback = 0; fallback < EP_FALLBACK_COUNT; ++fallback)
+                {
+                    assert(report->fallbacks[fallback] == 0);
+                }
+
+                /* Compare complete images, including the untouched border,
+                 * to catch endpoint, clipping, opacity and color-rule changes. */
+                gpu_sync_cpu(reference);
+                gpu_sync_cpu(native);
+                for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
+                {
+                    unsigned expected = ((unsigned *)reference->data)[pixel] & 0x00ffffffu;
+                    unsigned actual = ((unsigned *)native->data)[pixel] & 0x00ffffffu;
+                    if(expected != actual)
+                    {
+                        fprintf(stderr, "axis line fixture%d policy%d clip%d pixel(%d,%d) "
+                                "expected%06x actual%06x\n", fixture, policy, clipped,
+                                pixel % native->width, pixel / native->width, expected, actual);
+                        assert(0);
+                    }
+                }
+                ++compared_axis_lines;
+            }
+        }
+    }
+    engine_profile_configure(0, 1, 0);
+    engine_profile_set_hooks(NULL, NULL);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Run production-CPU-versus-native-GPU transform comparisons on a real context.
@@ -750,6 +922,7 @@ int main(void)
     test_rotate(source, reference, native);
     test_affine(source, reference, native);
     test_lines(reference, native);
+    test_axis_line_materials(reference, native);
 
     /* Retire identities while the context still exists, then report ordinary
      * comparisons and the explicitly tracked intended corrections separately. */
@@ -757,10 +930,11 @@ int main(void)
     free(source); free(reference); free(native);
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context); SDL_DestroyWindow(window); SDL_Quit();
-    printf("GPU transform pixel tests passed: %u draws, %u affine draws, %u lines; "
+    printf("GPU transform pixel tests passed: %u draws, %u affine draws, %u lines, "
+           "%u axis-line material images with one-quad counters; "
            "corrected legacy pixels: plane boundaries=%u, rotation coverage=%u, "
            "rotation sampling=%u.\n",
-           compared_draws, compared_affine_draws, compared_lines, plane_drift_corrections,
+           compared_draws, compared_affine_draws, compared_lines, compared_axis_lines, plane_drift_corrections,
            rotation_bounds_corrections, rotation_sample_corrections);
     return 0;
 }

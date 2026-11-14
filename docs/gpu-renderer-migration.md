@@ -29,7 +29,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
-| Boxes, dots and lines | Native rendering; lines retain integer point coverage |
+| Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
 | Screen clear/copy | Native operations for supported targets |
@@ -175,6 +175,14 @@ use row geometry so their existing settings keep their established meanings.
 `video_copy_screen()` tries native texture presentation before requesting the
 CPU frame through `getVideoSurface()`. Merely uploading a completed CPU frame
 would not constitute native scene rendering; the new path avoids that step.
+
+Horizontal and vertical native lines retain the existing endpoint clipping,
+then submit one inclusive rectangle instead of constructing a quad for each
+pixel on the CPU. Reversed endpoints and single-point lines use the same path.
+Drawmethod clipping, tint, blending and color rules continue through the shared
+material shader. Sloped lines retain their existing integer coverage. The
+startup report identifies this rectangle path under **Native Drawing Scope**;
+it requires no additional GPU capability beyond native rectangle drawing.
 
 ## Sprite residency
 
