@@ -295,6 +295,29 @@ typedef struct
     float ty;
 } affine_transform;
 
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Capture five source chroma keys and five final-output substitutions inside
+ * each drawmethod. Explicit masks keep packed RGB zero available as a color.
+ */
+#define DRAWMETHOD_COLOR_SLOTS 5
+#define DRAWMETHOD_COLOR_MASK ((1u << DRAWMETHOD_COLOR_SLOTS) - 1u)
+
+typedef struct
+{
+    unsigned int match;
+    unsigned int replacement;
+} s_color_substitute;
+
+typedef struct
+{
+    unsigned int chroma[DRAWMETHOD_COLOR_SLOTS];
+    s_color_substitute substitute[DRAWMETHOD_COLOR_SLOTS];
+    unsigned int chroma_enabled;
+    unsigned int substitute_enabled;
+} s_drawmethod_colors;
+
 typedef struct
 {
     unsigned char *table;	// ~~
@@ -329,6 +352,9 @@ typedef struct
     int cliph;				// ~~
     water_transform water;	
     affine_transform affine;
+
+    /* Inline storage gives queued draws immutable copies of color settings. */
+    s_drawmethod_colors colors;
 	int tag;				// ~~
     e_object_type object_type;
 } s_drawmethod;

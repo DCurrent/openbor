@@ -24,6 +24,11 @@
  *                                      3=continuous boundary-stable floor+clip
  *   int blendTableMask                 bit (mode-1) selects an uploaded LUT
  *   vec3 fillColor, tintColor, channelOpacity  normalized RGB components
+ *   GPU_COLOR_RULES optional variant:
+ *     int chromaEnabled, substituteEnabled   five independent enabled bits
+ *     int primitiveSource                   use fillColor for source keying
+ *     vec3 chromaKeys[5]                     RGB bytes, after palette lookup
+ *     vec3 substituteMatch[5], substituteValue[5]  final RGB byte mappings
  *
  * All samplers use nearest filtering. Indexed source and mask are LUMINANCE8;
  * palette is 256x1 RGBA8. Truecolor screen pixels carry RGB; drawmethod's color
@@ -41,6 +46,9 @@
  * blending must be disabled because the fragment shader performs compositing.
  * The backend only needs a destination snapshot for mask or blend operations;
  * opaque source copies and source-only tints leave that sampler unused.
+ * Color rules alone do not require destination access. Chroma precedes fill
+ * and effects; one Substitute mapping follows final byte quantization and
+ * cannot repair discarded coverage or fully zero-opacity mask samples.
  */
 extern const char *gpu_vertex_shader_source;
 extern const char *gpu_fragment_shader_source;

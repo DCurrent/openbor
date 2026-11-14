@@ -2,14 +2,14 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-13
+Date: 2026-11-14
 
 ## Scope
 
 This branch introduces native scene rendering into the existing desktop
 OpenGL backend. The software renderer remains available for unsupported
 operations. The branch also adds opt-in, general-purpose affine transforms
-for sprites and screens.
+for sprites and screens, plus drawmethod chroma keys and final-color Substitute.
 
 Existing OpenGL selection automatically enables native drawing when the
 required shaders and render targets initialize successfully. Existing drawing
@@ -28,6 +28,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Existing scale, flip, rotation, shear, water and plane transforms | GPU pixel sampling with existing transform parameters |
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
+| Five chroma keys and five Substitute pairs per drawmethod | Optional native shader rules with equivalent software behavior for RGB32 destinations |
 | Boxes, dots and lines | Native rendering; lines retain integer point coverage |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
@@ -42,7 +43,10 @@ from rendering into an indexed framebuffer, which remains on the software path.
 The affine contract from the separate transform experiment is available through
 `changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
 and curve mappings, public programmable shaders and 24-bit asset loading remain
-separate capabilities.
+separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
+for opt-in chroma coverage and final-output substitutions. Active color rules
+require RGB32 output; requesting them on another destination format is an
+explicit runtime error, rather than an 8/16-bit software fallback.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
@@ -104,7 +108,7 @@ The native OpenGL capability check reports:
 - Maximum texture size, fragment texture units and fragment-uniform capacity,
   with the native requirements beside the reported limits.
 - Actual shader compilation and linking, including driver diagnostics on
-  failure and any retry without the optional affine shader.
+  failure and retries of supported affine/color-rule combinations.
 - Shared texture allocation and a real 1x1 RGBA8 framebuffer completeness
   probe, using the existing white texture without drawing into it.
 
@@ -115,6 +119,15 @@ Each native capability report ends with one of these results:
 | `NATIVE` | Native scene rendering and affine transforms are available within the backend's supported formats and draw methods. |
 | `LIMITED NATIVE` | The material renderer is available, while affine transforms use CPU software rendering. |
 | `SOFTWARE` | Native scene rendering is unavailable or explicitly disabled; scene draws use CPU software rendering. |
+
+The separate **Color Rules** checklist reports chroma and Substitute execution,
+five slots for each, RGB32 destination scope, and matching order. The general
+result above continues to describe scene/affine availability; consult the
+color rows to establish native color-rule support. If an optional combination
+fails, initialization prefers preserving native affine support before trying
+color-only and legacy variants. Missing color support produces an explicit
+startup slowdown warning, and active color-rule draws use software without
+repeated draw-time warning spam.
 
 Missing capabilities and initialization failures produce `WARNING` records
 with the cause, the work that moves to the CPU, and the statement
@@ -397,6 +410,9 @@ The suites cover:
   capture ordering, and fresh residency after actual context recreation.
 - Cached-state reuse with pixel verification across material, texture, target,
   clipping, presentation, resource replacement, and context transitions.
+- Chroma/Substitute complete-image comparisons, all five slots, palette/fill
+  ordering, blend-created matches, zero-opacity exclusions, primitive source
+  colors, queue snapshots, repeats, affine draws, and overlapping self-draws.
 - Native transform output compared with production CPU rendering.
 - Affine geometry and pixels checked against independent mappings, including
   adjacent fractional translations, clipped pivots/flips, material effects,

@@ -114,13 +114,14 @@ static const char *const counter_names[EP_COUNT_COUNT] =
     "palette_cache_misses", "palette_cache_evictions", "table_uploads", "table_upload_bytes",
     "readbacks", "readback_bytes", "dest_copies", "dest_copy_bytes", "self_copies",
     "software_draws", "software_clears", "software_copies", "gpu_query_pairs",
-    "gpu_query_dropped", "gpu_query_skipped"
+    "gpu_query_dropped", "gpu_query_skipped", "native_chroma_draws",
+    "native_substitute_draws", "color_software_draws"
 };
 
 static const char *const fallback_names[EP_FALLBACK_COUNT] =
 {
     "no_backend", "target_format", "source_format", "image_size", "resource",
-    "palette", "blend", "mask", "transform", "other"
+    "palette", "blend", "mask", "transform", "other", "color_rules"
 };
 
 static const char *const gpu_names[EP_GPU_COUNT] =

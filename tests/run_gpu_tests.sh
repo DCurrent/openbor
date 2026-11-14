@@ -177,6 +177,13 @@ test_software_sources=(engine/source/gamelib/gpu.c
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
+# Validate color-rule updates and actual software coverage before requiring a
+# graphics context. These same image expectations are reused by native tests.
+"$test_compiler" "${test_flags[@]}" tests/test_drawmethod_colors.c \
+    "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_drawmethod_colors"
+run_test "$test_build_dir/test_drawmethod_colors"
+
 # Honor explicit dependency paths before consulting installed SDL metadata.
 # Both flag sets are required together to avoid mixing separate installations.
 if [[ -n ${OPENBOR_TEST_SDL_CFLAGS:-} && -n ${OPENBOR_TEST_SDL_LIBS:-} ]]; then
@@ -205,6 +212,12 @@ test_gpu_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
     "${test_profile_sources[@]}")
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
 
+# The script entry points need SDL headers but no graphics context. Reuse the
+# standalone runner so local focused checks and the full suite test one path.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    bash tests/run_drawmethod_color_script_tests.sh
+
 # Capability failures must be prominent before the first scene draw even when
 # profiling is disabled. Loader interception belongs only to this fixture.
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_capabilities.c \
@@ -228,6 +241,19 @@ done
     engine/source/omath.c "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
     -o "$test_build_dir/test_gpu_transform_gl"
 run_test "$test_build_dir/test_gpu_transform_gl"
+
+# Link both production renderers, avoiding the shared GPU dispatch source
+# twice, so fallback and native color policies face identical pixel oracles.
+test_color_native_sources=("${test_gpu_sources[@]}")
+for test_color_source in "${test_software_sources[@]}"; do
+    if [[ $test_color_source != engine/source/gamelib/gpu.c ]]; then
+        test_color_native_sources+=("$test_color_source")
+    fi
+done
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_colors.c \
+    "${test_color_native_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -o "$test_build_dir/test_gpu_colors"
+run_test "$test_build_dir/test_gpu_colors"
 
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
     "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \

@@ -7,12 +7,47 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include "gpu.h"
+#include "drawmethod_color.h"
 #include "engine_profile.h"
 #ifndef PP_TEST
 #include "utils.h"
+/* Keep the game shutdown dependency out of standalone renderer fixtures. */
+extern void borShutdown(int status, const char *message, ...);
 #endif
 
 static const gpu_backend *active_backend;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Fail an unsupported requested color operation instead of silently changing
+ * its pixels. Standalone fixtures retain control to inspect the error path.
+ */
+void gpu_color_rules_error(const char *message)
+{
+    gpu_log("ERROR: Drawmethod color rules: %s", message);
+#ifndef PP_TEST
+    /* Use the engine's normal logged shutdown, including resource cleanup. */
+    borShutdown(1, "\nDrawmethod color rules: %s\n", message);
+#endif
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Require a representable RGB32 destination before any opted-in color write.
+ */
+int gpu_require_color_target(const s_screen *target, const s_drawmethod *method)
+{
+    if(!drawmethod_colors_active(method) || (target && target->pixelformat == PIXEL_32))
+    {
+        return 1;
+    }
+
+    /* In particular, near-black cannot silently quantize back to a key in 16-bit output. */
+    gpu_color_rules_error("Chroma keys and Substitute require an RGB32 destination.");
+    return 0;
+}
 
 /*
  * Damon V. Caskey

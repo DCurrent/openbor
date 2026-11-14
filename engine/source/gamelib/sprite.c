@@ -15,6 +15,7 @@
 #include "sprite.h"
 #include "transform.h"
 #include "gpu.h"
+#include "drawmethod_color.h"
 #include "engine_profile.h"
 /////////////////////////////////////////////////////////////////////////////
 
@@ -584,6 +585,11 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
 {
     gfx_entry gfx;
 
+    if(drawmethod_colors_active(drawmethod) && !gpu_require_color_target(screen, drawmethod))
+    {
+        return;
+    }
+
     if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
     {
         /* The affine matrix replaces the legacy transform, even at zero scale. */
@@ -607,7 +613,8 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
         && !(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y) 
         && !drawmethod->shiftx 
         && drawmethod->fillcolor == TRANSPARENT_IDX 
-        && !drawmethod->rotate)
+        && !drawmethod->rotate
+        && !drawmethod_colors_active(drawmethod))
     {
         if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X)
         {
@@ -689,6 +696,10 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
 
+    if(drawmethod_colors_active(drawmethod) && !gpu_require_color_target(screen, drawmethod))
+    {
+        return;
+    }
     drawmethod_global_init(drawmethod);
 
     /* The native backend handles repeats as part of this draw operation. */
@@ -698,6 +709,10 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
     }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    if(drawmethod_colors_active(drawmethod))
+    {
+        engine_profile_count(EP_COUNT_COLOR_SOFTWARE_DRAWS, 1);
+    }
     gpu_prepare_cpu_write(screen);
 
     if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)

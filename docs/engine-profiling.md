@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-13
+Date: 2026-11-14
 
 ## Purpose and scope
 
@@ -15,8 +15,9 @@ and an opcode body embedded in the interpreter execution loops. These changes
 reduce repeated native-dispatch setup and per-opcode call boundaries.
 Successive changes remain on that same branch; use the individual commits below
 for controlled comparisons.
-Profiling is enabled by default on both diagnostic branches. Games, including
-DC3D, require no script, asset, lighting, or rendering changes.
+Profiling is enabled by default on both diagnostic branches. Using the profiler
+requires no game script, asset, lighting, or rendering changes. New drawmethod
+color rules are separately opt-in; they are not enabled in DC3D automatically.
 
 The profiler separates update phases, main-queue playback, offscreen captures,
 CPU-side native-renderer work, presentation, transfers, and software fallbacks.
@@ -328,6 +329,41 @@ one-for-one replacements for accepted queue-command counts. Quad/batch counts
 describe the engine's native submission groups, not physical GPU utilization.
 CPU native spans separate geometry preparation, state/material work, and
 command submission.
+
+### Drawmethod color-rule accounting
+
+The [drawmethod color API](drawmethod-colors.md) adds these fields to the
+existing `counts_mean` and `counts_max` records:
+
+| Field | Meaning |
+| --- | --- |
+| `native_chroma_draws` | Successful, nonempty native submissions with at least one chroma key enabled. |
+| `native_substitute_draws` | Successful, nonempty native submissions with at least one Substitute pair enabled. |
+| `color_software_draws` | High-level software draw dispatches with active chroma or Substitute rules. |
+
+One native submission may increment both native fields. They do not count
+matching pixels, substitutions performed, unique sprites, or unique queue
+entries. Native repeats can create multiple submissions; software dispatch
+counts cover the enclosing draw and its repeats and may include clipped work.
+Do not add these fields together as a total draw count or compare them as
+identical units of raster work.
+
+Fallback reason `color_rules` identifies a native draw declined because the
+selected shader lacks color-rule support. Other causes, including an absent
+backend, unsupported geometry, or missing resources, keep their own reasons.
+Read those reasons alongside `color_software_draws`, `software_ms`, transfer
+counts, and the enclosing frame phases.
+
+Startup's separate **Color Rules** checklist reports capability with profiling
+disabled as well. The counters establish actual native-path use during sampled
+frames, while the startup report establishes availability. Software OpenGL
+drivers such as llvmpipe can execute that native path on the CPU, so neither
+signal alone establishes physical GPU utilization or a frame-rate gain.
+
+Color rules alone do not require destination copies or readbacks. Existing
+blending, self-drawing, or software fallback can still require them. Compare
+matching draw workloads and transfer counts before attributing a change to
+chroma or Substitute.
 
 ### Cached graphics-state accounting
 

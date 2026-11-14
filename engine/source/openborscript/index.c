@@ -242,6 +242,14 @@ const char *Script_GetFunctionName(void *functionRef)
 	}
 
 	// Drawmethod
+    else if (functionRef == ((void *)openbor_set_draw_method))
+    {
+        return "set_draw_method";
+    }
+    else if (functionRef == ((void *)openbor_get_draw_method))
+    {
+        return "get_draw_method";
+    }
 	else if (functionRef == ((void *)openbor_allocate_drawmethod))
 	{
 		return "allocate_drawmethod";
@@ -1412,6 +1420,10 @@ void Script_LoadSystemFunctions()
 					(void *)openbor_update_bind, "update_bind");
 
 	// Drawmethod
+    List_InsertAfter(&theFunctionList,
+        (void *)openbor_set_draw_method, "set_draw_method");
+    List_InsertAfter(&theFunctionList,
+        (void *)openbor_get_draw_method, "get_draw_method");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_allocate_drawmethod, "allocate_drawmethod");
 	List_InsertAfter(&theFunctionList,

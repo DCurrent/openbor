@@ -17,6 +17,7 @@
 #include "gpu.h"
 #include "gpu_shader.h"
 #include "gpu_transform.h"
+#include "drawmethod_color.h"
 #include "gpu_renderer.h"
 #include "engine_profile.h"
 
@@ -29,6 +30,9 @@
 #define GPU_PALETTE_HASH_MIX_FIRST UINT32_C(0x85ebca6b)
 #define GPU_PALETTE_HASH_MIX_SECOND UINT32_C(0xc2b2ae35)
 #define GPU_TEXTURE_UNITS 5
+#define GPU_AFFINE_COMPONENTS 256
+#define GPU_COLOR_COMPONENTS 160
+#define GPU_COMBINED_COMPONENTS 352
 #define GPU_FIXED_RASTER_CALLS 6
 #define GPU_QUERY_CAPACITY 256
 #define GPU_QUERY_TOKEN_BITS 9
@@ -95,6 +99,9 @@ typedef struct gpu_uniforms
     GLint indexed, masked, color_key, fill, has_destination, wrap;
     GLint blend_mode, tint_mode, table_mask;
     GLint fill_color, tint_color, channels;
+    GLint chroma_enabled, substitute_enabled, primitive_source;
+    GLint chroma_keys[DRAWMETHOD_COLOR_SLOTS];
+    GLint substitute_match[DRAWMETHOD_COLOR_SLOTS], substitute_value[DRAWMETHOD_COLOR_SLOTS];
     GLint affine_approximate_x, affine_approximate_y, affine_approximate_d;
     GLint affine_anchor, affine_pivot;
     GLint affine_x[8], affine_y[8], affine_d[8];
@@ -115,6 +122,9 @@ typedef struct gpu_material_state
     gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap;
     gpu_uniform_value blend_mode, tint_mode, table_mask;
     gpu_uniform_value fill_color, tint_color, channels;
+    gpu_uniform_value chroma_enabled, substitute_enabled, primitive_source;
+    gpu_uniform_value chroma_keys[DRAWMETHOD_COLOR_SLOTS];
+    gpu_uniform_value substitute_match[DRAWMETHOD_COLOR_SLOTS], substitute_value[DRAWMETHOD_COLOR_SLOTS];
     gpu_uniform_value affine_approximate_x, affine_approximate_y, affine_approximate_d;
     gpu_uniform_value affine_anchor, affine_pivot;
     gpu_uniform_value affine_x[8], affine_y[8], affine_d[8];
@@ -155,7 +165,7 @@ static gpu_uniforms uniforms;
 static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
-static int initialized, tables_dirty = 1, table_mask, affine_supported;
+static int initialized, tables_dirty = 1, table_mask, affine_supported, color_rules_supported;
 static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
 static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
 static int palette_cache_count;
@@ -599,13 +609,14 @@ static int gpu_load_functions(void)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Select optional affine arithmetic without raising legacy limits.
+ * 2026-11-14 - Select color rules independently from optional affine support.
  * Compile one scene shader, preserving the driver's diagnostic on failure.
  */
 static GLuint gpu_compile_shader(GLenum type, const char *source)
 {
     GLuint shader = gpu_CreateShader(type);
     GLint success = 0;
-    char message[4096];
+    char message[4096], defines[96];
     const char *parts[2];
     if(!shader)
     {
@@ -614,10 +625,11 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
         return 0;
     }
 
-    /* Both internal sources start with the same version directive. Insert a
-     * capability define after it, keeping the directive first as GLSL needs. */
-    parts[0] = affine_supported ? "#version 120\n#define GPU_AFFINE 1\n"
-                                : "#version 120\n#define GPU_AFFINE 0\n";
+    /* Both internal sources start with the same version directive. Insert
+     * capability defines after it, retaining GLSL's required first line. */
+    snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n",
+             affine_supported, color_rules_supported);
+    parts[0] = defines;
     parts[1] = strchr(source, '\n') + 1;
     gpu_ShaderSource(shader, 2, parts, NULL);
     gpu_CompileShader(shader);
@@ -1740,6 +1752,33 @@ static void gpu_uniform_color(GLint location, gpu_uniform_value *cached, unsigne
 
 /*
  * Damon V. Caskey
+ * 2026-11-14
+ * Upload exact RGB byte values for chroma and Substitute comparisons.
+ * Keeping keys in byte space avoids per-fragment normalization/rounding.
+ */
+static void gpu_uniform_color_bytes(GLint location, gpu_uniform_value *cached, unsigned color)
+{
+    /* The unused high byte cannot change a color match or cache identity. */
+    color &= 0x00ffffffu;
+    if(cached->valid && cached->integer == (GLint)color)
+    {
+        stats.state_reuses++;
+        return;
+    }
+#if REVERSE_COLOR
+    gpu_Uniform3f(location, (float)((color >> 16) & 255),
+                  (float)((color >> 8) & 255), (float)(color & 255));
+#else
+    gpu_Uniform3f(location, (float)(color & 255),
+                  (float)((color >> 8) & 255), (float)((color >> 16) & 255));
+#endif
+    cached->integer = (GLint)color;
+    cached->valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Collect geometry before touching the target. This allows parameter or
  * allocation failure to select software without replaying a partial GPU draw.
@@ -1890,6 +1929,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Supply independent affine sample state for either source format.
+ * 2026-11-14 - Bind optional chroma and final Substitute state per draw.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -1918,12 +1958,17 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     {
         return 1;
     }
+    if(drawmethod_colors_active(method) && !color_rules_supported)
+    {
+        native_failure = EP_FALLBACK_COLOR_RULES;
+        return 0;
+    }
     if(blend_mode > MAX_BLENDINGS || method->tintmode > MAX_BLENDINGS)
     {
         native_failure = EP_FALLBACK_BLEND;
         return 0;
     }
-    if(indexed && !palette && !fill)
+    if(indexed && !palette && (!fill || method->colors.chroma_enabled))
     {
         native_failure = EP_FALLBACK_PALETTE;
         return 0;
@@ -1998,6 +2043,38 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_uniform_color(uniforms.tint_color, &gl_state.material.tint_color, method->tintcolor);
     gpu_uniform_vector(uniforms.channels, &gl_state.material.channels, method->channelr / 255.0f,
                         method->channelg / 255.0f, method->channelb / 255.0f);
+    if(color_rules_supported)
+    {
+        /* Enabled masks are independent from RGB zero. Only active slots
+         * require values; disabling all rules does not add texture reads or
+         * destination copies, and later draws cannot inherit earlier masks. */
+        gpu_uniform_integer(uniforms.chroma_enabled, &gl_state.material.chroma_enabled,
+                            (int)method->colors.chroma_enabled);
+        gpu_uniform_integer(uniforms.substitute_enabled, &gl_state.material.substitute_enabled,
+                            (int)method->colors.substitute_enabled);
+        if(method->colors.chroma_enabled)
+        {
+            gpu_uniform_integer(uniforms.primitive_source, &gl_state.material.primitive_source, primitive);
+        }
+        if(method->colors.chroma_enabled || method->colors.substitute_enabled)
+        {
+            for(i = 0; i < DRAWMETHOD_COLOR_SLOTS; ++i)
+            {
+                if(method->colors.chroma_enabled & (1u << i))
+                {
+                    gpu_uniform_color_bytes(uniforms.chroma_keys[i], &gl_state.material.chroma_keys[i],
+                                            method->colors.chroma[i]);
+                }
+                if(method->colors.substitute_enabled & (1u << i))
+                {
+                    gpu_uniform_color_bytes(uniforms.substitute_match[i], &gl_state.material.substitute_match[i],
+                                            method->colors.substitute[i].match);
+                    gpu_uniform_color_bytes(uniforms.substitute_value[i], &gl_state.material.substitute_value[i],
+                                            method->colors.substitute[i].replacement);
+                }
+            }
+        }
+    }
     if(affine)
     {
         /* Geometry and color remain separate. These small per-draw values
@@ -2062,6 +2139,14 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
      * emit many row quads while still sharing a single submission batch. */
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    if(method->colors.chroma_enabled)
+    {
+        engine_profile_count(EP_COUNT_NATIVE_CHROMA_DRAWS, 1);
+    }
+    if(method->colors.substitute_enabled)
+    {
+        engine_profile_count(EP_COUNT_NATIVE_SUBSTITUTE_DRAWS, 1);
+    }
     engine_profile_count(EP_COUNT_NATIVE_QUADS, quad_count);
     engine_profile_count(EP_COUNT_NATIVE_BATCHES, batches);
     /* Aggregate once per completed draw rather than adding profiling calls
@@ -2694,6 +2779,7 @@ static int gpu_probe_rgb32_target(void)
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-13 - Separate supported work from conditional fallback information.
+ * 2026-11-14 - Report independent chroma and Substitute availability.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -2709,6 +2795,20 @@ static void gpu_log_capability_result(int native_available)
         {
             gpu_log("RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.");
             gpu_log("WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.");
+        }
+        gpu_log("Color Rules\n"
+                "\tChroma key execution:              %s\n"
+                "\tSubstitute execution:              %s\n"
+                "\tSlots per drawmethod:              %d chroma keys; %d substitutes\n"
+                "\tDestination format:                RGB32\n"
+                "\tChroma matching:                   Source RGB after palette lookup, before effects\n"
+                "\tSubstitute matching:               Final RGB bytes after blending\n",
+                color_rules_supported ? "NATIVE - available" : "CPU SOFTWARE - native variant unavailable",
+                color_rules_supported ? "NATIVE - available" : "CPU SOFTWARE - native variant unavailable",
+                DRAWMETHOD_COLOR_SLOTS, DRAWMETHOD_COLOR_SLOTS);
+        if(!color_rules_supported)
+        {
+            gpu_log("WARNING: Chroma and Substitute draws will use CPU software rendering. Significant slowdown is possible.");
         }
         /* Startup validates this backend, not every future resource or effect.
          * State these restrictions before gameplay can encounter a fallback. */
@@ -2740,6 +2840,7 @@ static void gpu_log_capability_result(int native_available)
  * 2026-11-13 - Keep affine uniform capacity optional for existing GL contexts.
  * 2026-11-13 - Report startup capabilities and fallback costs without profiling.
  * 2026-11-13 - Group startup information into readable fields and checks.
+ * 2026-11-14 - Probe optional color rules without retiring earlier native paths.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves the existing renderer intact.
  */
@@ -2748,7 +2849,7 @@ int gpu_gl_init(void)
     GLuint vertex = 0, fragment = 0;
     GLenum limits_error;
     GLint linked = 0, units = 0, fragment_components = 0;
-    int digit, functions_available;
+    int digit, functions_available, shader_variants[4], variant_count = 0, variant_index = 0;
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
@@ -2760,7 +2861,7 @@ int gpu_gl_init(void)
     /* State and object names from a previous context must never influence
      * setup of its replacement, including initialization failure retries. */
     gpu_gl_invalidate_state();
-    affine_supported = 0;
+    affine_supported = color_rules_supported = 0;
     maximum_texture_size = 0;
     gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
@@ -2828,24 +2929,42 @@ int gpu_gl_init(void)
             /* Consume any remaining errors from the three independent queries. */
         }
     }
-    /* Allow conservative vec4 padding for array elements. Smaller GL 2.1
-     * implementations keep all earlier native features and use CPU affines. */
-    affine_supported = fragment_components >= 256;
+    /* Optional features have independent variants. Prefer retaining affine
+     * support if the combined program exceeds a driver's resources; a failed
+     * affine-only compiler can still accept color rules without affine. */
+    if(fragment_components >= GPU_COMBINED_COMPONENTS) shader_variants[variant_count++] = 3;
+    if(fragment_components >= GPU_AFFINE_COMPONENTS) shader_variants[variant_count++] = 1;
+    if(fragment_components >= GPU_COLOR_COMPONENTS) shader_variants[variant_count++] = 2;
+    shader_variants[variant_count++] = 0;
     gpu_log("Resource Limits\n"
             "\t%-34s %-16s %s\n"
             "\t%-34s %-16d %d pixels per axis\n"
             "\t%-34s %-16d %d\n"
-            "\t%-34s %-16d %d for native affine\n",
+            "\t%-34s %-16d %d for native affine\n"
+            "\t%-34s %-16d %d for color rules; %d with affine\n",
             "Capability", "Available", "Required",
             "Maximum texture size:", maximum_texture_size, 1536,
             "Fragment texture units:", units, GPU_TEXTURE_UNITS,
-            "Fragment uniform components:", fragment_components, 256);
-    if(!affine_supported)
+            "Fragment uniform components:", fragment_components, GPU_AFFINE_COMPONENTS,
+            "Color-rule uniform components:", fragment_components, GPU_COLOR_COMPONENTS,
+            GPU_COMBINED_COMPONENTS);
+    if(fragment_components < GPU_AFFINE_COMPONENTS)
     {
         gpu_log("WARNING: Insufficient fragment uniform components for native affine transforms.\n"
                 "\tAvailable:                         %d\n"
-                "\tRequired:                          256\n"
-                "\tAffine draws will use CPU software rendering.", fragment_components);
+                "\tRequired:                          %d\n"
+                "\tAffine draws will use CPU software rendering.",
+                fragment_components, GPU_AFFINE_COMPONENTS);
+    }
+    if(fragment_components < GPU_COLOR_COMPONENTS ||
+       (fragment_components >= GPU_AFFINE_COMPONENTS && fragment_components < GPU_COMBINED_COMPONENTS))
+    {
+        gpu_log("WARNING: Insufficient fragment uniform components for color rules in the preferred shader.\n"
+                "\tAvailable:                         %d\n"
+                "\tRequired with selected transforms: %d\n"
+                "\tChroma and Substitute draws may use CPU software rendering.",
+                fragment_components, fragment_components >= GPU_AFFINE_COMPONENTS
+                                     ? GPU_COMBINED_COMPONENTS : GPU_COLOR_COMPONENTS);
     }
     if(maximum_texture_size < 1536)
     {
@@ -2869,6 +2988,8 @@ int gpu_gl_init(void)
         return 0;
     }
 compile_scene_shader:
+    affine_supported = (shader_variants[variant_index] & 1) != 0;
+    color_rules_supported = (shader_variants[variant_index] & 2) != 0;
     vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
     fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_fragment_shader_source);
     if(!vertex || !fragment)
@@ -2944,6 +3065,19 @@ compile_scene_shader:
     GPU_UNIFORM(fill_color, "fillColor");
     GPU_UNIFORM(tint_color, "tintColor");
     GPU_UNIFORM(channels, "channelOpacity");
+    GPU_UNIFORM(chroma_enabled, "chromaEnabled");
+    GPU_UNIFORM(substitute_enabled, "substituteEnabled");
+    GPU_UNIFORM(primitive_source, "primitiveSource");
+    for(digit = 0; digit < DRAWMETHOD_COLOR_SLOTS; ++digit)
+    {
+        char name[32];
+        snprintf(name, sizeof(name), "chromaKeys[%d]", digit);
+        GPU_UNIFORM(chroma_keys[digit], name);
+        snprintf(name, sizeof(name), "substituteMatch[%d]", digit);
+        GPU_UNIFORM(substitute_match[digit], name);
+        snprintf(name, sizeof(name), "substituteValue[%d]", digit);
+        GPU_UNIFORM(substitute_value[digit], name);
+    }
     GPU_UNIFORM(affine_approximate_x, "affineApproximateX");
     GPU_UNIFORM(affine_approximate_y, "affineApproximateY");
     GPU_UNIFORM(affine_approximate_d, "affineApproximateD");
@@ -2995,19 +3129,22 @@ compile_scene_shader:
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
 shader_failed:
-    /* Optional affine arithmetic must not retire an otherwise usable native
-     * backend. Older compilers can reject its instruction count even when
-     * their uniform capacity is sufficient; retry the original material. */
-    if(affine_supported)
+    /* Retry only less demanding variants, releasing every failed program.
+     * Existing native affine draws take priority over new optional color
+     * rules; neither feature may retire a usable plain material renderer. */
+    if(variant_index + 1 < variant_count)
     {
         if(vertex) gpu_DeleteShader(vertex);
         if(fragment) gpu_DeleteShader(fragment);
         if(program) gpu_DeleteProgram(program);
         vertex = fragment = program = 0;
-        affine_supported = 0;
-        gpu_log("WARNING: The optional affine shader is unusable.\n"
-                "\tRetrying the material shader.\n"
-                "\tIf the retry succeeds, affine draws will use CPU software rendering.");
+        ++variant_index;
+        gpu_log("WARNING: Optional scene shader features failed; trying another native variant.\n"
+                "\tAffine requested by retry:         %s\n"
+                "\tColor rules requested by retry:    %s\n"
+                "\tUnavailable effects will use CPU software rendering.",
+                (shader_variants[variant_index] & 1) ? "Yes" : "No",
+                (shader_variants[variant_index] & 2) ? "Yes" : "No");
         goto compile_scene_shader;
     }
 failed:

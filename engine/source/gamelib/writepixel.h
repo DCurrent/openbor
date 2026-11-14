@@ -117,6 +117,7 @@ case 44: x wp_32_32_1_0_0() y break; \
 case 45: x wp_32_32_1_0_1() y break; \
 case 46: x wp_32_32_1_1_0() y break; \
 case 47: x wp_32_32_1_1_1() y break; \
+case 48: x write_color_pixel(); y break; \
 }
 
 

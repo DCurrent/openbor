@@ -23,6 +23,11 @@ typedef enum capability_case
     CAPABILITY_INCOMPLETE_FRAMEBUFFER,
     CAPABILITY_DISABLED,
     CAPABILITY_NO_CONTEXT,
+    CAPABILITY_COLOR_COMPILE,
+    CAPABILITY_COLOR_LINK,
+    CAPABILITY_COMBINED_COMPILE,
+    CAPABILITY_AFFINE_ONLY_UNIFORMS,
+    CAPABILITY_COLOR_ONLY_UNIFORMS,
     CAPABILITY_COUNT
 } capability_case;
 
@@ -31,11 +36,13 @@ static const char *const capability_names[CAPABILITY_COUNT] =
     "healthy", "low uniforms", "invalid limit query", "low texture units", "small textures",
     "missing entry point", "affine compile failure", "affine link failure",
     "all shader compilation fails", "incomplete framebuffer",
-    "disabled by setting", "no current context"
+    "disabled by setting", "no current context", "color compile failure",
+    "color link failure", "combined shader compile failure",
+    "affine-only uniform capacity", "color-only uniform capacity"
 };
 static capability_case capability_mode;
 static unsigned capability_injected_compiles, capability_injected_links;
-static unsigned capability_affine_fragments, capability_legacy_fragments;
+static unsigned capability_affine_fragments, capability_legacy_fragments, capability_color_fragments;
 static void (APIENTRY *capability_real_get_integer)(GLenum, GLint *);
 static PFNGLSHADERSOURCEPROC capability_real_shader_source;
 static PFNGLCHECKFRAMEBUFFERSTATUSPROC capability_real_framebuffer_status;
@@ -44,6 +51,7 @@ void *__real_SDL_GL_GetProcAddress(const char *name);
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Cover independent color and affine resource thresholds.
  * Restrict one reported resource without changing the actual test context.
  */
 static void APIENTRY capability_get_integer(GLenum name, GLint *value)
@@ -52,6 +60,14 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
     if(capability_mode == CAPABILITY_LOW_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
     {
         *value = 64;
+    }
+    else if(capability_mode == CAPABILITY_AFFINE_ONLY_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    {
+        *value = 256;
+    }
+    else if(capability_mode == CAPABILITY_COLOR_ONLY_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    {
+        *value = 160;
     }
     else if(capability_mode == CAPABILITY_INVALID_QUERY && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
     {
@@ -77,6 +93,7 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Reject color and combined variants independently.
  * Exercise genuine compiler/linker failures for the selected shader variant.
  */
 static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
@@ -86,7 +103,7 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
     PFNGLGETSHADERIVPROC get_shader =
         (PFNGLGETSHADERIVPROC)__real_SDL_GL_GetProcAddress("glGetShaderiv");
     GLint type;
-    int part, affine = 0, legacy = 0;
+    int part, affine = 0, legacy = 0, color = 0;
 
     /* The source define identifies the optional implementation. Valid legacy
      * retries still compile and link on the real driver. */
@@ -95,20 +112,25 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
     {
         if(strstr(strings[part], "#define GPU_AFFINE 1")) affine = 1;
         if(strstr(strings[part], "#define GPU_AFFINE 0")) legacy = 1;
+        if(strstr(strings[part], "#define GPU_COLOR_RULES 1")) color = 1;
     }
     if(type == GL_FRAGMENT_SHADER)
     {
         capability_affine_fragments += affine;
         capability_legacy_fragments += legacy;
+        capability_color_fragments += color;
         if(capability_mode == CAPABILITY_ALL_COMPILE ||
-           (capability_mode == CAPABILITY_AFFINE_COMPILE && affine))
+           (capability_mode == CAPABILITY_AFFINE_COMPILE && affine) ||
+           (capability_mode == CAPABILITY_COLOR_COMPILE && color) ||
+           (capability_mode == CAPABILITY_COMBINED_COMPILE && affine && color))
         {
             const GLchar *invalid = "#version 120\n#error injected_capability_compile_failure\n";
             ++capability_injected_compiles;
             capability_real_shader_source(shader, 1, &invalid, NULL);
             return;
         }
-        if(capability_mode == CAPABILITY_AFFINE_LINK && affine)
+        if((capability_mode == CAPABILITY_AFFINE_LINK && affine) ||
+           (capability_mode == CAPABILITY_COLOR_LINK && color))
         {
             /* Vertex output uses vec2. A used vec3 input compiles separately
              * but must fail the real program's interface-link validation. */
@@ -188,19 +210,20 @@ static void capability_expect(const char *log, const char *text)
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-14 - Verify optional color fallback preserves ordinary native draws.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
 {
     SDL_GLContext context;
     FILE *capture;
-    int saved_stdout, native_expected, affine_expected, result, index;
+    int saved_stdout, native_expected, affine_expected, color_expected, result, index;
     long startup_bytes, final_bytes;
     char log[32768];
 
     capability_mode = mode;
     capability_injected_compiles = capability_injected_links = 0;
-    capability_affine_fragments = capability_legacy_fragments = 0;
+    capability_affine_fragments = capability_legacy_fragments = capability_color_fragments = 0;
     assert(SDL_setenv("OPENBOR_GPU", mode == CAPABILITY_DISABLED ? "0" : "1", 1) == 0);
     context = SDL_GL_CreateContext(window);
     assert(context && LoadGLFunctions());
@@ -223,8 +246,15 @@ static void capability_run(SDL_Window *window, capability_case mode)
     assert(startup_bytes > 0);
 
     native_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_LOW_UNIFORMS ||
-                      mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK;
-    affine_expected = mode == CAPABILITY_HEALTHY;
+                      mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK ||
+                      mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COLOR_LINK ||
+                      mode == CAPABILITY_COMBINED_COMPILE || mode == CAPABILITY_AFFINE_ONLY_UNIFORMS ||
+                      mode == CAPABILITY_COLOR_ONLY_UNIFORMS;
+    affine_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_COLOR_COMPILE ||
+                      mode == CAPABILITY_COLOR_LINK || mode == CAPABILITY_COMBINED_COMPILE ||
+                      mode == CAPABILITY_AFFINE_ONLY_UNIFORMS;
+    color_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_AFFINE_COMPILE ||
+                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_ONLY_UNIFORMS;
     assert(result == native_expected && gpu_is_active() == native_expected);
     if(mode == CAPABILITY_INVALID_QUERY) assert(glGetError() == GL_NO_ERROR);
     if(native_expected)
@@ -253,6 +283,26 @@ static void capability_run(SDL_Window *window, capability_case mode)
         assert(gpu_draw_screen(target, source, 1, 1, &plainmethod));
         gpu_sync_cpu(target);
         assert(test_pixel(target, 1, 1) == foreground);
+        /* Independently gated color draws must decline before modifying a
+         * target, even when the preferred fallback keeps affine native. */
+        method = plainmethod;
+        method.colors.substitute_enabled = 1u << 4;
+        method.colors.substitute[4].match = foreground;
+        method.colors.substitute[4].replacement = 0x00335577;
+        for(index = 0; index < 4; ++index)
+        {
+            assert(gpu_draw_box(target, 0, 0, 4, 4, background, &plainmethod));
+            assert(gpu_draw_screen(target, source, 0, 0, &method) == color_expected);
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) == (color_expected ? 0x00335577u : background));
+        }
+        method.colors.substitute_enabled = 0;
+        method.colors.chroma_enabled = 1u << 4;
+        method.colors.chroma[4] = foreground;
+        assert(gpu_draw_box(target, 0, 0, 4, 4, background, &plainmethod));
+        assert(gpu_draw_screen(target, source, 0, 0, &method) == color_expected);
+        gpu_sync_cpu(target);
+        assert(test_pixel(target, 0, 0) == background);
         release_test_screen(target);
         release_test_screen(source);
     }
@@ -277,6 +327,18 @@ static void capability_run(SDL_Window *window, capability_case mode)
         "RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering." :
         "RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
     assert(!strstr(strstr(log, "RESULT:") + 1, "RESULT:"));
+    if(native_expected)
+    {
+        capability_expect(log, color_expected ?
+            "Chroma key execution:              NATIVE - available" :
+            "Chroma key execution:              CPU SOFTWARE - native variant unavailable");
+        capability_expect(log, color_expected ?
+            "Substitute execution:              NATIVE - available" :
+            "Substitute execution:              CPU SOFTWARE - native variant unavailable");
+        capability_expect(log, "5 chroma keys; 5 substitutes");
+        if(!color_expected)
+            capability_expect(log, "WARNING: Chroma and Substitute draws will use CPU software rendering.");
+    }
     if(mode != CAPABILITY_HEALTHY)
     {
         capability_expect(log, "WARNING:");
@@ -292,6 +354,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "Fragment texture units:");
         capability_expect(log, "Fragment uniform components:");
         assert(capability_affine_fragments == 1 && capability_legacy_fragments == 0);
+        assert(capability_color_fragments == 1);
     }
     if(mode == CAPABILITY_LOW_UNIFORMS)
     {
@@ -319,17 +382,37 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, "shader compilation failed");
         capability_expect(log, "injected_capability_compile_failure");
-        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 2u : 1u));
+        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 4u : 2u));
     }
     if(mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "shader link failed");
-        assert(capability_injected_links == 1);
+        assert(capability_injected_links == 2);
     }
     if(mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "affine");
-        assert(capability_affine_fragments == 1);
+        assert(capability_affine_fragments == 2);
+    }
+    if(mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COMBINED_COMPILE)
+    {
+        capability_expect(log, "shader compilation failed");
+        assert(capability_injected_compiles == 1);
+        assert(capability_affine_fragments == 2 && capability_color_fragments == 1);
+    }
+    if(mode == CAPABILITY_COLOR_LINK)
+    {
+        capability_expect(log, "shader link failed");
+        assert(capability_injected_links == 1);
+        assert(capability_affine_fragments == 2 && capability_color_fragments == 1);
+    }
+    if(mode == CAPABILITY_AFFINE_ONLY_UNIFORMS)
+    {
+        assert(capability_affine_fragments == 1 && capability_color_fragments == 0);
+    }
+    if(mode == CAPABILITY_COLOR_ONLY_UNIFORMS)
+    {
+        assert(capability_affine_fragments == 0 && capability_color_fragments == 1);
     }
     if(mode == CAPABILITY_INCOMPLETE_FRAMEBUFFER)
         capability_expect(log, "RGB32 framebuffer probe failed");

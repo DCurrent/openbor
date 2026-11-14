@@ -35,6 +35,7 @@
 #include "models.h"
 #include "scriptcommon.h"
 #include "gpu.h"
+#include "drawmethod_color.h"
 #include <float.h>
 #include <limits.h>
 #include <stdint.h>
@@ -2804,6 +2805,18 @@ enum drawmethod_enum
     _dm_affineenabled,
     _dm_affinex,
     _dm_affiney,
+    _dm_chromakeya,
+    _dm_chromakeyb,
+    _dm_chromakeyc,
+    _dm_chromakeyd,
+    _dm_chromakeye,
+    _dm_chromakeyenabled,
+    _dm_substitutea,
+    _dm_substituteb,
+    _dm_substitutec,
+    _dm_substituted,
+    _dm_substitutee,
+    _dm_substituteenabled,
     _dm_the_end,
 };
 
@@ -14831,6 +14844,12 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "channelb",
         "channelg",
         "channelr",
+        "chromakeya",
+        "chromakeyb",
+        "chromakeyc",
+        "chromakeyd",
+        "chromakeye",
+        "chromakeyenabled",
         "clip",
         "cliph",
         "clipw",
@@ -14850,6 +14869,12 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "scalex",
         "scaley",
         "shiftx",
+        "substitutea",
+        "substituteb",
+        "substitutec",
+        "substituted",
+        "substitutee",
+        "substituteenabled",
         "table",
         "tintcolor",
         "tintmode",
@@ -14864,25 +14889,68 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "yspan",
     };
 
-    /*
-     * searchList() is a binary search, so names must stay alphabetized.
-     * Preserve the ordinal values of existing properties for script callers
-     * that pass integer IDs instead of property names.
-     */
+    /* Sorted names map to stable numeric IDs, including appended color rules. */
     static const int property_ids[] =
     {
-        _dm_affine, _dm_affine00, _dm_affine01, _dm_affine10,
-        _dm_affine11, _dm_affineenabled, _dm_affinex, _dm_affiney,
-        _dm_alpha, _dm_amplitude, _dm_beginsize, _dm_centerx,
-        _dm_centery, _dm_channelb, _dm_channelg, _dm_channelr,
-        _dm_clip, _dm_cliph, _dm_clipw, _dm_clipx, _dm_clipy,
-        _dm_enabled, _dm_endsize, _dm_fillcolor, _dm_flag,
-        _dm_fliprotate, _dm_flipx, _dm_flipy, _dm_perspective,
-        _dm_remap, _dm_reset, _dm_rotate, _dm_scalex,
-        _dm_scaley, _dm_shiftx, _dm_table, _dm_tintcolor,
-        _dm_tintmode, _dm_transbg, _dm_watermode, _dm_wavelength,
-        _dm_wavespeed, _dm_wavetime, _dm_xrepeat, _dm_xspan,
-        _dm_yrepeat, _dm_yspan
+        _dm_affine,
+        _dm_affine00,
+        _dm_affine01,
+        _dm_affine10,
+        _dm_affine11,
+        _dm_affineenabled,
+        _dm_affinex,
+        _dm_affiney,
+        _dm_alpha,
+        _dm_amplitude,
+        _dm_beginsize,
+        _dm_centerx,
+        _dm_centery,
+        _dm_channelb,
+        _dm_channelg,
+        _dm_channelr,
+        _dm_chromakeya,
+        _dm_chromakeyb,
+        _dm_chromakeyc,
+        _dm_chromakeyd,
+        _dm_chromakeye,
+        _dm_chromakeyenabled,
+        _dm_clip,
+        _dm_cliph,
+        _dm_clipw,
+        _dm_clipx,
+        _dm_clipy,
+        _dm_enabled,
+        _dm_endsize,
+        _dm_fillcolor,
+        _dm_flag,
+        _dm_fliprotate,
+        _dm_flipx,
+        _dm_flipy,
+        _dm_perspective,
+        _dm_remap,
+        _dm_reset,
+        _dm_rotate,
+        _dm_scalex,
+        _dm_scaley,
+        _dm_shiftx,
+        _dm_substitutea,
+        _dm_substituteb,
+        _dm_substitutec,
+        _dm_substituted,
+        _dm_substitutee,
+        _dm_substituteenabled,
+        _dm_table,
+        _dm_tintcolor,
+        _dm_tintmode,
+        _dm_transbg,
+        _dm_watermode,
+        _dm_wavelength,
+        _dm_wavespeed,
+        _dm_wavetime,
+        _dm_xrepeat,
+        _dm_xspan,
+        _dm_yrepeat,
+        _dm_yspan,
     };
 
     if(paramCount < 2)
@@ -14897,6 +14965,80 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
     }
 
     return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Translate the appended legacy color IDs into the constant-based contract.
+ */
+static int drawmethod_color_property_id(int property)
+{
+    if(property >= _dm_chromakeya && property <= _dm_chromakeye)
+    {
+        return DM_CHROMA_KEY_A + property - _dm_chromakeya;
+    }
+    if(property >= _dm_substitutea && property <= _dm_substitutee)
+    {
+        return DM_SUBSTITUTE_A + property - _dm_substitutea;
+    }
+    if(property == _dm_chromakeyenabled) { return DM_CHROMA_KEY_ENABLED; }
+    if(property == _dm_substituteenabled) { return DM_SUBSTITUTE_ENABLED; }
+    return -1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Set a constant-based property on a drawmethod object or common script state.
+ */
+HRESULT openbor_set_draw_method(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant common = {0};
+    ScriptVariant *arguments[4];
+    int i;
+    *pretvar = NULL;
+    if(paramCount < 3 || paramCount > 4)
+    {
+        printf("\nset_draw_method requires a drawmethod or NULL(), property, and value(s).\n");
+        return E_FAIL;
+    }
+    for(i = 0; i < paramCount; ++i) { arguments[i] = varlist[i]; }
+    if(varlist[0]->vt == VT_EMPTY || (varlist[0]->vt == VT_PTR && !varlist[0]->ptrVal))
+    {
+        /* Only this convenience API interprets NULL as the common drawmethod. */
+        common.vt = VT_PTR;
+        common.ptrVal = &drawmethod;
+        arguments[0] = &common;
+    }
+    return openbor_set_drawmethod_property(arguments, pretvar, paramCount);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Read constant-based properties from an object or the common script method.
+ */
+HRESULT openbor_get_draw_method(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant common = {0};
+    ScriptVariant *arguments[3];
+    int i;
+    if(paramCount < 2 || paramCount > 3)
+    {
+        printf("\nget_draw_method requires a drawmethod or NULL(), property, and optional color component.\n");
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+    for(i = 0; i < paramCount; ++i) { arguments[i] = varlist[i]; }
+    if(varlist[0]->vt == VT_EMPTY || (varlist[0]->vt == VT_PTR && !varlist[0]->ptrVal))
+    {
+        common.vt = VT_PTR;
+        common.ptrVal = &drawmethod;
+        arguments[0] = &common;
+    }
+    return openbor_get_drawmethod_property((const ScriptVariant *const *)arguments,
+                                          pretvar, paramCount);
 }
 
 /*
@@ -14967,6 +15109,20 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
     else
     {
         pmethod = &(drawmethod);
+    }
+
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_chromakeya &&
+       varlist[1]->lVal < _dm_the_end)
+    {
+        if(!drawmethod_color_property_set(pmethod,
+            drawmethod_color_property_id((int)varlist[1]->lVal),
+            (const ScriptVariant *const *)(varlist + 2), paramCount - 2))
+        {
+            printf("\nScript error: invalid drawmethod color rule. Use packed RGB integers, "
+                   "a complete Substitute pair, and a conflict-free enabled list.\n");
+            return E_FAIL;
+        }
+        return S_OK;
     }
 
     switch(varlist[1]->lVal)
@@ -15375,6 +15531,31 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_chromakeya &&
+       varlist[1]->lVal < _dm_the_end)
+    {
+        int component = DM_COLOR_MATCH;
+        LONG value;
+        if(paramCount > 3 || (paramCount == 3 &&
+           (varlist[2]->vt != VT_INTEGER || varlist[2]->lVal < DM_COLOR_MATCH ||
+            varlist[2]->lVal > DM_COLOR_ENABLED)))
+        {
+            printf("\nScript error: invalid drawmethod color component.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        if(paramCount == 3) { component = (int)varlist[2]->lVal; }
+        if(!drawmethod_color_property_get(pmethod,
+            drawmethod_color_property_id((int)varlist[1]->lVal), component, &value))
+        {
+            printf("\nScript error: unsupported drawmethod color component.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        (*pretvar)->lVal = value;
+        return S_OK;
+    }
 
     switch(varlist[1]->lVal)
     {

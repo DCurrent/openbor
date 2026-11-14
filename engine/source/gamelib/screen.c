@@ -19,6 +19,7 @@
 #include "screen.h"
 #include "gpu.h"
 #include "engine_profile.h"
+#include "drawmethod_color.h"
 
 s_screen *allocscreen(int width, int height, int pixelformat)
 {
@@ -562,8 +563,11 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
         gfx_draw_rotate(dest, &gfx, x, y, 0, 0, drawmethod);
         return;
     }
-    else if(drawmethod->scalex != 256 || drawmethod->scaley != 256 || drawmethod->shiftx)
+    else if(drawmethod->scalex != 256 || drawmethod->scaley != 256 || drawmethod->shiftx ||
+            drawmethod_colors_active(drawmethod))
     {
+        /* The generalized writer applies chroma before effects and Substitute
+         * after composition, including otherwise untransformed screen copies. */
         gfx.screen = src;
         gfx_draw_scale(dest, &gfx, x, y, 0, 0, drawmethod);
         return;
@@ -641,7 +645,13 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     ep_scope software;
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
+    s_screen *color_snapshot = NULL;
+    size_t color_snapshot_bytes = 0;
 
+    if(drawmethod_colors_active(drawmethod) && !gpu_require_color_target(dest, drawmethod))
+    {
+        return;
+    }
     drawmethod_global_init(drawmethod);
 
     /* One dispatch includes all repeats; unsupported effects retain their
@@ -652,6 +662,16 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    if(drawmethod_colors_active(drawmethod))
+    {
+        engine_profile_count(EP_COUNT_COLOR_SOFTWARE_DRAWS, 1);
+        if(!src || (src->pixelformat != PIXEL_x8 && src->pixelformat != PIXEL_32))
+        {
+            gpu_color_rules_error("Chroma and Substitute require an indexed or RGB32 source screen.");
+            engine_profile_span_end(software, EP_SPAN_SOFTWARE);
+            return;
+        }
+    }
     gpu_sync_cpu(src);
     gpu_prepare_cpu_write(dest);
 
@@ -666,6 +686,33 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     {
         xrepeat = yrepeat = 1;
         xspan = yspan = 0;
+    }
+
+    /* Each self-draw samples the source as it existed before that instance.
+     * Reuse one allocation across repetitions, refreshing its pixels between
+     * them so overlapping instances still observe earlier completed draws. */
+    if(drawmethod_colors_active(drawmethod) && src == dest && xrepeat > 0 && yrepeat > 0 &&
+       src->width > 0 && src->height > 0)
+    {
+        /* allocscreen rounds widths to four pixels. Preserve this existing
+         * screen's exact stride, including externally created odd widths. */
+        if((size_t)src->width <= ((size_t)-1 - sizeof(s_screen)) /
+                                sizeof(unsigned) / (size_t)src->height)
+        {
+            color_snapshot_bytes = (size_t)src->width * (size_t)src->height * sizeof(unsigned);
+            color_snapshot = malloc(sizeof(s_screen) + color_snapshot_bytes);
+        }
+        if(!color_snapshot)
+        {
+            gpu_color_rules_error("Unable to allocate a software color-rule self-draw snapshot.");
+            engine_profile_span_end(software, EP_SPAN_SOFTWARE);
+            return;
+        }
+        color_snapshot->magic = screen_magic;
+        color_snapshot->width = src->width;
+        color_snapshot->height = src->height;
+        color_snapshot->pixelformat = PIXEL_32;
+        color_snapshot->palette = NULL;
     }
 
     /* Calculate only actual instances in wider arithmetic. Unrepresentable
@@ -684,8 +731,16 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
             {
                 continue;
             }
-            _putscreen(dest, src, (int)dx, (int)dy, drawmethod);
+            if(color_snapshot)
+            {
+                memcpy(color_snapshot->data, src->data, color_snapshot_bytes);
+            }
+            _putscreen(dest, color_snapshot ? color_snapshot : src, (int)dx, (int)dy, drawmethod);
         }
+    }
+    if(color_snapshot)
+    {
+        freescreen(&color_snapshot);
     }
     engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }

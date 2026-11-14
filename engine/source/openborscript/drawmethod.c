@@ -11,6 +11,149 @@
  // Caskey, Damon V.
 
 #include "scriptcommon.h"
+#include "drawmethod_color.h"
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Validate one packed RGB argument without accepting truncation or sentinels.
+ */
+static int drawmethod_script_color(const ScriptVariant *value, unsigned *color)
+{
+    if(value->vt != VT_INTEGER || value->lVal < 0 || value->lVal > 0xFFFFFF)
+    {
+        return 0;
+    }
+    *color = (unsigned)value->lVal;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Share atomic color-property updates between named and constant-based APIs.
+ */
+int drawmethod_color_property_set(s_drawmethod *method, int property,
+                                 const ScriptVariant *const *values, int count)
+{
+    unsigned first, second, slot;
+    if(!method || method == &plainmethod || count < 1)
+    {
+        return 0;
+    }
+
+    /* NULL disables one slot without overloading numeric RGB black. */
+    if(property >= DM_CHROMA_KEY_A && property <= DM_CHROMA_KEY_E)
+    {
+        slot = (unsigned)(property - DM_CHROMA_KEY_A);
+        if(count != 1)
+        {
+            return 0;
+        }
+        if(values[0]->vt == VT_EMPTY)
+        {
+            return drawmethod_set_chroma_enabled(method,
+                method->colors.chroma_enabled & ~(1u << slot));
+        }
+        return drawmethod_script_color(values[0], &first) &&
+               drawmethod_set_chroma(method, slot, first);
+    }
+    if(property >= DM_SUBSTITUTE_A && property <= DM_SUBSTITUTE_E)
+    {
+        slot = (unsigned)(property - DM_SUBSTITUTE_A);
+        if(count == 1 && values[0]->vt == VT_EMPTY)
+        {
+            return drawmethod_set_substitute_enabled(method,
+                method->colors.substitute_enabled & ~(1u << slot));
+        }
+        return count == 2 && drawmethod_script_color(values[0], &first) &&
+               drawmethod_script_color(values[1], &second) &&
+               drawmethod_set_substitute(method, slot, first, second);
+    }
+
+    /* A mask can restore stored settings, but only as a valid complete list. */
+    if(count != 1 || !drawmethod_script_color(values[0], &first))
+    {
+        return 0;
+    }
+    if(property == DM_CHROMA_KEY_ENABLED)
+    {
+        return drawmethod_set_chroma_enabled(method, first);
+    }
+    if(property == DM_SUBSTITUTE_ENABLED)
+    {
+        return drawmethod_set_substitute_enabled(method, first);
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-14
+ * Read color rules without exposing writable pointers to validated pairs.
+ */
+int drawmethod_color_property_get(const s_drawmethod *method, int property,
+                                 int component, LONG *value)
+{
+    unsigned slot;
+    if(!method || !value)
+    {
+        return 0;
+    }
+    if(property >= DM_CHROMA_KEY_A && property <= DM_CHROMA_KEY_E)
+    {
+        slot = (unsigned)(property - DM_CHROMA_KEY_A);
+        if(component == DM_COLOR_MATCH)
+        {
+            *value = method->colors.chroma[slot];
+        }
+        else if(component == DM_COLOR_ENABLED)
+        {
+            *value = !!(method->colors.chroma_enabled & (1u << slot));
+        }
+        else
+        {
+            return 0;
+        }
+        return 1;
+    }
+    if(property >= DM_SUBSTITUTE_A && property <= DM_SUBSTITUTE_E)
+    {
+        slot = (unsigned)(property - DM_SUBSTITUTE_A);
+        if(component == DM_COLOR_MATCH)
+        {
+            *value = method->colors.substitute[slot].match;
+        }
+        else if(component == DM_COLOR_SUBSTITUTE)
+        {
+            *value = method->colors.substitute[slot].replacement;
+        }
+        else if(component == DM_COLOR_ENABLED)
+        {
+            *value = !!(method->colors.substitute_enabled & (1u << slot));
+        }
+        else
+        {
+            return 0;
+        }
+        return 1;
+    }
+    if(component != DM_COLOR_MATCH)
+    {
+        return 0;
+    }
+    if(property == DM_CHROMA_KEY_ENABLED)
+    {
+        *value = method->colors.chroma_enabled;
+        return 1;
+    }
+    if(property == DM_SUBSTITUTE_ENABLED)
+    {
+        *value = method->colors.substitute_enabled;
+        return 1;
+    }
+    return 0;
+}
 
 const s_property_access_map drawmethod_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
 {
@@ -237,6 +380,90 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
 		property_map.type = VT_INTEGER;
 		break;
 
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_A:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma[0];
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_A";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_B:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma[1];
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_B";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_C:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma[2];
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_C";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_D:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma[3];
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_D";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_E:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma[4];
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_E";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CHROMA_KEY_ENABLED:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.chroma_enabled;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CHROMA_KEY_ENABLED";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_A:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute[0].match;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_A";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_B:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute[1].match;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_B";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_C:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute[2].match;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_C";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_D:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute[3].match;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_D";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_E:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute[4].match;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_E";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->colors.substitute_enabled;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED";
+        property_map.type = VT_INTEGER;
+        break;
+
 	case DRAWMETHOD_PROPERTY_END:
 	default:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
@@ -338,7 +565,8 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 	* Should at least be a pointer to the
 	* acting object and a property id.
 	*/
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
+	if (paramCount < 2 || varlist[ARG_OBJECT]->vt != VT_PTR
+        || !varlist[ARG_OBJECT]->ptrVal
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
 		return E_FAIL;
@@ -360,6 +588,31 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+
+    /* Color pairs expose match, substitute, or enabled without mutable handles. */
+    if(property_id_param >= DM_CHROMA_KEY_A && property_id_param <= DM_SUBSTITUTE_ENABLED)
+    {
+        LONG value;
+        int component = DM_COLOR_MATCH;
+        if(paramCount > 3 || (paramCount == 3 &&
+           (varlist[2]->vt != VT_INTEGER || varlist[2]->lVal < DM_COLOR_MATCH ||
+            varlist[2]->lVal > DM_COLOR_ENABLED)))
+        {
+            printf("\nScript error: invalid drawmethod color component.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        if(paramCount == 3) { component = (int)varlist[2]->lVal; }
+        if(!drawmethod_color_property_get(acting_object, property_id_param, component, &value))
+        {
+            printf("\nScript error: unsupported drawmethod color component.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = value;
+        return S_OK;
+    }
 
 	const e_drawmethod_properties property_id = (e_drawmethod_properties)(property_id_param);
 	const s_property_access_map property_map = drawmethod_get_property_map(acting_object, property_id);
@@ -414,9 +667,9 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 	* a new value.
 	*/
 
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER
-		|| paramCount < ARG_MINIMUM) {
+	if (paramCount < ARG_MINIMUM || varlist[ARG_OBJECT]->vt != VT_PTR
+        || !varlist[ARG_OBJECT]->ptrVal
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
 		*pretvar = NULL;
 		return E_FAIL;
@@ -437,10 +690,17 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 		return E_FAIL;
 	}
 
+    if(acting_object == &plainmethod)
+    {
+        printf("\nScript error: the default drawmethod is read only.\n");
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 	const e_drawmethod_properties property_id = (e_drawmethod_properties)(property_id_param);
 
-	if (property_id_param < 0 && property_id_param >= DRAWMETHOD_PROPERTY_END) {
+	if (property_id_param < 0 || property_id_param >= DRAWMETHOD_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
 		return E_FAIL;
 	}
@@ -452,6 +712,20 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 	* appropriate data member, text name,
 	* read only, etc.
 	*/
+
+    if(property_id_param >= DM_CHROMA_KEY_A && property_id_param <= DM_SUBSTITUTE_ENABLED)
+    {
+        *pretvar = NULL;
+        if(!drawmethod_color_property_set((s_drawmethod *)acting_object, property_id_param,
+                                         (const ScriptVariant *const *)(varlist + ARG_VALUE),
+                                         paramCount - ARG_VALUE))
+        {
+            printf("\nScript error: invalid drawmethod color rule. Use packed RGB integers, "
+                   "a complete Substitute pair, and a conflict-free enabled list.\n");
+            return E_FAIL;
+        }
+        return S_OK;
+    }
 
 	const s_property_access_map property_map = drawmethod_get_property_map(acting_object, property_id);
 
