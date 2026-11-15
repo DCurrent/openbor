@@ -418,6 +418,7 @@ static void capability_check_shear(int shear_expected)
  * 2026-11-14 - Require buffered startup success or explicit coherent fallback.
  * 2026-11-14 - Retain independent features and native pixels without shear.
  * 2026-11-15 - Require truthful rejection diagnostics without CPU retry promises.
+ * 2026-11-15 - Report RGB32 scenes separately from indexed artwork sources.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
@@ -605,6 +606,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
     assert(!strstr(strstr(log, "RESULT:") + 1, "RESULT:"));
     if(native_expected)
     {
+        capability_expect(log, "Scene format:                      RGB32 only; indexed artwork is source data");
         capability_expect(log, "Vertex/index buffers:");
         capability_expect(log, "Buffered submission:");
         capability_expect(log, "NATIVE - indexed triangles");

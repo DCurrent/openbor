@@ -18,10 +18,21 @@
 
 #define		TRANS_INDEX		0x00
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Allocate indexed artwork or RGB32 image storage. Unsupported pixel formats
+ * must not index the byte-size table or create obsolete scene representations.
+ */
 s_bitmap *allocbitmap(int width, int height, int format)
 {
     s_bitmap *b;
     ptrdiff_t psize, extrab;
+    /* Indexed images remain valid sources; scene pixels use RGB32 only. */
+    if(format != PIXEL_8 && format != PIXEL_x8 && format != PIXEL_32)
+    {
+        return NULL;
+    }
     if(width * height == 0)
     {
         return NULL;

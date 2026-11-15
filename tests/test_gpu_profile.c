@@ -112,6 +112,7 @@ static void test_native_profile_disabled(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Count removed image formats as malformed input, not scene modes.
  *
  * Exercise native counters with GPU timestamps disabled independently. Image
  * uploads, destination snapshots, CPU reads and declined formats remain
@@ -121,12 +122,15 @@ static void test_native_profile_counters(void)
 {
     s_screen *target = test_screen(4, 4, PIXEL_32);
     s_screen *source = test_screen(2, 2, PIXEL_32);
-    s_screen *legacy = test_screen(4, 4, PIXEL_16);
+    s_screen *invalid = test_screen(4, 4, PIXEL_32);
     s_drawmethod blend = plainmethod;
     const ep_report *report;
     uint64_t frame;
     unsigned index;
 
+    /* Invalid formats cannot be allocated by the engine. Supply a malformed
+     * header to verify the renderer's rejection still reaches diagnostics. */
+    invalid->pixelformat = 2;
     engine_profile_configure(1, 1, 0);
     assert(SDL_setenv("OPENBOR_PROFILE_GPU", "0", 1) == 0);
     assert(gpu_gl_init());
@@ -143,7 +147,7 @@ static void test_native_profile_counters(void)
     assert(gpu_draw_screen(target, source, 1, 1, &plainmethod));
     blend.alpha = 6;
     assert(gpu_draw_box(target, 0, 0, 1, 1, 0x00102030, &blend));
-    assert(!gpu_clear_screen(legacy));
+    assert(!gpu_clear_screen(invalid));
 
     /* The first pixel request requires one complete 4x4 RGB32 readback. The
      * second request reuses that CPU shadow and must not add another transfer. */
@@ -163,7 +167,7 @@ static void test_native_profile_counters(void)
     assert(report->fallbacks[EP_FALLBACK_TARGET_FORMAT] == 1);
     assert(report->counts[EP_COUNT_GPU_QUERY_SKIPPED] == 1);
     assert(report->gpu_samples[EP_GPU_SCENE] == 0);
-    release_test_screen(legacy);
+    release_test_screen(invalid);
     release_test_screen(source);
     release_test_screen(target);
     gpu_gl_shutdown();

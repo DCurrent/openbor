@@ -18,9 +18,10 @@ clipping, repeat order, palette lookup, and blend behavior remain in effect.
 
 The native renderer executes supported color rules in its fragment shader.
 These controls have no software implementation. If a rule cannot execute,
-the draw proceeds normally with that rule ignored. CPU draws ignore both
-controls, including draws to indexed or RGB16 destinations. Valid settings
-remain stored in the drawmethod for later supported native draws.
+the draw proceeds normally with that rule ignored. CPU reference draws and
+indexed image operations ignore both controls. Scene targets use RGB32 only;
+indexed artwork remains a supported source format. Valid settings remain
+stored in the drawmethod for later supported native draws.
 
 These are reusable drawmethod controls; public programmable materials and
 RGB24 asset loading remain separate work. Games must opt into these rules
@@ -229,8 +230,9 @@ chroma and Substitute are native, their five-slot capacities, RGB32 destination
 scope, and matching order. Read these rows alongside the general scene/affine
 result; the existing `NATIVE` result line alone does not establish native
 color-rule availability. Normal desktop RGB32 modes require native scene
-initialization; failure does not select the software renderer. Explicitly
-unmigrated CPU modes continue to ignore these shader-only controls.
+initialization; failure does not select the software renderer. Required CPU
+paths, including Android before GLES integration and active output filters,
+continue to ignore these shader-only controls.
 
 The renderer attempts supported combined and individual shader variants.
 If the combined program cannot initialize, it prefers retaining existing
@@ -240,9 +242,9 @@ the color rules. Startup reports `UNAVAILABLE - ignored` and explains that
 these rules have no CPU implementation. The rules never force an otherwise
 supported native draw onto the CPU. No per-draw warning is emitted.
 
-Execution requires an RGB32 native destination. Other destinations and
-explicitly unmigrated CPU modes retain their ordinary rendering behavior
-without chroma or Substitute. Missing optional color support alone causes no
+Execution requires an RGB32 native destination. Indexed image operations and
+required CPU paths retain their ordinary behavior without chroma or Substitute.
+Missing optional color support alone causes no
 format error or shutdown. Rejection of the underlying native RGB32 operation,
 such as an unsupported transform, logs and skips the draw without CPU retry.
 

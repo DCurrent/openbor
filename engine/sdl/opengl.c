@@ -185,6 +185,7 @@ void video_gl_setup_screen()
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Distinguish private filter images from RGB32 scene textures.
  * Allocate the presenter's RGB or video-plane texture, invalidating native
  * bindings before replacing objects or selecting a different texture unit.
  */
@@ -203,7 +204,7 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 		textureColorFormat[index] = GL_RED;
 		texturePixelFormat[index] = GL_UNSIGNED_BYTE;
 		break;
-	case 2: // BGR565
+	case 2: // Private BGR565 CPU filter output, never an engine scene format.
 		textureColorFormat[index] = GL_RGB;
 		texturePixelFormat[index] = GL_UNSIGNED_SHORT_5_6_5_REV;
 		break;
@@ -617,10 +618,11 @@ int video_gl_copy_screen(s_videosurface* surface)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Return rejected presentation to the caller's no-retry policy.
  * Present a GPU-resident screen with the normal display scaling and color
  * correction, without converting or uploading its CPU pixel buffer. Return
- * zero when the native renderer cannot provide this screen so the caller can
- * use the existing software presentation path.
+ * zero when the native renderer cannot provide this screen so the caller
+ * applies the selected rendering policy.
  */
 int video_gl_copy_gpu_screen(s_screen *screen)
 {
@@ -634,7 +636,7 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 
 	if(!gpu_gl_get_screen_texture(screen, &nativeTexture, &nativeWidth, &nativeHeight))
 	{
-		/* Let the caller select CPU conversion/upload for unsupported screen types. */
+		/* Only explicitly selected output filters permit CPU presentation. */
 		engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
 		engine_profile_gpu_end(gpu_scope);
 		return 0;

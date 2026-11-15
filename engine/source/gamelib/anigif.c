@@ -92,6 +92,12 @@ static void gifextension(anigif_info *info, int n)
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Decode GIF indices into the indexed source buffer or its RGB32 image.
+ * GIF code widths remain independent of the engine's scene color format.
+ */
 static int decodegifblock(anigif_info *info, gifblockstruct *gb, int n)
 {
 
@@ -247,9 +253,6 @@ static int decodegifblock(anigif_info *info, gifblockstruct *gb, int n)
                 case PIXEL_8:
                     ((unsigned char *)buf->data)[lineb + byte] = thiscode;
                     break;
-                case PIXEL_16:
-                    ((unsigned short *)buf->data)[lineb + byte] = ((unsigned short *)pal)[thiscode & 0xff];
-                    break;
                 case PIXEL_32:
                     ((unsigned *)buf->data)[lineb + byte] = ((unsigned *)pal)[thiscode & 0xff];
                     //printf("%08x, %02x, %ld\n", ((unsigned*)buf->data)[lineb + byte], thiscode&0xff, info->handle);
@@ -331,6 +334,12 @@ void anigif_close(anigif_info *info)
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Open a GIF stream and prepare its source palette for RGB32 color lookup.
+ * Indexed decoding and GIF file bit depths retain their existing behavior.
+ */
 static int test_anigif_open(anigif_info *info, char *tname, char *packfilename, int n)
 {
     int i, j;
@@ -390,12 +399,6 @@ static int test_anigif_open(anigif_info *info, char *tname, char *packfilename, 
             for(i = 0, j = 0; i < 1024; i += 4, j += 3)
             {
                 *(unsigned *)(pal + i) = colour32(tpal[j], tpal[j + 1], tpal[j + 2]);
-            }
-            break;
-        case 512:
-            for(i = 0, j = 0; i < 512; i += 2, j += 3)
-            {
-                *(unsigned short *)(pal + i) = colour16(tpal[j], tpal[j + 1], tpal[j + 2]);
             }
             break;
         }
@@ -488,6 +491,12 @@ int anigif_open(char *filename, char *packfilename, anigif_info *info)
 
 
 // Returns type of action to take (frame, retry, end)
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Decode the next GIF record, converting local palettes for RGB32 lookup
+ * while retaining indexed source images and their file-format metadata.
+ */
 int anigif_decode(anigif_info *info, int n)
 {
 
@@ -537,13 +546,6 @@ int anigif_decode(anigif_info *info, int n)
                 for(i = 0, j = 0; i < 1024; i += 4, j += 3)
                 {
                     *(unsigned *)(pal + i) = colour32(tpal[j], tpal[j + 1], tpal[j + 2]);
-                }
-                break;
-            case 512:
-                for(i = 0, j = 0; i < 512; i += 2, j += 3)
-                {
-                    *(unsigned short *)(pal + i) = colour16(tpal[j], tpal[j + 1], tpal[j + 2]);
-                    //printf("%d*", *(unsigned short*)(pal+i));
                 }
                 break;
             }

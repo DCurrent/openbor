@@ -38,8 +38,7 @@ static s_screen* bgscreen;
 static s_screen* logscreen;
 
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
-#define RGB16(R,G,B) ((B&0xF8)<<8) | ((G&0xFC)<<3) | (R>>3)
-#define RGB(R,G,B)   (bpp==16?RGB16(R,G,B):RGB32(R,G,B))
+#define RGB(R,G,B)   RGB32(R,G,B)
 
 #define BLACK		RGB(  0,   0,   0)
 #define WHITE		RGB(255, 255, 255)
@@ -58,7 +57,6 @@ static s_screen* logscreen;
 #define LOG_SCREEN_TOP 2
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
-static int bpp = 32;
 static int isWide = 0;
 static int isFull = 0;
 static int dListTotal;
@@ -206,6 +204,7 @@ static int findPaks(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Keep launcher glyph writes exclusively in its RGB32 format.
  * Draw launcher-menu text into the screen's CPU pixel storage. Preserve any
  * native-rendered image beneath the text before writing glyph rows, then
  * leave the screen marked for upload when presentation next uses it.
@@ -214,12 +213,11 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 {
 	int x1, y1, i;
 	u32 data;
-	u16 *line16 = NULL;
 	u32 *line32 = NULL;
 	u8 *font;
 	u8 ch = 0;
 	char buf[128] = {""};
-	int pitch = vscreen->width*bpp/8;
+	int pitch = vscreen->width * sizeof(u32);
 	va_list arglist;
 
 	/* Format the menu label before traversing the fixed-width bitmap font. */
@@ -255,15 +253,8 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 		}
 		font = (u8 *)&hankaku_font10[ch*10];
 
-		/* Select a correctly sized pixel pointer at this glyph's destination. */
-		if(bpp == 16)
-		{
-			line16 = (u16*)(vscreen->data + x*2 + y * pitch);
-		}
-		else
-		{
-			line32 = (u32*)(vscreen->data + x*4 + y * pitch);
-		}
+		/* The launcher owns an RGB32 screen, so each destination is one u32. */
+		line32 = (u32 *)(vscreen->data + x * sizeof(u32) + y * pitch);
 
 		/*
 		 * Each font byte supplies one five-pixel row. Set foreground pixels and
@@ -276,47 +267,19 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 			{
 				if (data & 1)
 				{
-					if(bpp == 16)
-					{
-						*line16 = col;
-					}
-					else
-					{
-						*line32 = col;
-					}
+					*line32 = col;
 				}
 				else if (fill)
 				{
-					if(bpp == 16)
-					{
-						*line16 = backcol;
-					}
-					else
-					{
-						*line32 = backcol;
-					}
+					*line32 = backcol;
 				}
 
-				if(bpp == 16)
-				{
-					line16++;
-				}
-				else
-				{
-					line32++;
-				}
+				line32++;
 
 				data = data >> 1;
 			}
 			/* Advance to the next row after the five glyph pixels just consumed. */
-			if(bpp == 16)
-			{
-				line16 += pitch/2-5;
-			}
-			else
-			{
-				line32 += pitch/4-5;
-			}
+			line32 += vscreen->width - 5;
 		}
 		x+=5;
 	}
@@ -523,7 +486,6 @@ static void initMenu(int type)
 #ifdef ANDROID
 	isWide = (float)nativeHeight/(float)nativeWidth < 3.0f/4.0f;
 	isFull = 1;
-	bpp = 32;
 	savedata.hwscale = 0.0f;
 #endif
 

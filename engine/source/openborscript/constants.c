@@ -1557,7 +1557,6 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         //
         ICMPCONST(PIXEL_8)
         ICMPCONST(PIXEL_x8)
-        ICMPCONST(PIXEL_16)
         ICMPCONST(PIXEL_32)
 
         // Plane access flags.

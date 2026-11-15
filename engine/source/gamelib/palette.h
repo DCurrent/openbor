@@ -11,13 +11,6 @@
 
 #include "globals.h"
 
-#define		gammacorrect(v,g)	(g<=0?((v*(65025+((255-v)*g)))/65025):(255-(((255-v)*(65025+(v*-g)))/65025)))
-#define		brightnesscorrect(v,b)	(b<0?((v*(255+b))/255):(b+((v*(255-b))/255)))
-#define		gbcorrect(vx,gx,bx)	(gammacorrect(brightnesscorrect(vx,bx),gx))
-// Set gamma/brightness corrected palette.
-// Valid values range between -255 and 255, where 0 is normal.
-void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, int bg, int bb);
-
 // Find colour in palette
 int palette_find(unsigned char *pal, int r, int g, int b);
 
@@ -41,12 +34,6 @@ unsigned char *create_half32_tbl();
 unsigned char *create_overlay32_tbl();
 unsigned char *create_hardlight32_tbl();
 
-unsigned char *create_multiply16_tbl();
-unsigned char *create_screen16_tbl();
-unsigned char *create_dodge16_tbl();
-unsigned char *create_half16_tbl();
-unsigned char *create_overlay16_tbl();
-unsigned char *create_hardlight16_tbl();
 #endif
 
 

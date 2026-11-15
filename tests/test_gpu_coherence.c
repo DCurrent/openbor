@@ -7,10 +7,9 @@
  * gcc -std=c99 -O1 -DPP_TEST=1 -ffunction-sections -fdata-sections \
  *   -Iengine -Iengine/source -Iengine/source/gamelib \
  *   tests/test_gpu_coherence.c engine/source/gamelib/gpu.c \
- *   engine/source/gamelib/screen.c engine/source/gamelib/screen16.c \
+ *   engine/source/gamelib/screen.c \
  *   engine/source/gamelib/screen32.c engine/source/gamelib/draw.c \
- *   engine/source/gamelib/draw16.c engine/source/gamelib/draw32.c \
- *   engine/source/gamelib/sprite.c engine/source/gamelib/spritex8p16.c \
+ *   engine/source/gamelib/draw32.c engine/source/gamelib/sprite.c \
  *   engine/source/gamelib/spritex8p32.c engine/source/gamelib/spriteq.c \
  *   engine/source/gamelib/bitmap.c engine/source/gamelib/transform.c \
  *   engine/source/gamelib/pixelformat.c engine/source/omath.c \
@@ -86,8 +85,8 @@ static mock_image *mock_find(s_screen *screen, int create)
     int i;
     mock_image *empty = NULL;
 
-    /* Only RGB32 images participate in this fixture's native path. Other
-     * formats exercise the production software fallback without a cache slot. */
+    /* Only RGB32 images participate in this fixture's native path. Indexed
+     * source artwork uses CPU image helpers without a target cache slot. */
     if(!screen || screen->pixelformat != PIXEL_32)
     {
         return NULL;
@@ -356,6 +355,60 @@ static const gpu_backend backend = {
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Keep invalid image formats out of allocation and CPU drawing while retaining
+ * indexed artwork and RGB32 images under the 64-bit application contract.
+ */
+static void test_image_format_contract(void)
+{
+    const int supported[] = {PIXEL_8, PIXEL_x8, PIXEL_32};
+    const int unsupported[] = {-1, 2, 3, 5, INT_MAX};
+    unsigned char before[4 * 2 * sizeof(unsigned)];
+    s_screen *screen;
+    s_bitmap *bitmap;
+    size_t i;
+
+    /* Every test is compiled as C99 against the production types.h, whose
+     * architecture guard must accept this supported 64-bit test executable. */
+    assert(sizeof(void *) == 8);
+    for(i = 0; i < sizeof(unsupported) / sizeof(unsupported[0]); ++i)
+    {
+        assert(allocscreen(4, 2, unsupported[i]) == NULL);
+        assert(allocbitmap(4, 2, unsupported[i]) == NULL);
+    }
+    for(i = 0; i < sizeof(supported) / sizeof(supported[0]); ++i)
+    {
+        screen = allocscreen(4, 2, supported[i]);
+        assert(screen && screen->pixelformat == supported[i]);
+        memset(screen->data, 0x5a, (size_t)4 * 2 * pixelbytes[supported[i]]);
+        freescreen(&screen);
+        assert(screen == NULL);
+        bitmap = allocbitmap(4, 2, supported[i]);
+        assert(bitmap && bitmap->pixelformat == supported[i]);
+        memset(bitmap->data, 0x5a, (size_t)4 * 2 * pixelbytes[supported[i]]);
+        freebitmap(bitmap);
+    }
+
+    /* Malformed headers can still reach a public draw entry point. Removed
+     * formats must not revive CPU writes even when no GPU backend is loaded. */
+    screen = allocscreen(4, 2, PIXEL_32);
+    assert(screen);
+    memset(screen->data, 0x5a, sizeof(before));
+    memcpy(before, screen->data, sizeof(before));
+    for(i = 2; i <= 3; ++i)
+    {
+        screen->pixelformat = (unsigned char)i;
+        assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+        clearscreen(screen);
+        putbox(0, 0, 4, 2, 0x00123456, screen, NULL);
+        assert(memcmp(before, screen->data, sizeof(before)) == 0);
+    }
+    screen->pixelformat = PIXEL_32;
+    freescreen(&screen);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Allocate a small deterministic CPU image before its first GPU use.
  */
@@ -601,6 +654,7 @@ static void test_affine_repeat_limits(s_screen *source, s_sprite *sprite, s_scre
  * 2026-11-12
  * 2026-11-13 - Include affine fallback repeat boundaries under sanitizers.
  * 2026-11-15 - Verify native-only dispatch independently of CPU references.
+ * 2026-11-15 - Reject removed image formats before allocation or drawing.
  * Cover native dispatch, synchronous CPU access, software fallback, direct
  * low-level calls, queue capture/replay, and resource lifetime together.
  */
@@ -616,6 +670,7 @@ int main(void)
     unsigned char *tables[MAX_BLENDINGS] = {0};
     int previous_downloads, previous_uploads, previous_sprites, i;
 
+    test_image_format_contract();
     gpu_register_backend(&backend);
     assert(gpu_is_active());
 

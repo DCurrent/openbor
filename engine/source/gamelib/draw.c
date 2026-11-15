@@ -386,6 +386,12 @@ static int draw_init(s_drawmethod *drawmethod)
  */
 void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
+    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        return;
+    }
+
     int alpha;
     ep_scope software;
 
@@ -409,9 +415,6 @@ void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s
     case PIXEL_8:
         drawbox(x, y, width, height, colour, screen, alpha);
         break;
-    case PIXEL_16:
-        drawbox16(x, y, width, height, colour, screen, alpha);
-        break;
     case PIXEL_32:
         drawbox32(x, y, width, height, colour, screen, alpha);
         break;
@@ -428,6 +431,12 @@ void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s
  */
 void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
+    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        return;
+    }
+
     int alpha;
     ep_scope software;
 
@@ -450,9 +459,6 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
     case PIXEL_8:
         line(sx, sy, ex, ey, colour, screen, alpha);
         break;
-    case PIXEL_16:
-        line16(sx, sy, ex, ey, colour, screen, alpha);
-        break;
     case PIXEL_32:
         line32(sx, sy, ex, ey, colour, screen, alpha);
         break;
@@ -469,6 +475,12 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
  */
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
+    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        return;
+    }
+
     int alpha;
     ep_scope software;
 
@@ -495,9 +507,6 @@ void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod
     {
     case PIXEL_8:
         _putpixel(x, y, colour, screen, alpha);
-        break;
-    case PIXEL_16:
-        _putpixel16(x, y, colour, screen, alpha);
         break;
     case PIXEL_32:
         _putpixel32(x, y, colour, screen, alpha);

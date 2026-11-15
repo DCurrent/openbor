@@ -11,15 +11,28 @@
 #include "globals.h"
 #include "screen.h"
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Export RGB32 pixels or indexed source artwork as an RGB PNG image.
+ * Unsupported engine pixel formats are rejected before creating a file.
+ */
 void savepng(const char *filename, s_screen *screen, u8 *pal)
 {
     u32 *vram32;
-    u16 *vram16;
     int i, x, y;
     png_structp png_ptr;
     png_infop info_ptr;
     FILE *fp;
     u8 *line;
+
+    /* PNG sample depth is independent of supported engine image storage. */
+    if(!screen || (screen->pixelformat != PIXEL_8 &&
+                   screen->pixelformat != PIXEL_x8 &&
+                   screen->pixelformat != PIXEL_32))
+    {
+        return;
+    }
 
     fp = fopen(filename, "wb");
     if(!fp)
@@ -46,7 +59,6 @@ void savepng(const char *filename, s_screen *screen, u8 *pal)
     line = (u8 *)malloc(screen->width * 3);
 
     vram32 = (u32 *)screen->data;
-    vram16 = (u16 *)screen->data;
 
     for(y = 0; y < screen->height; y++)
     {
@@ -62,18 +74,6 @@ void savepng(const char *filename, s_screen *screen, u8 *pal)
                 r = pal[color * 3];
                 g = pal[color * 3 + 1];
                 b = pal[color * 3 + 2];
-                break;
-            case PIXEL_16:
-                color = vram16[x + y * screen->width];
-#if REVERSE_COLOR
-                b = (color & 0x1f) << 3;
-                g = ((color >> 5) & 0x3f) << 2;
-                r = ((color >> 11) & 0x1f) << 3;
-#else
-                r = (color & 0x1f) << 3;
-                g = ((color >> 5) & 0x3f) << 2;
-                b = ((color >> 11) & 0x1f) << 3;
-#endif
                 break;
             case PIXEL_32:
                 color = vram32[x + y * screen->width];

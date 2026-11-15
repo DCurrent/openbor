@@ -20,6 +20,7 @@
 #include "gfxtypes.h"
 #include "gfx.h"
 #include "videocommon.h"
+#include "gpu.h"
 
 #include "pngdec.h"
 
@@ -345,21 +346,26 @@ incorporated in video_set_mode, since this is isolated from the main
 code.
 */
 
-static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
-
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Initialize Android presentation for RGB32 scenes only. Reject unsupported
+ * input before changing live resources; CPU filters may produce a private
+ * BGR565 presentation image after the scene format has been validated.
+ */
 int video_set_mode(s_videomodes videomodes)
 {
-    stored_videomodes = videomodes;
-
     //hardcode flags
     int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
+    /* Zero dimensions request shutdown and carry no scene format. */
+    if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
+    {
+        gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
+        return 0;
+    }
+    stored_videomodes = videomodes;
     savedata.fullscreen = 1;
-
-    videomodes = setupPreBlitProcessing(videomodes);
-
-    // 8-bit color should be transparently converted to 32-bit
-    assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
     //destroy all
     if(texture_base)
@@ -383,6 +389,14 @@ int video_set_mode(s_videomodes videomodes)
         //Term_Gfx();
         return 0;
     }
+
+    videomodes = setupPreBlitProcessing(videomodes);
+    if(!videomodes.pixel)
+    {
+        return 0;
+    }
+    /* The two-byte image exists only inside an explicitly selected filter. */
+    assert(videomodes.pixel == (savedata.swfilter ? 2 : 4));
 
     if(!window && !(window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, nativeWidth, nativeHeight, flags)))
     {
@@ -428,7 +442,9 @@ int video_set_mode(s_videomodes videomodes)
         tmp_surface = NULL;
     }
 
-    if(!(texture = SDL_CreateTexture(renderer,  pixelformats[videomodes.pixel-1], SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
+    if(!(texture = SDL_CreateTexture(renderer,
+        savedata.swfilter ? SDL_PIXELFORMAT_BGR565 : SDL_PIXELFORMAT_ABGR8888,
+        SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
@@ -529,9 +545,19 @@ void blit()
     SDL_RenderPresent(renderer);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Present a validated RGB32 scene or its configured CPU filter output.
+ * Invalid scene storage must not reach SDL texture uploads.
+ */
 int video_copy_screen(s_screen *src)
 {
     s_videosurface *surface = getVideoSurface(src);
+    if(!surface)
+    {
+        return 0;
+    }
    	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
     blit();
 

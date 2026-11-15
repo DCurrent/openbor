@@ -2,9 +2,10 @@
 
 The drawmethod supports an opt-in, six-coefficient affine transform for sprites
 and screens. The native renderer draws supported affine operations directly
-on the GPU. Normal desktop RGB32 modes require this renderer; unsupported
-affine draws are logged and skipped without a CPU rendering retry. Explicitly
-unmigrated modes retain their existing CPU implementation. No intermediate
+on the GPU. OpenBOR scene targets use RGB32 only. Normal desktop scenes require
+this renderer; unsupported affine draws are logged and skipped without a CPU
+rendering retry. Required CPU paths, including Android before GLES integration
+and active output filters, retain their existing implementation. No intermediate
 screen is required just to apply an affine transform.
 
 Hardware capability warnings appear in the ordinary engine log during video
@@ -114,7 +115,7 @@ snapshots for overlapping blends and self-drawing. Larger grids or unavailable
 cache storage retain preflight and recomputation while rendering pixels on the
 GPU. The cache changes preparation work, not the affine API or sampling rules.
 
-The retained CPU implementation serves unmigrated modes and independent
+The retained CPU implementation serves required CPU paths and independent
 reference checks. It inverse-maps destination pixel centers into the source,
 clips transformed bounds before scanning, and evaluates each source sample
 directly in double precision. Direct evaluation avoids accumulated coordinate
@@ -176,6 +177,6 @@ rotation, non-uniform scale, shear with clipping, indexed RLE transparency,
 fractional sampling, exact texel boundaries, adjacent half-pixel translations,
 threefold scale with pivots, collapsed matrices, offscreen transforms and
 invalid floating-point input. The renderer suite also checks native transforms,
-repeat preparation reuse, and rejected RGB32 draws without CPU retry. Retained
-CPU modes are tested separately. Measure performance using representative
-sprites, screens and effects on the target hardware.
+repeat preparation reuse, and rejected RGB32 draws without CPU retry. CPU raster
+references and indexed image operations are tested separately. Measure performance
+using representative sprites, screens and effects on the target hardware.

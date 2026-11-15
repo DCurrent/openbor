@@ -19,7 +19,6 @@
 
 static transpixelfunc pfp;
 static unsigned int fillcolor;
-static blend16fp pfp16;
 static blend32fp pfp32;
 static unsigned char *table;
 static unsigned char *remaptable;
@@ -99,10 +98,14 @@ void draw_pixel_dummy(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, in
     memset(pd, 0, dpb);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Keep the reference screen writer limited to indexed artwork and RGB32.
+ */
 void draw_pixel_screen(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, int sy)
 {
     unsigned char *ptrd8, *ptrs8, ps8;
-    unsigned short *ptrd16, *ptrs16, pd16, ps16;
     unsigned int *ptrd32, *ptrs32, pd32, ps32;
     switch(dest->pixelformat)
     {
@@ -118,43 +121,6 @@ void draw_pixel_screen(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, i
         }
         ptrd8 = ((unsigned char *)dest->data) + dx + dy * dest->width;
         *ptrd8 = pfp ? pfp(table, ps8, *ptrd8) : ps8;
-        break;
-    case PIXEL_16:
-        ptrd16 = ((unsigned short *)dest->data) + dx + dy * dest->width;
-        pd16 = *ptrd16;
-        switch(src->screen->pixelformat)
-        {
-        case PIXEL_16:
-            ptrs16 = ((unsigned short *)src->screen->data) + sx + sy * src->screen->width;
-            ps16 = *ptrs16;
-            if(transbg && !ps16)
-            {
-                return;
-            }
-            break;
-        case PIXEL_x8:
-            ptrs8 = ((unsigned char *)src->screen->data) + sx + sy * src->screen->width;
-            if(transbg && !*ptrs8)
-            {
-                return;
-            }
-            ps16 = table ? ((unsigned short *)table)[*ptrs8] : ((unsigned short *)src->screen->palette)[*ptrs8];
-            break;
-        default:
-            return;
-        }
-        if(fillcolor)
-        {
-            ps16 = fillcolor;
-        }
-        if(!pfp16)
-        {
-            *ptrd16 = ps16;
-        }
-        else
-        {
-            *ptrd16 = pfp16(ps16, pd16);
-        }
         break;
     case PIXEL_32:
         ptrd32 = ((unsigned int *)dest->data) + dx + dy * dest->width;
@@ -252,10 +218,14 @@ char sprite_get_pixel(s_sprite *sprite, int x, int y)
 
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Draw byte RLE samples to indexed images or RGB32, retaining alpha masks.
+ */
 void draw_pixel_sprite(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, int sy)
 {
     unsigned char *ptrd8, ps8;
-    unsigned short *ptrd16, pd16, ps16;
     unsigned int *ptrd32, pd32, ps32;
     switch(dest->pixelformat)
     {
@@ -270,30 +240,6 @@ void draw_pixel_sprite(s_screen *dest, gfx_entry *src, int dx, int dy, int sx, i
             ps8 = fillcolor;
         }
         *ptrd8 = pfp ? pfp(table, ps8, *ptrd8) : ps8;
-        break;
-    case PIXEL_16:
-        if(!(ps8 = sprite_get_pixel(src->sprite, sx, sy)))
-        {
-            return;
-        }
-        ptrd16 = ((unsigned short *)dest->data) + dx + dy * dest->width;
-        pd16 = *ptrd16;
-        if(fillcolor)
-        {
-            ps16 = fillcolor;
-        }
-        else
-        {
-            ps16 = table ? ((unsigned short *)table)[ps8] : ((unsigned short *)src->sprite->palette)[ps8];
-        }
-        if(!pfp16)
-        {
-            *ptrd16 = ps16;
-        }
-        else
-        {
-            *ptrd16 = pfp16(ps16, pd16);
-        }
         break;
     case PIXEL_32:
         if(!(ps8 = sprite_get_pixel(src->sprite, sx, sy)))
@@ -358,99 +304,6 @@ void copy_pixel_block(int bytes)
 inline void write_pixel()
 {
     writepixelswitch(,)
-
-}
-#endif
-
-#if 0
-inline void write_pixel()
-{
-    unsigned char ps8;
-    unsigned short ps16;
-    unsigned ps32;
-    switch(dpf)
-    {
-    case PIXEL_8:
-        ps8 = *cur_src;
-        if(transbg && !ps8)
-        {
-            return;
-        }
-        else if(fillcolor)
-        {
-            ps8 = fillcolor;
-        }
-        *cur_dest = pfp ? pfp(table, ps8, *cur_dest) : ps8;
-        break;
-    case PIXEL_16:
-        switch(spf)
-        {
-        case PIXEL_16:
-            ps16 = *(unsigned short *)cur_src;
-            if(transbg && !ps16)
-            {
-                return;
-            }
-            break;
-        case PIXEL_x8:
-            if(!(ps8 = *cur_src) && transbg)
-            {
-                return;
-            }
-            ps16 = ((unsigned short *)table)[ps8];
-            break;
-        default:
-            return;
-        }
-        if(fillcolor)
-        {
-            ps16 = fillcolor;
-        }
-        if(!pfp16)
-        {
-            *(unsigned short *)cur_dest = ps16;
-        }
-        else
-        {
-            *(unsigned short *)cur_dest = pfp16(ps16, *(unsigned short *)cur_dest);
-        }
-        break;
-    case PIXEL_32:
-        switch(spf)
-        {
-        case PIXEL_32:
-            ps32 = *(unsigned *)cur_src;
-            if(transbg && !ps32)
-            {
-                return;
-            }
-            break;
-        case PIXEL_x8:
-            if(!(ps8 = *cur_src) && transbg)
-            {
-                return;
-            }
-            ps32 = ((unsigned *)table)[ps8];
-            break;
-        default:
-            return;
-        }
-        if(fillcolor)
-        {
-            ps32 = fillcolor;
-        }
-        if(!pfp32)
-        {
-            *(unsigned *)cur_dest = ps32;
-        }
-        else
-        {
-            *(unsigned *)cur_dest = pfp32(ps32, *(unsigned *)cur_dest);
-        }
-        break;
-    default:
-        break;
-    }
 
 }
 #endif
@@ -647,60 +500,61 @@ void src_dec()
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Select only indexed artwork or RGB32 pixel writers. These private indices
+ * match writepixel.h; paired RGB32 palette entries preserve alpha masks.
+ */
 void calc_wp_cond()
 {
-    static int wp_cond[5][2][2][2] =
+    static const int wp_cond[3][2][2][2] =
     {
         {{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}},
-        {{{8, 9}, {10, 11}}, {{12, 13}, {14, 15}}},
-        {{{16, 17}, {18, 19}}, {{20, 21}, {22, 23}}},
-        {{{24, 26}, {28, 30}}, {{32, 34}, {36, 38}}},
-        {{{40, 41}, {42, 43}}, {{44, 45}, {46, 47}}},
+        {{{8, 10}, {12, 14}}, {{16, 18}, {20, 22}}},
+        {{{24, 25}, {26, 27}}, {{28, 29}, {30, 31}}},
     };
     int c1;
-    void *p;
-    if(dpf == PIXEL_16)
+    int has_blend;
+    if(dpf == PIXEL_32)
     {
         c1 = spf == PIXEL_x8 ? 1 : 2;
-        p = pfp16;
-    }
-    else if(dpf == PIXEL_32)
-    {
-        c1 = spf == PIXEL_x8 ? 3 : 4;
-        p = pfp32;
+        has_blend = pfp32 != NULL;
     }
     else
     {
         c1 = 0;
-        p = pfp;
+        has_blend = pfp != NULL;
     }
 
-    wpcond = wp_cond[c1][transbg != 0][fillcolor != 0][p != NULL];
+    wpcond = wp_cond[c1][transbg != 0][fillcolor != 0][has_blend];
 
-    // alpha masks can come into play when rendering sprite (PIXEL_x8) to screen (PIXEL_32)
-    if(c1 == 3 && ptr_src_mask != NULL)
+    /* Alpha masks apply to indexed sprite artwork drawn to RGB32 scenes. */
+    if(c1 == 1 && ptr_src_mask != NULL)
     {
         wpcond += 1;
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Initialize the remaining indexed and RGB32 CPU transforms. Unsupported
+ * object formats leave no drawable extent or stale writer selection.
+ */
 void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *drawmethod)
 {
-
-    /* All software transform loops enter here once, outside the pixel loop.
-     * Resolve render-target sources and preserve destination pixels before
-     * a legacy effect takes ownership of the CPU shadow. */
-    if(src->screen->magic == screen_magic)
+    trans_sw = trans_sh = 0;
+    wpcond = -1;
+    if(dest->pixelformat != PIXEL_8 && dest->pixelformat != PIXEL_32)
     {
-        gpu_sync_cpu(src->screen);
+        return;
     }
-    gpu_prepare_cpu_write(dest);
 
     spf = dpf = 0; //source pixel format
     drawfp = draw_pixel_dummy;
     pfp = NULL;
     fillcolor = 0;
-    pfp16 = NULL;
     pfp32 = NULL;
     table = NULL;
     transbg = 0;
@@ -752,6 +606,23 @@ void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *dr
         return;
     }
 
+    if(!pixel_format_supported(spf) ||
+       (src->screen->magic == sprite_magic &&
+        (!pixel_format_indexed(spf) ||
+         (src->sprite->mask && !pixel_format_indexed(src->sprite->mask->pixelformat)))))
+    {
+        trans_sw = trans_sh = 0;
+        return;
+    }
+
+    /* Resolve render-target sources and preserve destination pixels only
+     * after validating the formats consumed by the CPU pixel writers. */
+    if(src->screen->magic == screen_magic)
+    {
+        gpu_sync_cpu(src->screen);
+    }
+    gpu_prepare_cpu_write(dest);
+
     trans_dw = dest->width;
     trans_dh = dest->height;
 
@@ -792,10 +663,6 @@ void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *dr
         {
             pfp = (fillcolor == TRANSPARENT_IDX ? NULL : blendfillcolor);
         }
-        break;
-    case PIXEL_16:
-        fillcolor = drawmethod->fillcolor;
-        pfp16 = getblendfunction16(drawmethod->alpha);
         break;
     case PIXEL_32:
         fillcolor = drawmethod->fillcolor;

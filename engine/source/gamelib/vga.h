@@ -10,8 +10,6 @@
 #define		VGA_H
 
 
-// Set VGA-type palette
-void vga_setpalette(unsigned char* palette);
 void vga_vwait();
 
 #endif

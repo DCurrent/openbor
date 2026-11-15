@@ -155,8 +155,8 @@ run_test "$test_build_dir/test_spriteq_sort"
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
 
-# Affine's software implementation remains the fallback for unavailable native
-# rendering. Keep its pixel-center, pivot, clipping and sprite rules tested
+# Android still uses the RGB32 CPU renderer. Keep its affine pixel-center,
+# pivot, clipping and indexed sprite rules tested
 # independently of the OpenGL fixtures below.
 "$test_compiler" "${test_flags[@]}" tests/test_affine_transform.c \
     engine/source/gamelib/transform.c engine/source/gamelib/gpu.c \
@@ -165,10 +165,9 @@ run_test "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_affine_transform"
 
 test_software_sources=(engine/source/gamelib/gpu.c
-    engine/source/gamelib/screen.c engine/source/gamelib/screen16.c
+    engine/source/gamelib/screen.c
     engine/source/gamelib/screen32.c engine/source/gamelib/draw.c
-    engine/source/gamelib/draw16.c engine/source/gamelib/draw32.c
-    engine/source/gamelib/sprite.c engine/source/gamelib/spritex8p16.c
+    engine/source/gamelib/draw32.c engine/source/gamelib/sprite.c
     engine/source/gamelib/spritex8p32.c engine/source/gamelib/spriteq.c
     engine/source/gamelib/bitmap.c engine/source/gamelib/transform.c
     engine/source/gamelib/pixelformat.c engine/source/omath.c)
@@ -177,8 +176,8 @@ test_software_sources=(engine/source/gamelib/gpu.c
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
-# Optional hardware color rules must leave ordinary CPU drawing unchanged,
-# including target formats that do not support native color effects.
+# Optional hardware color rules must leave ordinary RGB32 CPU drawing and
+# indexed sprite input unchanged on the supported Android renderer.
 "$test_compiler" "${test_flags[@]}" tests/test_drawmethod_colors.c \
     "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_drawmethod_colors"
@@ -264,7 +263,7 @@ run_test "$test_build_dir/test_gpu_colors"
 
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
     "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \
-    engine/sdl/videocommon.c engine/sdl/timer.c \
+    engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/simple2x.c \
     "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
     -o "$test_build_dir/test_gpu_presentation"
 run_test "$test_build_dir/test_gpu_presentation"

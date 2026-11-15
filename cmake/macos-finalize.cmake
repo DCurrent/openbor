@@ -14,12 +14,14 @@ if(TARGET_ARCH STREQUAL "universal")
   get_target_property(INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
   get_target_property(LIBRARIES ${PROJECT_NAME} LINK_LIBRARIES)
 
+  # Damon V. Caskey, 2026-11-15: Include native rendering in both 64-bit slices.
   add_executable(${PROJECT_NAME}.x86
     ${SRC_FILES}
     ${SRC_SDL}
     ${SRC_GFX}
     ${SRC_WEBM}
     ${SRC_OPENGL}
+    ${SRC_GPU_OPENGL}
     ${SRC_LOADGL}
   )
 

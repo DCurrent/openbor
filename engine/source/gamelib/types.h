@@ -15,14 +15,44 @@
 
 #define	ANYNUMBER		 2
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Every supported engine target uses 64-bit pointers. Keep this assertion
+ * compatible with C99, including builds without C11 static assertions.
+ */
+typedef char openbor_requires_64_bit_pointers[(sizeof(void *) == 8) ? 1 : -1];
+
 #if SDL
 #pragma pack(push,4)
 #endif
 
+/* Indexed values describe artwork and masks; RGB32 is the scene format.
+ * Preserve these identities without reserving any alternate color mode. */
 #define PIXEL_8          0
 #define PIXEL_x8         1
-#define PIXEL_16         2
 #define PIXEL_32         4
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Identify byte RLE artwork and opacity masks by their indexed formats.
+ */
+static inline int pixel_format_indexed(int format)
+{
+    return format == PIXEL_8 || format == PIXEL_x8;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Validate artwork and RGB32 screen identities before dispatch or stride
+ * lookup, excluding obsolete color formats and out-of-range values.
+ */
+static inline int pixel_format_supported(int format)
+{
+    return pixel_format_indexed(format) || format == PIXEL_32;
+}
 
 
 #define BLEND_SCREEN     0
@@ -34,12 +64,9 @@
 
 #define MAX_BLENDINGS    6
 
-/*
-#define _copy24bitp(pd, ps) (pd)[0] = (ps)[0]; (pd)[1] = (ps)[1]; (pd)[2] = (ps)[2];
-#define _copy24bit(pd, v) (pd)[0] = ((unsigned char*)(&(v)))[0]; (pd)[1] = ((unsigned char*)(&(v)))[1]; (pd)[2] = ((unsigned char*)(&(v)))[2];
-*/
+/* Default asset and palette format, independent of RGB32 scene surfaces. */
 extern int pixelformat;
-// in bitmap.c
+// in pixelformat.c
 extern int pixelbytes[(int)5];
 
 #define PAL_BYTES ((pixelbytes[(int)PIXEL_32]*256))
@@ -196,31 +223,23 @@ typedef struct
 void set_blendtables(unsigned char *tables[]); // set global blend tables for 8bit mode
 
 typedef unsigned char (*transpixelfunc)(unsigned char *table, unsigned char src, unsigned char dest);
-typedef unsigned short (*blend16fp)(unsigned short, unsigned short);
 typedef unsigned (*blend32fp)(unsigned, unsigned);
 
-blend16fp getblendfunction16(int alpha);
 blend32fp getblendfunction32(int alpha);
 
-extern blend16fp blendfunctions16[MAX_BLENDINGS];
 extern blend32fp blendfunctions32[MAX_BLENDINGS];
 extern unsigned char *blendtables[MAX_BLENDINGS];
 extern unsigned channelr, channelg, channelb, tintmode, tintcolor;
 extern int usechannel;
 extern int useclip, clipx1, clipx2, clipy1, clipy2;
-extern blend16fp tint16fp1, tint16fp2;
 extern blend32fp tint32fp1, tint32fp2;
 
-unsigned short colour16(unsigned char r, unsigned char g, unsigned char b);
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b);
 
 #if 0
 void u8revcpy(unsigned char *pa, const unsigned char *pb, unsigned len);
 void u8revpcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
 void u8pcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
-
-void u16revpcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len);
-void u16pcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len);
 
 void u32revpcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
 void u32pcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);

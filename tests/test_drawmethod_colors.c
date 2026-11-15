@@ -554,33 +554,33 @@ static void colors_run_suite(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Limit CPU scene references to RGB32 with indexed sprite input.
  * Compare ordinary software draws with the same draws carrying active rules.
- * Every format must still render, with no color-rule implementation or error.
+ * The supported RGB32 renderer must ignore optional hardware color effects.
  */
-static void colors_test_cpu_ignored(int format, int geometry)
+static void colors_test_cpu_ignored(int geometry)
 {
     const unsigned char indices[4] = {1, 0, 2, 0};
     const unsigned values[8] = {0, 0x123456, 0x789ABC, 0xFFFFFF,
                                 0xFFFFFF, 0x789ABC, 0x123456, 0};
-    s_screen *source = colors_screen(4, 2, format, 0);
-    s_screen *targets[2] = {colors_screen(20, 12, format, 0),
-                            colors_screen(20, 12, format, 0)};
+    s_screen *source = colors_screen(4, 2, PIXEL_32, 0);
+    s_screen *targets[2] = {colors_screen(20, 12, PIXEL_32, 0),
+                            colors_screen(20, 12, PIXEL_32, 0)};
     s_sprite *sprite = colors_sprite(indices, 1);
     s_drawmethod ordinary = plainmethod, active;
     s_drawmethod *methods[2] = {&ordinary, &active};
     unsigned char before[COLOR_EXPECTED_PIXELS * sizeof(unsigned)];
-    size_t bytes = (size_t)20 * 12 * pixelbytes[format];
+    size_t bytes = (size_t)20 * 12 * sizeof(unsigned);
     int side, i;
 
-    pixelformat = format;
+    /* Indexed sprite artwork retains RGB32 palette entries; both screen
+     * sources and destinations use the sole supported scene color format. */
+    pixelformat = PIXEL_32;
     for(i = 0; i < 8; ++i)
     {
-        if(format == PIXEL_32) ((unsigned *)source->data)[i] = values[i];
-        else if(format == PIXEL_16) ((unsigned short *)source->data)[i] = (unsigned short)values[i];
-        else source->data[i] = (unsigned char)values[i];
+        ((unsigned *)source->data)[i] = values[i];
     }
-    if(format == PIXEL_16) ((unsigned short *)sprite->palette)[2] = 0x1234;
-    else ((unsigned *)sprite->palette)[2] = 0x123456;
+    ((unsigned *)sprite->palette)[2] = 0x123456;
     if(geometry == 1) ordinary.scalex = ordinary.scaley = 512;
     if(geometry == 2)
     {
@@ -614,22 +614,18 @@ static void colors_test_cpu_ignored(int format, int geometry)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Exercise the 64-bit RGB32 scene contract with indexed artwork.
  * Verify the hardware-only policy without needing a graphics context.
  */
 int main(void)
 {
-    const int formats[] = {PIXEL_8, PIXEL_16, PIXEL_32};
-    unsigned format;
     int geometry;
     assert(sizeof(void *) == 8);
-    for(format = 0; format < sizeof(formats) / sizeof(formats[0]); ++format)
+    for(geometry = 0; geometry < 3; ++geometry)
     {
-        for(geometry = 0; geometry < 3; ++geometry)
-        {
-            colors_test_cpu_ignored(formats[format], geometry);
-        }
+        colors_test_cpu_ignored(geometry);
     }
-    printf("Drawmethod color tests passed: %u ordinary CPU images unchanged by color rules (8/16/32-bit).\n",
+    printf("Drawmethod color tests passed: %u RGB32 CPU images with indexed sprite input unchanged by color rules.\n",
            color_images_checked);
     return 0;
 }

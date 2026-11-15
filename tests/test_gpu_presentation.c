@@ -1,7 +1,7 @@
 /*
  * Exercise the production SDL/OpenGL presenter and context lifecycle.
  * Run through tests/run_gpu_tests.sh, or compile with the native renderer test
- * flags plus video.c, opengl.c, videocommon.c and timer.c. The existing native
+ * flags plus video.c, opengl.c, videocommon.c, timer.c and simple2x.c. The native
  * test fixtures are reused with their independent
  * entry point renamed; --gc-sections discards the unused test suite.
  */
@@ -10,14 +10,17 @@
 #undef main
 #include "savedata.h"
 #include "video.h"
+#include "videocommon.h"
 #include "opengl.h"
 #include "gfx.h"
 
 s_savedata savedata;
 GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2];
-char *GfxBlitterNames[(BLITTER_MAX * 2) + 1] = { "16-Bit Simple 2x", "16-Bit Bilinear" };
+char *GfxBlitterNames[(BLITTER_MAX * 2) + 1] = { "Disabled", "Simple 2x fixture" };
 extern SDL_Window *window;
 extern int nativeWidth, nativeHeight;
+extern s_videomodes stored_videomodes;
+extern void Simple2x(u8 *src, u32 src_pitch, u8 *delta, u8 *dest, u32 dest_pitch, int width, int height);
 extern void video_gl_setup_screen(void);
 extern void video_gl_init_texture(int index, int width, int height, int bytes_per_pixel);
 
@@ -116,15 +119,89 @@ static void test_presenter_state_boundaries(s_screen *screen)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Verify a selected output filter consumes RGB32 scene data and produces its
+ * private packed intermediate without changing the authored scene format.
+ */
+static void test_cpu_output_filter(s_screen *source)
+{
+    s_videosurface *output = getVideoSurface(source);
+    int x, y;
+
+    /* The production nearest-neighbor filter doubles both dimensions. Its
+     * packed BGR565 output is private presentation storage, not a scene mode. */
+    assert(source->pixelformat == PIXEL_32);
+    assert(stored_videomodes.pixel == 4);
+    assert(output && output->width == 16 && output->height == 16);
+    assert(output->pitch == output->width * 2);
+    assert(output->data != source->data);
+    for(y = 0; y < output->height; ++y)
+    {
+        const unsigned short *row = (const unsigned short *)((const unsigned char *)output->data + y * output->pitch);
+        for(x = 0; x < output->width; ++x)
+        {
+            /* RGB32 0x00abcdef contains R=ef, G=cd, B=ab. Quantizing these
+             * channels to 5/6/5 bits produces the packed value 0xae7d. */
+            assert(row[x] == 0xae7d);
+        }
+    }
+    assert(test_pixel(source, 2, 2) == 0x00abcdef);
+    assert(video_copy_screen(source));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reject non-RGB32 scene requests before changing a live context, screen
+ * ownership or the valid authored mode used by later restore operations.
+ */
+static void test_scene_format_rejection(s_videomodes valid_mode, s_screen *screen)
+{
+    const int formats[] = {0, 1, 2, 3, 5};
+    SDL_Window *original_window = window;
+    SDL_GLContext original_context = SDL_GL_GetCurrentContext();
+    unsigned original_texture, texture;
+    unsigned long uploads, readbacks;
+    int width, height;
+    size_t i;
+
+    /* Flush the accepted image before the snapshot so rejection itself cannot
+     * hide teardown, recreation, a CPU readback or a replacement upload. */
+    assert(gpu_gl_get_screen_texture(screen, &original_texture, &width, &height));
+    assert(width == 8 && height == 8);
+    uploads = gpu_gl_get_stats()->uploads;
+    readbacks = gpu_gl_get_stats()->readbacks;
+    for(i = 0; i < sizeof(formats) / sizeof(formats[0]); ++i)
+    {
+        s_videomodes invalid_mode = valid_mode;
+        invalid_mode.pixel = formats[i];
+        assert(!video_set_mode(invalid_mode));
+        assert(window == original_window);
+        assert(SDL_GL_GetCurrentContext() == original_context);
+        assert(opengl && gpu_is_active() && savedata.usegl == 1);
+        assert(stored_videomodes.pixel == 4);
+        assert(stored_videomodes.hRes == valid_mode.hRes);
+        assert(stored_videomodes.vRes == valid_mode.vRes);
+        assert(gpu_gl_get_screen_texture(screen, &texture, &width, &height));
+        assert(texture == original_texture && width == 8 && height == 8);
+        assert(gpu_gl_get_stats()->uploads == uploads);
+        assert(gpu_gl_get_stats()->readbacks == readbacks);
+    }
+    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+    assert(video_copy_screen(screen));
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Require native RGB32 through mode failures and context teardown.
+ * 2026-11-15 - Reject removed scene formats and exercise real filter storage.
  * Exercise production presentation, mode switching, unported CPU filters and
  * YUV transitions without linking unrelated game/audio subsystems.
  */
 int main(void)
 {
     s_videomodes mode = { .hRes = 8, .vRes = 8, .pixel = 4 };
-    s_videomodes legacy_mode = { .hRes = 8, .vRes = 8, .pixel = 2 };
     s_videomodes closed = {0};
     s_screen *screen = test_screen(8, 8, PIXEL_32);
     yuv_video_mode movie_mode = {8, 8, 8, 8};
@@ -170,12 +247,15 @@ int main(void)
     assert(opengl && gpu_is_active());
     assert(test_pixel(screen, 2, 2) == 0x00123456);
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00abcdef, &plainmethod));
+    /* Use the actual filter implementation at the fixture's selected index. */
+    GfxBlitters[1] = Simple2x;
     savedata.swfilter = 1;
     savedata.hwscale = 2.0f;
     assert(video_set_mode(mode));
     assert(opengl && !gpu_is_active());
     assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
+    test_cpu_output_filter(screen);
 
     /* Returning from a CPU filter must restore native drawing. Entering YUV
      * mode then retires that context's scene resources with current shadows. */
@@ -223,24 +303,7 @@ int main(void)
     assert(opengl && gpu_is_active() && savedata.usegl == 1);
     assert(video_copy_screen(screen));
 
-    /* The unported 16-bit mode remains usable, including a presenter-family
-     * change. It uses its own source format rather than an RGB32 fallback. */
-    {
-        s_screen *legacy = test_screen(8, 8, PIXEL_16);
-        savedata.usegl = 1;
-        assert(video_set_mode(legacy_mode));
-        assert(opengl && gpu_is_active());
-        /* Mixed RGB32 subscreens in this explicitly unported format keep
-         * CPU operations needed by its global 16-bit material tables. */
-        assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
-        assert(video_copy_screen(legacy));
-        savedata.usegl = 0;
-        assert(video_set_mode(legacy_mode));
-        assert(!opengl && !gpu_is_active());
-        assert(gpu_allow_cpu_operation(legacy, GPU_OPERATION_SCREEN));
-        assert(video_copy_screen(legacy));
-        release_test_screen(legacy);
-    }
+    test_scene_format_rejection(mode, screen);
     savedata.usegl = 1;
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
@@ -257,6 +320,6 @@ int main(void)
     SDL_DestroyWindow(window);
     window = NULL;
     SDL_Quit();
-    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filters, YUV, required RGB32 failures, explicit 16-bit SDL mode.");
+    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filter intermediates, YUV, required RGB32 failures, RGB32-only scene modes.");
     return 0;
 }

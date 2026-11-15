@@ -26,12 +26,8 @@ void _putpixel(int x, int y, int colour, s_screen *screen, int alpha);
 
 
 ///////////////////////////////////////
-///////   16/32bit version ...........
+///////   RGB32 primitives ...........
 ///////////////////////////////////////////
-void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *screen, int alpha);
-void drawbox16(int x, int y, int width, int height, unsigned short colour, s_screen *screen, int alpha);
-void _putpixel16(int x, int y, unsigned short colour, s_screen *screen, int alpha);
-
 void line32(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, int alpha);
 void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *screen, int alpha);
 void _putpixel32(int x, int y, unsigned colour, s_screen *screen, int alpha);

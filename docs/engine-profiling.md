@@ -456,7 +456,10 @@ identified separately. Byte values are logical payload sizes, not measured
 bus traffic or GPU memory-bandwidth consumption.
 
 `software_ms` and the software draw/clear/copy counters cover instrumented
-high-level operations in explicitly retained CPU modes and non-RGB32 targets.
+high-level operations in required CPU paths and indexed image processing.
+Scene targets use RGB32; indexed source storage does not define another scene
+color mode. Android before GLES integration and active CPU output filters
+still require CPU rendering work.
 They do not claim to count every low-level CPU pixel routine in the engine.
 When a retained CPU operation first synchronizes a GPU-authored screen, its
 inclusive software span includes that readback; `readback_ms` also records the

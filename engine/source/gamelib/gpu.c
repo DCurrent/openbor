@@ -96,7 +96,7 @@ void gpu_set_native_required(int required)
  * 2026-11-15
  * Decide whether a declined native root operation still requires CPU work.
  * Migrated RGB32 scene targets log once per operation and remain unchanged;
- * indexed image work and explicitly unmigrated modes keep their CPU paths.
+ * indexed asset work, Android and selected CPU output filters retain theirs.
  */
 int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
 {
@@ -107,7 +107,8 @@ int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
     unsigned warning;
 
     /* Invalid destinations cannot be rasterized by either implementation. */
-    if(!screen)
+    if(!screen || !pixel_format_supported(screen->pixelformat) ||
+       (operation == GPU_OPERATION_PRESENT && screen->pixelformat != PIXEL_32))
     {
         return 0;
     }
@@ -144,12 +145,34 @@ int gpu_is_active(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Reject obsolete image formats before any backend callback can change image
+ * ownership. Retain the normal format diagnostic for rejected native draws.
+ */
+static int gpu_screen_format_valid(const s_screen *screen, ep_fallback reason)
+{
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        engine_profile_fallback(reason);
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Validate both image formats before backend dispatch.
  * Try a screen draw without synchronizing CPU pixels. Unsupported draws
  * return zero; root dispatch applies the selected no-retry rendering policy.
  */
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method)
 {
+    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT) ||
+       !gpu_screen_format_valid(src, EP_FALLBACK_SOURCE_FORMAT))
+    {
+        return 0;
+    }
     /* An absent renderer or unsupported operation leaves ownership with the caller. */
     if(!active_backend || !active_backend->draw_screen)
     {
@@ -168,10 +191,25 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Validate the destination and indexed sprite/mask formats.
  * Submit an indexed sprite and its drawmethod to the active GPU renderer.
  */
 int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
 {
+    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    {
+        return 0;
+    }
+    if(!sprite || !pixel_format_indexed(sprite->pixelformat))
+    {
+        engine_profile_fallback(EP_FALLBACK_SOURCE_FORMAT);
+        return 0;
+    }
+    if(sprite->mask && !pixel_format_indexed(sprite->mask->pixelformat))
+    {
+        engine_profile_fallback(EP_FALLBACK_MASK);
+        return 0;
+    }
     if(!active_backend || !active_backend->draw_sprite)
     {
         engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
@@ -185,10 +223,15 @@ int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_draw
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Reject unsupported target formats before backend dispatch.
  * Submit a filled rectangle, including one-pixel dots, to GPU drawing.
  */
 int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned color, const s_drawmethod *method)
 {
+    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    {
+        return 0;
+    }
     if(!active_backend || !active_backend->draw_box)
     {
         engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
@@ -202,10 +245,15 @@ int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned c
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Reject unsupported target formats before backend dispatch.
  * Submit a line when the backend can retain its rasterization contract.
  */
 int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color, const s_drawmethod *method)
 {
+    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    {
+        return 0;
+    }
     if(!active_backend || !active_backend->draw_line)
     {
         engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
@@ -219,10 +267,15 @@ int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Reject unsupported target formats before backend dispatch.
  * Clear GPU storage directly instead of downloading and zeroing its shadow.
  */
 int gpu_clear_screen(s_screen *screen)
 {
+    if(!gpu_screen_format_valid(screen, EP_FALLBACK_TARGET_FORMAT))
+    {
+        return 0;
+    }
     if(!active_backend || !active_backend->clear_screen)
     {
         engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
@@ -236,10 +289,16 @@ int gpu_clear_screen(s_screen *screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Validate both image formats before backend dispatch.
  * Copy compatible screens while keeping their pixels in GPU storage.
  */
 int gpu_copy_screen(s_screen *dest, s_screen *src)
 {
+    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT) ||
+       !gpu_screen_format_valid(src, EP_FALLBACK_SOURCE_FORMAT))
+    {
+        return 0;
+    }
     if(!active_backend || !active_backend->copy_screen)
     {
         engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
@@ -253,6 +312,7 @@ int gpu_copy_screen(s_screen *dest, s_screen *src)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Ignore unsupported image formats before ownership callbacks.
  * Make the CPU shadow current only when a CPU reader actually needs it.
  * Readback failure cannot safely fall through with stale pixels, so stop
  * explicitly rather than silently corrupting subsequent effects or output.
@@ -260,7 +320,8 @@ int gpu_copy_screen(s_screen *dest, s_screen *src)
 void gpu_sync_cpu(s_screen *screen)
 {
     /* Software-only screens already expose the authoritative image to CPU readers. */
-    if(!screen || !active_backend || !active_backend->sync_cpu)
+    if(!screen || !pixel_format_supported(screen->pixelformat) ||
+       !active_backend || !active_backend->sync_cpu)
     {
         return;
     }
@@ -280,6 +341,7 @@ void gpu_sync_cpu(s_screen *screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Ignore unsupported image formats before ownership callbacks.
  * Mark a CPU-written screen for upload before its next GPU use. Callers
  * replacing only part of an image must synchronize it before this operation.
  */
@@ -289,7 +351,8 @@ void gpu_mark_cpu_dirty(s_screen *screen)
      * Record the version change without uploading yet. Full-image replacement
      * can use this directly; partial edits first need gpu_prepare_cpu_write().
      */
-    if(screen && active_backend && active_backend->mark_cpu_dirty)
+    if(screen && pixel_format_supported(screen->pixelformat) &&
+       active_backend && active_backend->mark_cpu_dirty)
     {
         active_backend->mark_cpu_dirty(screen);
     }

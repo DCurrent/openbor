@@ -1864,6 +1864,7 @@ static int gpu_set_palette(const unsigned char *palette)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Remove the obsolete 16-bit scene blend-table exception.
  * Preserve channel lookup blends on the GPU. Cached table values are reused
  * across draws and refreshed after replacement or explicit invalidation.
  */
@@ -1886,19 +1887,6 @@ static int gpu_set_tables(void)
         return 1;
     }
     table_mask = 0;
-    /* The 16-bit mode's tables are smaller, with different channel domains.
-     * Those drawing operations must remain in their existing software path. */
-    if(pixelformat == PIXEL_16)
-    {
-        for(i = 0; i < MAX_BLENDINGS; i++)
-        {
-            if(blendtables[i])
-            {
-                native_failure = EP_FALLBACK_BLEND;
-                return 0;
-            }
-        }
-    }
     upload_scope = engine_profile_span_begin();
     gpu_edit_texture(4, table_texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -3148,6 +3136,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-14 - Report the initialized buffered triangle submission path.
  * 2026-11-14 - Distinguish shader shear from retained CPU row preparation.
  * 2026-11-15 - Report rejected RGB32 operations without software retry.
+ * 2026-11-15 - Identify RGB32 as the sole scene format.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3179,7 +3168,7 @@ static void gpu_log_capability_result(int native_available)
                 "\t  - Numerically extreme transforms\n"
                 "\t  - Images larger than %d pixels on either axis\n"
                 "\t  - Resource allocation failures\n"
-                "\tOther image formats:               8-bit and 16-bit destinations remain CPU operations\n",
+                "\tScene format:                      RGB32 only; indexed artwork is source data\n",
                 maximum_texture_size);
     }
     else

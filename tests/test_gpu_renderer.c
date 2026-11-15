@@ -32,7 +32,7 @@
 /* Exercise the production queue's filtering, offsets, locking and sort. */
 #include "../engine/source/gamelib/spriteq.c"
 
-int pixelbytes[5] = {1, 1, 2, 0, 4};
+int pixelbytes[5] = {1, 1, 0, 0, 4};
 int pixelformat = PIXEL_32;
 int useclip, clipx1, clipx2, clipy1, clipy2;
 unsigned char *blendtables[MAX_BLENDINGS];
@@ -1232,22 +1232,31 @@ static void test_custom_blend_table(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Verify clean software fallback and that renderer shutdown preserves live
- * GPU screens before their graphics context is destroyed.
+ * 2026-11-15 - Reject removed image formats without touching their storage.
+ * Verify unsupported image rejection and that renderer shutdown preserves
+ * live GPU screens before their graphics context is destroyed.
  */
 static void test_shutdown(void)
 {
     s_screen *native = test_screen(4, 4, PIXEL_32);
-    s_screen *legacy = test_screen(4, 4, PIXEL_16);
+    s_screen *invalid = test_screen(4, 4, PIXEL_32);
+    unsigned char before[4 * 4 * sizeof(unsigned)];
 
-    /* Unsupported target formats retain software ownership. The RGB target
-     * stays GPU-owned until shutdown transfers its latest version back. */
-    assert(!gpu_clear_screen(legacy));
+    /* Fabricate a malformed header on valid storage. Format 2 has no image
+     * allocation or renderer; rejecting it must leave every byte untouched. */
+    memset(invalid->data, 0x5a, sizeof(before));
+    memcpy(before, invalid->data, sizeof(before));
+    invalid->pixelformat = 2;
+    assert(!gpu_clear_screen(invalid));
+    assert(memcmp(before, invalid->data, sizeof(before)) == 0);
+
+    /* The RGB32 target remains GPU-owned until shutdown transfers its latest
+     * version back into the script-visible CPU shadow. */
     assert(gpu_draw_box(native, 0, 0, 4, 4, 0x00123456, &plainmethod));
     gpu_gl_shutdown();
     assert(!gpu_is_active());
     assert(test_pixel(native, 2, 2) == 0x00123456);
-    release_test_screen(legacy);
+    release_test_screen(invalid);
     release_test_screen(native);
 }
 

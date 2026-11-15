@@ -5940,7 +5940,6 @@ void load_background(char *filename)
 
     video_clearscreen();
     pal[0] = pal[1] = pal[2] = 0;
-    //palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
     change_system_palette(0);
 }
 
@@ -6013,7 +6012,6 @@ void load_cached_background(char *filename)
 
     video_clearscreen();
     pal[0] = pal[1] = pal[2] = 0;
-    //palette_set_corrected(pal, savedata.gamma,savedata.gamma,savedata.gamma, savedata.brightness,savedata.brightness,savedata.brightness);
     change_system_palette(0);
     printf("use cached bg\n");
 #endif

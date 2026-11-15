@@ -577,11 +577,20 @@ void putsprite_8(
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-15 - Retain only indexed artwork and RGB32 dispatch.
  * Select software sprite geometry, including the opt-in affine matrix.
  * The common transform initializer synchronizes affine fallback pixels.
  */
 void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod)
 {
+    /* Validate indexed artwork and masks before either renderer sees them. */
+    if(!screen || !frame || !pixel_format_supported(screen->pixelformat) ||
+       !pixel_format_indexed(frame->pixelformat) ||
+       (frame->mask && !pixel_format_indexed(frame->mask->pixelformat)))
+    {
+        return;
+    }
+
     gfx_entry gfx;
 
     if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
@@ -623,9 +632,6 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
         case PIXEL_8:
             putsprite_8(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, drawmethod->table, drawmethod->alpha > 0 ? blendtables[drawmethod->alpha - 1] : NULL);
             break;
-        case PIXEL_16:
-            putsprite_x8p16(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, (unsigned short *)drawmethod->table, getblendfunction16(drawmethod->alpha));
-            break;
         case PIXEL_32:
             putsprite_x8p32(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, (unsigned *)drawmethod->table, getblendfunction32(drawmethod->alpha));
             break;
@@ -653,6 +659,11 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Dispatch byte RLE sprites to the remaining indexed and RGB32 writers.
+ */
 static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
     if(!drawmethod || !(drawmethod->config & DRAWMETHOD_CONFIG_ENABLED))
@@ -661,9 +672,6 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
         {
         case PIXEL_8:
             putsprite_8(x, y, 0, sprite, screen, NULL, NULL);
-            break;
-        case PIXEL_16:
-            putsprite_x8p16(x, y, 0, sprite, screen, (unsigned short*)sprite->palette, NULL);
             break;
         case PIXEL_32:
             putsprite_x8p32(x, y, 0, sprite, screen, (unsigned*)sprite->palette, NULL);
@@ -686,6 +694,14 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
  */
 void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
+    /* Validate indexed artwork and masks before either renderer sees them. */
+    if(!screen || !sprite || !pixel_format_supported(screen->pixelformat) ||
+       !pixel_format_indexed(sprite->pixelformat) ||
+       (sprite->mask && !pixel_format_indexed(sprite->mask->pixelformat)))
+    {
+        return;
+    }
+
     ep_scope software;
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
@@ -743,10 +759,13 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
 
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// NULL for dest means do not actually encode
-//
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Encode indexed artwork and alpha masks into byte RLE sprites. Invalid
+ * pixel formats must not become mislabeled sprite data. NULL for dest
+ * requests the encoded storage size without writing a sprite.
+ */
 unsigned encodesprite(
     int centerx, int centery,
     s_bitmap *bitmap, s_sprite *dest
@@ -755,8 +774,14 @@ unsigned encodesprite(
     int x, x0, y, w, h, xoffset, origwidth;
     unsigned char *data;
     int *linetab;
-    unsigned char *src = bitmap->data;
+    unsigned char *src;
     int pb = PAL_BYTES, extrab;
+
+    if(!bitmap || !pixel_format_indexed(bitmap->pixelformat))
+    {
+        return 0;
+    }
+    src = bitmap->data;
 
     if(dest)
     {

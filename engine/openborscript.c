@@ -16258,12 +16258,17 @@ playwebm_error:
     return E_FAIL;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Play a GIF through RGB32 scene composition. GIF frames own their palettes;
+ * playback does not change the scene palette or presentation color correction.
+ */
 //playgif(path, int x, int y, int noskip)
 HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG temp[3] = {0, 0, 0}; //x,y,noskip
     int i;
-    extern unsigned char pal[1024];
     extern int playgif(char * filename, int x, int y, int noskip);
 
     if(paramCount < 1)
@@ -16286,7 +16291,6 @@ HRESULT openbor_playgif(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
     (*pretvar)->lVal = (LONG)playgif(StrCache_Get(varlist[0]->strVal), (int)(temp[0]), (int)(temp[1]), (int)(temp[2]));
-    palette_set_corrected(pal, savedata.gamma, savedata.gamma, savedata.gamma, savedata.brightness, savedata.brightness, savedata.brightness);
     return S_OK;
 
 playgif_error:
@@ -16778,6 +16782,12 @@ int mapstrings_gfxproperty(ScriptVariant **varlist, int paramCount)
     return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Read metadata and pixels from supported indexed assets and RGB32 screens.
+ * Pixel queries synchronize screen storage before reading its CPU shadow.
+ */
 // getgfxproperty(handle, propertyname, ...);
 HRESULT openbor_getgfxproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -16976,9 +16986,6 @@ HRESULT openbor_getgfxproperty(ScriptVariant **varlist , ScriptVariant **pretvar
                 case PIXEL_8:
                 case PIXEL_x8:
                     v = (LONG)(((unsigned char *)screen->data)[y * screen->width + x]);
-                    break;
-                case PIXEL_16:
-                    v = (LONG)(((unsigned short *)screen->data)[y * screen->width + x]);
                     break;
                 case PIXEL_32:
                     v = (LONG)(((unsigned *)screen->data)[y * screen->width + x]);

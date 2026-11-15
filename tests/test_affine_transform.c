@@ -23,21 +23,9 @@
 #include "../engine/source/gamelib/transform.h"
 
 /* Minimal pixel-format state used by the real transform.c. */
-int pixelbytes[5] = {1, 1, 2, 3, 4};
+int pixelbytes[5] = {1, 1, 0, 0, 4};
 int useclip, clipx1, clipy1, clipx2, clipy2;
 unsigned char *blendtables[MAX_BLENDINGS];
-
-/*
- * Damon V. Caskey
- * 2026-11-13
- * Supply the unused 16-bit blend callback for this geometry-only fixture.
- */
-blend16fp getblendfunction16(int alpha)
-{
-    /* Geometry tests use direct color writes, so no blend function is selected. */
-    (void)alpha;
-    return NULL;
-}
 
 /*
  * Damon V. Caskey

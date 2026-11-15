@@ -95,8 +95,6 @@ void video_set_window_title(const char* title)
 	strncpy(windowTitle, title, sizeof(windowTitle)-1);
 }
 
-static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
-
 /*
  * Damon V. Caskey
  * 2026-11-12
@@ -223,6 +221,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-15 - Report the sole supported RGB32 scene format.
  * Describe the menu settings selected for this initialization. The first
  * snapshot records Starting Values; later snapshots describe reinitialization
  * without implying that settings remained fixed throughout the session.
@@ -232,7 +231,6 @@ static void video_log_values(const s_videomodes *mode)
 	static int starting_values_reported;
 	char fps_limit[48], scale[80];
 	const char *filter = "Disabled";
-	const char *format = "Unknown";
 	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
 
 	/* Decode stored options using the same meanings shown in the video menu.
@@ -258,14 +256,6 @@ static void video_log_values(const s_videomodes *mode)
 		filter = savedata.swfilter > 0 && savedata.swfilter < BLITTER_MAX * 2 &&
 		         GfxBlitterNames[savedata.swfilter] ? GfxBlitterNames[savedata.swfilter] : "Unknown";
 	}
-	switch(mode->pixel)
-	{
-	case 1: format = "Indexed 8-bit"; break;
-	case 2: format = "RGB16"; break;
-	case 3: format = "RGB24"; break;
-	case 4: format = "RGB32"; break;
-	}
-
 	/* Keep authored scene dimensions separate from the converted/filtered
 	 * presentation image reported after the selected backend is ready. */
 	gpu_log("%s\n"
@@ -286,7 +276,7 @@ static void video_log_values(const s_videomodes *mode)
 	        "Software filter selected:", filter,
 	        "CPU output filter:", filter_active ? "Active" : "Inactive",
 	        "Scene resolution:", mode->hRes, mode->vRes,
-	        "Scene color format:", format, mode->pixel);
+	        "Scene color format:", "RGB32", mode->pixel);
 	starting_values_reported = 1;
 }
 
@@ -295,16 +285,25 @@ static void video_log_values(const s_videomodes *mode)
  * 2026-11-12
  * 2026-11-13 - Report readable starting/reinitialized settings without profiling.
  * 2026-11-15 - Require native RGB32 scenes without selecting CPU rendering on failure.
+ * 2026-11-15 - Reject unsupported scene formats before changing live video state.
  * Select presentation for a normal game screen. Preserve the original mode
- * for restoration and retain CPU conversion only for formats and output
- * filters that have not yet migrated to native drawing.
+ * for restoration and retain CPU conversion only for output filters that
+ * have not yet migrated to native drawing.
  */
 int video_set_mode(s_videomodes videomodes)
 {
 	int requested_gl = savedata.usegl;
 	int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
 	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
-	int native_scene = videomodes.pixel == 4 && !filter_active;
+	int native_scene = !filter_active;
+
+	/* Only RGB32 scenes may initialize video. Shutdown has no image format;
+	 * invalid requests must leave the current window, context and policy intact. */
+	if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
+	{
+		gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
+		return 0;
+	}
 
 	/* Publish the previous measurement window before starting a new graphics
 	 * section. Zero-sized shutdown modes have no new starting settings. */
@@ -316,13 +315,6 @@ int video_set_mode(s_videomodes videomodes)
 	{
 		gpu_log("========== GRAPHICS INITIALIZATION ==========");
 		video_log_values(&videomodes);
-		if(videomodes.pixel != 4)
-		{
-			gpu_log("WARNING: The %d-bit main scene uses CPU drawing.\n"
-			        "\tNative scene targets require RGB32.\n"
-			        "\tConverting the finished image for presentation does not accelerate scene drawing.\n"
-			        "\tSignificant slowdown is possible.", videomodes.pixel * 8);
-		}
 		if(native_scene && !requested_gl)
 		{
 			gpu_log("RGB32 scene drawing requires the native OpenGL renderer.\n"
@@ -339,7 +331,7 @@ int video_set_mode(s_videomodes videomodes)
 		{
 			gpu_log("WARNING: This build has no native OpenGL backend.\n"
 			        "\tUnfiltered RGB32 scene initialization will fail; there is no software retry.\n"
-			        "\tUnmigrated formats and output filters retain their existing presentation path.");
+			        "\tUnmigrated output filters retain their existing presentation path.");
 		}
 #endif
 	}
@@ -364,13 +356,19 @@ int video_set_mode(s_videomodes videomodes)
 	}
 
 	videomodes = setupPreBlitProcessing(videomodes);
+	if(!videomodes.pixel)
+	{
+		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
+		return 0;
+	}
 
-	// 8-bit color should be transparently converted to 32-bit
-	assert(videomodes.pixel == 2 || videomodes.pixel == 4);
+	/* CPU filters produce a private BGR565 output image from the RGB32 scene.
+	 * That processed image is not a selectable engine color mode. */
+	assert(videomodes.pixel == (filter_active ? 2 : 4));
 
 	/*
 	 * Native RGB32 drawing requires both a presenter and a scene backend.
-	 * Only explicitly unmigrated formats/filters may select CPU composition.
+	 * Only explicitly selected CPU output filters may use CPU composition.
 	 */
 	if(savedata.usegl && video_gl_set_mode(videomodes))
 	{
@@ -382,9 +380,7 @@ int video_set_mode(s_videomodes videomodes)
 			if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 			return 0;
 		}
-		/* Backend registration requires RGB32 by default. Restore the authored
-		 * scene policy for explicit indexed/16-bit modes, whose mixed-format
-		 * screens may still depend on CPU blend tables and composition. */
+		/* CPU output filters still require a readable RGB32 scene image. */
 		gpu_set_native_required(native_scene);
 		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 		return 1;
@@ -401,9 +397,8 @@ int video_set_mode(s_videomodes videomodes)
 		return 0;
 	}
 
-	/* Indexed/16-bit scenes and active output filters still need their CPU
-	 * implementation. This explicit mode choice is separate from GPU failure
-	 * while rendering a migrated RGB32 scene. */
+	/* Selected output filters still need their CPU implementation. This
+	 * explicit mode choice is separate from native scene initialization failure. */
 	gpu_set_native_required(0);
 	savedata.usegl = 0;
 
@@ -427,7 +422,7 @@ int video_set_mode(s_videomodes videomodes)
 
 	/* Uploads use the preprocessed format and dimensions selected above. */
 	texture = SDL_CreateTexture(renderer,
-	                            pixelformats[videomodes.pixel-1],
+	                            SDL_PIXELFORMAT_BGR565,
 	                            SDL_TEXTUREACCESS_STREAMING,
 	                            videomodes.hRes, videomodes.vRes);
 	if(!texture)
@@ -563,18 +558,23 @@ void FramerateDelay()
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Do not download a rejected native RGB32 frame for CPU presentation.
+ * 2026-11-15 - Reject invalid presentation images before texture uploads.
  * Present the completed game image. Try a resident GPU texture first, then
- * obtain synchronized CPU pixels only when a legacy upload or output filter
- * is required. Each successful path retains its normal frame pacing.
+ * obtain synchronized CPU pixels for selected output filters. Each successful
+ * path retains its normal frame pacing.
  */
 int video_copy_screen(s_screen* src)
 {
 	ep_scope setup_scope;
 	s_videosurface *surface;
+	if(!src || src->pixelformat != PIXEL_32)
+	{
+		return 0;
+	}
 
 	/*
 	 * Native GPU screens already contain the composed frame. Present their
-	 * texture before requesting CPU pixels or applying legacy conversion.
+	 * texture before requesting CPU pixels or applying output filtering.
 	 */
 	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src))
 	{
@@ -587,11 +587,15 @@ int video_copy_screen(s_screen* src)
 
 	/*
 	 * The native path declined this image or presentation mode. Synchronize
-	 * its CPU shadow and apply the configured palette conversion/output filter.
+	 * its CPU shadow and apply the configured output filter.
 	 */
 	setup_scope = engine_profile_span_begin();
 	surface = getVideoSurface(src);
 	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
+	if(!surface)
+	{
+		return 0;
+	}
 
 	if(opengl)
 	{

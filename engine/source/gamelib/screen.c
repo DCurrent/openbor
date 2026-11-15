@@ -20,10 +20,21 @@
 #include "gpu.h"
 #include "engine_profile.h"
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Allocate RGB32 screens or indexed artwork without accepting obsolete
+ * color formats or indexing the stride table with an invalid identity.
+ */
 s_screen *allocscreen(int width, int height, int pixelformat)
 {
     s_screen *screen;
     int psize;
+
+    if(!pixel_format_supported(pixelformat))
+    {
+        return NULL;
+    }
     width &= (0xFFFFFFFF - 3);
     psize = width * height * pixelbytes[pixelformat];
     if(pixelformat == PIXEL_x8)
@@ -73,6 +84,13 @@ void freescreen(s_screen **screen)
  */
 void copyscreen(s_screen *dest, s_screen *src)
 {
+    /* Reject malformed image identities before any coherence or pixel work. */
+    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
+       !pixel_format_supported(src->pixelformat))
+    {
+        return;
+    }
+
     ep_scope software;
     unsigned char *sp, *dp;
     int width = src->width;
@@ -160,9 +178,21 @@ void clearscreen(s_screen *s)
     engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
-// Screen copy function with offset options. Supports clipping.
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Copy supported image buffers with offsets and clipping. Reject obsolete
+ * formats before synchronization or pixel-stride lookup.
+ */
 void copyscreen_o(s_screen *dest, s_screen *src, int x, int y)
 {
+    /* Reject malformed image identities before any coherence or pixel work. */
+    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
+       !pixel_format_supported(src->pixelformat))
+    {
+        return;
+    }
+
     unsigned char *sp, *dp;
     int pixelformat = src->pixelformat;
     int sw = src->width;
@@ -531,6 +561,7 @@ void blendscreen(s_screen *dest, s_screen *src, int x, int y, unsigned char *lut
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-15 - Retain only indexed artwork and RGB32 dispatch.
  * Select software screen geometry and preserve the existing pixel operations.
  * Explicit affine geometry overrides the stored legacy transform settings.
  */
@@ -615,17 +646,6 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
             copyscreen_o(dest, src, x, y);
         }
     }
-    else if(dest->pixelformat == PIXEL_16)
-    {
-        if(src->pixelformat == PIXEL_x8)
-        {
-            putscreenx8p16(dest, src, x, y, transbg, (unsigned short *)table, getblendfunction16(alpha));
-        }
-        else if(src->pixelformat == PIXEL_16)
-        {
-            blendscreen16(dest, src, x, y, transbg, getblendfunction16(alpha));
-        }
-    }
     else if(dest->pixelformat == PIXEL_32)
     {
         if(src->pixelformat == PIXEL_x8)
@@ -649,6 +669,13 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
  */
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
+    /* Reject malformed image identities before any coherence or pixel work. */
+    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
+       !pixel_format_supported(src->pixelformat))
+    {
+        return;
+    }
+
     ep_scope software;
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
@@ -704,9 +731,21 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
-// Scale screen
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Scale supported image buffers. Validate both identities before computing
+ * the byte stride so unsupported formats cannot produce a zero divisor.
+ */
 void scalescreen(s_screen *dest, s_screen *src)
 {
+    /* Reject malformed image identities before any coherence or pixel work. */
+    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
+       !pixel_format_supported(src->pixelformat))
+    {
+        return;
+    }
+
     int sw, sh;
     int dw, dh;
     int dx, dy;
@@ -754,6 +793,9 @@ void scalescreen(s_screen *dest, s_screen *src)
 }
 
 /*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Scale supported indexed or RGB32 buffers, checking temporary allocation.
  * Zooms in or out on the screen.
  * Parameters:
  *     centerx - x coord of zoom center on unclipped, unscaled screen
@@ -763,6 +805,13 @@ void scalescreen(s_screen *dest, s_screen *src)
  */
 void zoomscreen(s_screen *dest, s_screen *src, int centerx, int centery, int scalex, int scaley)
 {
+    /* Reject malformed image identities before any coherence or pixel work. */
+    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
+       !pixel_format_supported(src->pixelformat))
+    {
+        return;
+    }
+
     s_screen *frame;
     int screenwidth = src->width;
     int screenheight = src->height;
@@ -786,17 +835,17 @@ void zoomscreen(s_screen *dest, s_screen *src, int centerx, int centery, int sca
     }
 
     frame = allocscreen(width, height, pixelformat); // the part of the screen that will be zoomed
+    if(!frame)
+    {
+        return;
+    }
     copyscreen_o(frame, src, xmin, ymin);
 
-    if(pixelbytes[pixelformat] == 1)
+    if(pixelformat == PIXEL_8 || pixelformat == PIXEL_x8)
     {
         scalescreen(dest, frame);
     }
-    else if(pixelbytes[pixelformat] == 2)
-    {
-        scalescreen16(dest, frame);
-    }
-    else if(pixelbytes[pixelformat] == 4)
+    else if(pixelformat == PIXEL_32)
     {
         scalescreen32(dest, frame);
     }

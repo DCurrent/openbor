@@ -42,32 +42,23 @@ typedef struct
     };
 } RGB32;
 
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            unsigned r: 5;
-            unsigned g: 6;
-            unsigned b: 5;
-            unsigned a: 16; //unused
-        } C;
-        unsigned c;
-    };
-} RGB16;
-
+/* Indexed artwork owns RGB32 palettes; scenes have their own RGB32 format. */
 int pixelformat = PIXEL_x8;
-int pixelbytes[(int)5] = {1, 1, 2, 3, 4};
+/* Unsupported format identities must never supply a pixel stride. */
+int pixelbytes[(int)5] = {1, 1, 0, 0, 4};
 
 unsigned channelr, channelg, channelb, tintcolor, tintmode;
-blend16fp tint16fp1, tint16fp2;
 blend32fp tint32fp1, tint32fp2;
 int usechannel;
 int useclip;
 int clipx1, clipy1, clipx2, clipy2;
 
-//may be used many times so make a function
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Initialize shared tint, channel opacity and clipping state for CPU draws.
+ * Native materials read their drawmethod directly and bypass this state.
+ */
 void drawmethod_global_init(s_drawmethod *drawmethod)
 {
 
@@ -100,15 +91,6 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
     }
 }
 
-
-unsigned short colour16(unsigned char r, unsigned char g, unsigned char b)
-{
-#if REVERSE_COLOR
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-#else
-    return ((b & 0xF8) << 8) | ((g & 0xFC) << 3) | (r >> 3);
-#endif
-}
 
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b)
 {
@@ -371,246 +353,8 @@ unsigned blend_channel32(unsigned color1, unsigned color2, unsigned a)
                     _channel(b1, b2, a));
 }
 
-/////////////////////// blend 2 16bit colours //////////////////////
-// color1 front colour,
-// color2 bg colour
-////////////////////////////////////////////////////////////////////
-
-#define _b1 (color1>>11)
-#define _g1 ((color1&0x7E0)>>5)
-#define _r1 (color1&0x1F)
-#define _b2 (color2>>11)
-#define _g2 ((color2&0x7E0)>>5)
-#define _r2 (color2&0x1F)
-#define _bi ((_b1<<5)|_b2)
-#define _gi (((_g1<<6)|_g2)+1024)
-#define _ri ((_r1<<5)|_r2)
-#define _multiply16(c1,c2,m) ((c1)*(c2)/(m))
-#define _screen16(c1,c2,m) ((((c1)^(m))*((c2)^(m))/(m))^(m))
-#define _hardlight16(c1,c2,m,m2) ((c1)<(m)?_multiply16(((c1)<<1),(c2),(m2)):_screen16((((c1)-(m))<<1),(c2),(m2)))
-#define _overlay16(c1,c2,m,m2) ((c2)<(m)?_multiply16(((c2)<<1),(c1),(m2)):_screen16((((c2)-(m))<<1),(c1),(m2)))
-#define _dodge16(c1,c2,m) ((c2)*(m)/((m)-(c1)))
-#define _channel16(src,dest,alpha) (((src*alpha)+(dest*(255-alpha)))>>8)
-#define _color16(r,g,b) ( ((b)<<11)|((g)<<5)|(r) )
-
-unsigned char *create_multiply16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            tbl[(i << 5) | j] = (unsigned char)_multiply16(i, j, 0x1f);
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            tbl[((i << 6) | j) + 1024] = (unsigned char)_multiply16(i, j, 0x3f);
-        }
-    return tbl;
-}
-
-//16bit blending, bit565
-unsigned short blend_multiply16(unsigned short color1, unsigned short color2)
-{
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_MULTIPLY]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    return _color16(_multiply16(_r1, _r2, 0x1F), _multiply16(_g1, _g2, 0x3F), _multiply16(_b1, _b2, 0x1F));
-}
-
-unsigned char *create_screen16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            tbl[(i << 5) | j] = (unsigned char)_screen16(i, j, 0x1f);
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            tbl[((i << 6) | j) + 1024] = (unsigned char)_screen16(i, j, 0x3f);
-        }
-    return tbl;
-}
-
-unsigned short blend_screen16(unsigned short color1, unsigned short color2)
-{
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_SCREEN]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    return _color16(_screen16(_r1, _r2, 0x1F), _screen16(_g1, _g2, 0x3F), _screen16(_b1, _b2, 0x1F));
-}
-
-unsigned char *create_overlay16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            tbl[(i << 5) | j] = (unsigned char)_overlay16(i, j, 0x10, 0x1f);
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            tbl[((i << 6) | j) + 1024] = (unsigned char)_overlay16(i, j, 0x20, 0x3f);
-        }
-    return tbl;
-}
-
-unsigned short blend_overlay16(unsigned short color1, unsigned short color2)
-{
-    unsigned r1, g1, b1, r2, g2, b2;
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_OVERLAY]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    r1 = _r1, r2 = _r2;
-    g1 = _g1, g2 = _g2;
-    b1 = _b1, b2 = _b2;
-    return _color16(_overlay16(r1, r2, 0x10, 0x1F), _overlay16(g1, g2, 0x20, 0x3F), _overlay16(b1, b2, 0x10, 0x1F));
-}
-
-unsigned char *create_hardlight16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            tbl[(i << 5) | j] = (unsigned char)_hardlight16(i, j, 0x10, 0x1f);
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            tbl[((i << 6) | j) + 1024] = (unsigned char)_hardlight16(i, j, 0x20, 0x3f);
-        }
-    return tbl;
-}
-
-unsigned short blend_hardlight16(unsigned short color1, unsigned short color2)
-{
-    unsigned r1, g1, b1, r2, g2, b2;
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_HARDLIGHT]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    r1 = _r1, r2 = _r2;
-    g1 = _g1, g2 = _g2;
-    b1 = _b1, b2 = _b2;
-    return _color16(_hardlight16(r1, r2, 0x10, 0x1F), _hardlight16(g1, g2, 0x20, 0x3F), _hardlight16(b1, b2, 0x10, 0x1F));
-}
-
-unsigned char *create_dodge16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    unsigned t;
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            t = _dodge16(i, j, 0x20);
-            if(t > 0x1f)
-            {
-                t = 0x1f;
-            }
-            tbl[(i << 5) | j] = t;
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            t = _dodge16(i, j, 0x40);
-            if(t > 0x3f)
-            {
-                t = 0x3f;
-            }
-            tbl[((i << 6) | j) + 1024] = t;
-        }
-    return tbl;
-}
-
-unsigned short blend_dodge16(unsigned short color1, unsigned short color2)
-{
-    int r, g, b;
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_DODGE]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    r = _dodge16(_r1, _r2, 0x20);
-    g = _dodge16(_g1, _g2, 0x40);
-    b = _dodge16(_b1, _b2, 0x20);
-    if(r > 0x1F)
-    {
-        r = 0x1F;
-    }
-    if(g > 0x3F)
-    {
-        g = 0x3F;
-    }
-    if(b > 0x1F)
-    {
-        b = 0x1F;
-    }
-    return _color16(r, g, b);
-}
-
-unsigned char *create_half16_tbl()
-{
-    unsigned i, j;
-    unsigned char *tbl = (unsigned char *)malloc(32 * 32 + 64 * 64);
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-        {
-            tbl[(i << 5) | j] = (i + j) >> 1;
-        }
-    for(i = 0; i < 64; i++)
-        for(j = 0; j < 64; j++)
-        {
-            tbl[((i << 6) | j) + 1024] = (i + j) >> 1;
-        }
-    return tbl;
-}
-
-unsigned short blend_half16(unsigned short color1, unsigned short color2)
-{
-    unsigned char *tbl;
-    if((tbl = blendtables[BLEND_HALF]))
-    {
-        return _color16(tbl[_ri], tbl[_gi], tbl[_bi]);
-    }
-    return _color16((_r1 + _r2) >> 1, (_g1 + _g2) >> 1, (_b1 + _b2) >> 1);
-}
-
-unsigned short blend_tint16(unsigned short color1, unsigned short color2)
-{
-    unsigned short c = tint16fp1(tintcolor, color1);
-    return tint16fp2 ? tint16fp2(c, color2) : c;
-}
-
-//copy from below
-unsigned short blend_rgbchannel16(unsigned short color1, unsigned short color2)
-{
-    return _color16(_channel16(_r1, _r2, channelr), _channel16(_g1, _g2, channelg), _channel16(_b1, _b2, channelb));
-}
-
-unsigned short blend_channel16(unsigned short color1, unsigned short color2, unsigned a)
-{
-    return _color16(_channel16(_r1, _r2, a), _channel16(_g1, _g2, a), _channel16(_b1, _b2, a));
-}
-
 unsigned char *blendtables[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
-blend16fp blendfunctions16[MAX_BLENDINGS] = {blend_screen16, blend_multiply16, blend_overlay16, blend_hardlight16, blend_dodge16, blend_half16};
 blend32fp blendfunctions[MAX_BLENDINGS] = {blend_screen, blend_multiply, blend_overlay, blend_hardlight, blend_dodge, blend_half};
 blend32fp blendfunctions32[MAX_BLENDINGS] = {blend_screen32, blend_multiply32, blend_overlay32, blend_hardlight32, blend_dodge32, blend_half32};
 
@@ -626,26 +370,6 @@ void set_blendtables(unsigned char *tables[])
     }
     /* GPU blend lookup textures must track replacements of these tables. */
     gpu_invalidate_tables();
-}
-
-//getting too long so make 2 functions
-blend16fp getblendfunction16(int alpha)
-{
-    blend16fp fp = (alpha > 0) ? blendfunctions16[alpha - 1] : NULL;
-    //tint mode means tint the sprite with color
-    if(tintmode > 0)
-    {
-        tint16fp1 = blendfunctions16[tintmode - 1];
-        tint16fp2 = fp;
-        fp = blend_tint16;
-    }
-    //trick, alpha 6 and rgb channel are of the same group
-    else if(fp == blend_half16 && usechannel)
-    {
-        fp = blend_rgbchannel16;
-    }
-
-    return fp;
 }
 
 blend32fp getblendfunction32(int alpha)
@@ -701,39 +425,6 @@ void u8revpcpy(unsigned char *pdest, const unsigned char *psrc, unsigned char *p
 //copy with a remap table
 void u8pcpy(unsigned char *pdest, const unsigned char *psrc, unsigned char *pp, unsigned len)
 {
-    switch(len)
-    {
-        _pcpy
-    }
-}
-
-//----------16bit
-// reverse copy with a remap table
-void u16revpcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len)
-{
-    psrc -= 960 - (int)len;
-    pdest -= len - 1;
-    switch(len)
-    {
-        _revpcpy
-    }
-}
-
-//copy with a remap table
-void u16pcpy(unsigned short *pdest, const unsigned char *psrc, unsigned short *pp, unsigned len)
-{
-    /*
-    	// plain testcode to measure if that fugly macro actually is that fast or just slows down compile time, and freezing my texteditor when selecting that line
-    	unsigned l;
-    	if (len) {
-    		l = len;
-    		if(l < 961)
-    			do {
-    				l--;
-    				pdest[l] = pp[psrc[l]];
-    			} while (l);
-    	}
-    	*/
     switch(len)
     {
         _pcpy

@@ -22,7 +22,6 @@
 	Last update: 27-jan-2003
 */
 
-#include "vga.h"
 #include "palette.h"
 
 
@@ -30,47 +29,6 @@
 #define NULL 0L
 #endif
 
-
-// Basic bamma correction: ((v*(255+(((255-v)*(g-255))/255)))/255)
-//			= ((v*(65025+((255-v)*(g-255))))/65025)
-// Basic brightness correction: (b+((v*(255-b))/255))
-
-// Gamma correction, range -255 to 255:
-// (g<=0?((v*(65025+((255-v)*g)))/65025):(255-(((255-v)*(65025+(v*-g)))/65025)))
-
-// Brightness correction, same range:
-// b<0 ? ((v*(255+b))/255) : (b+((v*(255-b))/255))
-
-
-// Set gamma/brightness corrected palette.
-// Valid values range between -255 and 255, where 0 is normal.
-void palette_set_corrected(unsigned char *pal, int gr, int gg, int gb, int br, int bg, int bb)
-{
-    unsigned char pal2[768];
-    int i;
-
-    if(gr < -255)gr = -255;
-    else if(gr > 255) gr = 255;
-    if(gg < -255) gg = -255;
-    else if(gg > 255) gg = 255;
-    if(gb < -255) gb = -255;
-    else if(gb > 255) gb = 255;
-    if(br < -255) br = -255;
-    else if(br > 255) br = 255;
-    if(bg < -255) bg = -255;
-    else if(bg > 255) bg = 255;
-    if(bb < -255) bb = -255;
-    else if(bb > 255) bb = 255;
-
-    for(i = 0; i < 256; i++)
-    {
-        pal2[i * 3]     = gbcorrect(pal[i * 3],     gr, br);
-        pal2[i * 3 + 1] = gbcorrect(pal[i * 3 + 1], gg, bg);
-        pal2[i * 3 + 2] = gbcorrect(pal[i * 3 + 2], gb, bb);
-    }
-
-    vga_setpalette(pal2);
-}
 
 // Search the palette for a colour most like the RGB values specified.
 int palette_find(unsigned char *pal, int r, int g, int b)

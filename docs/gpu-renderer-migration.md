@@ -7,10 +7,11 @@ Date: 2026-11-15
 ## Scope
 
 This branch moves scene rendering into the GPU while preserving drawing
-functionality. Supported platform work targets 64-bit Windows, Linux, macOS,
-and Android; compatibility with retired ports is outside this migration's
-scope. The branch also adds opt-in, general-purpose affine transforms for
-sprites and screens, plus drawmethod chroma keys and final-color Substitute.
+functionality. OpenBOR uses RGB32 scene color and 64-bit applications only.
+Supported platforms are Windows, Linux, macOS, and Android; compatibility with
+retired ports is outside this migration's scope. The branch also adds opt-in,
+general-purpose affine transforms for sprites and screens, plus drawmethod
+chroma keys and final-color Substitute.
 
 Normal desktop RGB32 scene modes require the native OpenGL renderer, including
 when an older configuration saved SDL presentation as its preference. Failure
@@ -22,14 +23,30 @@ Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
 warning and returns without a CPU rendering retry, readback, or software-state
 setup. Warnings are bounded to one per operation type for that mode selection.
 Losing or unregistering the native backend does not restore CPU eligibility.
-Explicitly selected modes that still require CPU work retain their existing
-implementation: Android until native GLES integration, indexed/16-bit targets,
-active CPU output filters, and the existing fullscreen-video path. Their
-migration remains separate work; this change does not remove all CPU image code.
+CPU work still required by Android until native GLES integration, active CPU
+output filters, and the existing fullscreen-video path retains its existing
+implementation. Their migration remains separate work; this change does not
+remove all CPU image code.
 
-The first native target format is `PIXEL_32`. Indexed sprite artwork remains
-indexed in GPU textures and uses a separate palette texture. This is distinct
-from rendering into an indexed framebuffer, which remains on the software path.
+`PIXEL_32` is the scene target format. Indexed artwork remains supported as
+`PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
+and a separate palette texture. Indexed asset processing is distinct from a
+scene color mode. Main scenes, launcher screens, and script-created screens
+use RGB32.
+
+Desktop and Android video initialization reject non-RGB32 scene requests
+before changing live video state. Shared engine headers also enforce 64-bit
+pointers at compile time, in addition to the existing CMake and Android
+architecture restrictions.
+
+The obsolete `PIXEL_16` engine format, script constant, scene rasterizers,
+palette conversions, GIF output, and screenshot branch have been removed.
+Existing indexed format values remain `PIXEL_8 = 0` and `PIXEL_x8 = 1`, with
+`PIXEL_32 = 4`; the removed value `2` is invalid for engine image allocation.
+Some CPU output filters still require a private 16-bit intermediate and
+16-bit arithmetic. Those filter implementations remain until equivalent GPU
+effects replace them. External image sample depths and GIF metadata widths
+are file-format details, not additional engine scene formats.
 
 | Operation | Migration behavior |
 | --- | --- |
@@ -49,14 +66,14 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Script pixel reads and screenshots | Lazy synchronization of the relevant CPU shadow |
 | Explicit CPU image edits | Synchronized image access followed by upload when next used by GPU |
 | Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
-| 8-bit and 16-bit destination rendering | Existing software implementation |
+| Indexed asset processing | Existing image operations; scene composition uses RGB32 |
 | Active CPU output filters | Existing software renderer/presentation path |
 | Android | Existing renderer retained; no native GLES migration claimed |
 | Video playback | Existing movie path retained, with synchronized transitions |
 
 The affine contract from the separate transform experiment is available through
 `changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
-and curve mappings, public programmable shaders and 24-bit asset loading remain
+and curve mappings and public programmable shaders remain
 separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
 for opt-in chroma coverage and final-output substitutions. Color rules execute
 only on supported native RGB32 draws. Software draws and unsupported native
@@ -184,8 +201,8 @@ trigger a warning: a usable shader backend on such a driver still executes on
 the CPU.
 
 Successful initialization cannot predict every future image or operation.
-The **Native Drawing Limits** section distinguishes explicitly retained
-8/16-bit and other CPU modes from rejected RGB32 operations. Unsupported draw
+The **Native Drawing Limits** section distinguishes retained indexed image
+operations and required CPU work from rejected RGB32 operations. Unsupported draw
 methods, numerically extreme transforms, images exceeding the reported
 texture-size limit, and resource allocation failures do not select CPU
 rendering in a native-required mode. Root drawing entry points log the
@@ -198,8 +215,8 @@ than retrying over a partially rendered result.
 `gpu.c`/`gpu.h` provide window-system-independent dispatch and synchronization.
 The public gamelib drawing entry points attempt native drawing first. Native
 RGB32 rejection returns before CPU pixel synchronization or raster setup.
-The retained CPU branches run only when the selected mode or destination still
-requires them, rather than serving as automatic RGB32 retries. Backend
+The retained CPU branches run only for required renderer paths or indexed image
+operations, rather than serving as automatic RGB32 retries. Backend
 registration selects the native requirement; backend removal preserves it.
 
 `engine/sdl/gpu_renderer.c` owns the desktop resources, shaders, native draws,
@@ -562,8 +579,8 @@ The suites cover:
 - Production GPU logging routed to the ordinary engine log independently of
   profiling, including bounded and literal driver diagnostics.
 - Production dispatch with a separate-image mock backend to check ownership,
-  rejected RGB32 operations without CPU retry, explicitly retained CPU/indexed
-  operations, replay semantics and resource eviction.
+  rejected RGB32 operations without CPU retry, retained indexed image operations,
+  replay semantics and resource eviction.
 - Actual OpenGL capture/reuse, no-readback assertions, dirty uploads, palettes,
   masks, blend tables, overlapping self-draws and context recreation.
 - Resident palette reuse, in-place edits, unaligned input, equal contents at
@@ -574,7 +591,7 @@ The suites cover:
 - Chroma/Substitute native complete-image checks, all five slots, palette/fill
   ordering, blend-created matches, zero-opacity exclusions, primitive source
   colors, queue snapshots, repeats, affine draws, and overlapping self-draws;
-  ignored-rule checks preserve retained CPU-mode output and native availability.
+  ignored-rule checks preserve CPU reference output and native availability.
 - Native transform output compared with production CPU rendering.
 - Affine geometry and pixels checked against independent mappings, including
   adjacent fractional translations, clipped pivots/flips, material effects,
@@ -592,10 +609,10 @@ platform build results remain release gates for further renderer migration.
 ## Follow-on migration work
 
 Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
-The retained CPU implementations still support unmigrated modes, explicit image
-operations, and reference tests. Remaining work includes native indexed and
-16-bit destinations, Android/GLES integration, movie composition, launcher
-text, additional batching, and GPU equivalents for CPU output filters. Remove
+The retained CPU implementations still support required renderer paths,
+explicit image operations, and reference tests. Remaining work includes
+Android/GLES integration, movie composition, launcher text, additional batching,
+and GPU equivalents for CPU output filters. Remove
 CPU rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing
 capabilities on the supported platforms remains the migration goal.

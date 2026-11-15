@@ -323,7 +323,12 @@ void blendscreen32(s_screen *dest, s_screen *src, int x, int y, int key, u32(*bl
 
 }
 
-// Scale screen
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Scale RGB32 screen pixels while preserving source and destination
+ * coherence with any preceding GPU operations.
+ */
 void scalescreen32(s_screen *dest, s_screen *src)
 {
     int sw, sh;
@@ -335,7 +340,6 @@ void scalescreen32(s_screen *dest, s_screen *src)
     unsigned int xstep, ystep, xpos, ypos;
     int pixelformat = src->pixelformat;
 
-    //if(dest->pixelformat!=pixelformat || pixelformat!=PIXEL_16) return;
     if(dest->pixelformat != pixelformat)
     {
         return;
