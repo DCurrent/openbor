@@ -9,10 +9,12 @@ Date: 2026-11-15
 `experiment/gpu-profiling` measures engine boundaries around the existing
 renderer. `experiment/gpu-palette-cache` retains those measurements while
 adding bounded resident palettes, context-local graphics-state caching, and
-cache-specific accounting. It also provides sampled interpreter/native-call
-profiling within the existing frame phases, compiled native-call descriptors,
-and an opcode body embedded in the interpreter execution loops. These changes
-reduce repeated native-dispatch setup and per-opcode call boundaries.
+cache-specific accounting. Water and plane work now has separate sampled-draw,
+row-preparation, map-reuse, and transfer counters. It also provides sampled
+interpreter/native-call profiling within the existing frame phases, compiled
+native-call descriptors, and an opcode body embedded in the interpreter
+execution loops. These changes reduce repeated native-dispatch setup and
+per-opcode call boundaries.
 Successive changes remain on that same branch; use the individual commits below
 for controlled comparisons.
 Profiling is enabled by default on both diagnostic branches. Using the profiler
@@ -363,6 +365,82 @@ source uploads remain independent. Successful native calls also skip software
 draw-state initialization. That small setup saving remains in the enclosing
 phase rather than receiving a separate timer.
 
+### Water and plane accounting
+
+Stage 5 adds these fields to the existing `counts_mean` and `counts_max`
+records. Their mean/max units remain per accepted frame, with matching values
+available for individually retained slow frames.
+
+| Field | Meaning |
+| --- | --- |
+| `native_water_draws` | Successful, nonempty native submissions using the one-quad water shader. |
+| `native_plane_draws` | Successful, nonempty native submissions using one-quad cached-row plane sampling. |
+| `plane_map_builds` | Cache misses that prepare and publish a new intrinsic row map. |
+| `plane_map_reuses` | Lookups finding a matching resident CPU row map. |
+| `plane_map_uploads` | Successful row-data uploads to the map's floating texture. |
+| `plane_map_upload_bytes` | Logical successful row-data payload, 16 bytes per valid uploaded row. |
+| `plane_rows_prepared` | Valid recurrence rows produced by map builds, including rows outside the current visible rectangle. |
+
+The internal `gpu_renderer_stats` structure names the first two fields
+`water_draws` and `plane_draws`; its five map fields retain the profiler names.
+
+The sampled-draw fields count actual shader use, not merely enabled water
+settings. Retained CPU row geometry continues to increment ordinary native
+draw/quad/batch counts but does not increment either sampled-draw field. That
+path still renders pixels on the GPU, so retaining row setup alone does not
+increment software-raster or rejected-operation counters.
+
+Map counters describe preparation and residency work, independently of whether
+the eventual draw has visible coverage. One lookup precedes a repeated image
+command; each submitted repeat can increment `native_plane_draws`. Counts
+therefore need not match one-for-one. Map builds can prepare a valid prefix
+whose later rows are unusable. CPU cache hits can also need a GPU upload retry
+after an earlier transfer failed; `plane_map_reuses` does not by itself prove
+that no upload occurred. Failed transfers do not increment successful upload
+counts or bytes.
+
+The cache owns at most 16 maps, keyed by source dimensions, begin/end scale,
+and perspective, with at most 16,384 rows per map. Position, horizontal scrolling,
+source-image contents, and material changes do not invalidate those keys.
+The maximum logical row payload is 4 MiB each on the CPU and GPU, excluding
+metadata and driver overhead. Eviction and context recreation discard old
+residency. Profiling windows, warmup, and `OPENBOR_PROFILE=0` do not flush maps.
+
+`gpu_geometry_ms` includes map lookup/build and per-instance sampling setup.
+`upload_ms` includes floating-texture storage allocation and row-content
+uploads. Row byte counters include only successfully uploaded map content and
+do not increase `image_upload_bytes`. Both sampled effects submit four vertices
+and six indices per instance, so compare `native_quads` and `gpu_submit_ms` alongside the new
+fields. Native batch counts can stay unchanged because earlier row geometry
+already shared one buffered submission.
+
+Startup's **Water and Plane Effects** section reports the selected shader or
+retained row-geometry path. Water reserves 16 additional uniform components.
+Plane sampling reserves another 16, requires a sixth texture unit, and tests
+actual RGBA32F texture allocation. Missing optional support, extreme numerical
+inputs, and map allocation/upload failures preserve native pixel rendering
+through the existing row preparation. These records remain visible without
+profiling.
+
+The accepted water approximation is at most one horizontal pixel, with source
+Y unchanged. Its bounded phase range and large-amplitude qualification are
+documented in [the migration guide](gpu-renderer-migration.md#sine-water).
+Plane maps preserve the exact vertical recurrence for all three perspective
+modes. Large horizontal products permit at most one adjacent source texel
+along X while retaining exact source Y, coverage, and material evaluation; see
+[plane sampling](gpu-renderer-migration.md#perspective-planes).
+Compare source-coordinate/coverage behavior when checking sampled-effect output;
+small geometric differences can produce large RGB differences in patterned
+artwork without indicating a blend or palette defect.
+
+For a controlled comparison, use `aa0698c` as the pre-Stage-5 baseline with the
+same scene, camera, effects, resolution, settings, and warmed caches. Inspect
+`gpu_geometry_ms`, `gpu_submit_ms`, `native_quads`, map reuse, and upload bytes,
+then inspect matching frame phases and optional GPU spans. First draws can
+prepare offscreen rows for future reuse, so separate startup misses from steady
+play. No gameplay FPS gain has been established by the work counters or
+headless shader tests; matched real-device runs remain necessary.
+
 ### Drawmethod color-rule accounting
 
 The [drawmethod color API](drawmethod-colors.md) adds these fields to the
@@ -416,9 +494,10 @@ or combining queue entries into batches.
 Each successful native quad submission publishes an aggregate delta from
 `gpu_render_quads()`: palette/table/snapshot preparation within that function,
 material/setup, geometry binding and geometry-wrap handling. Source/target
-image creation or uploads performed by its caller before that boundary are excluded. Clear
-operations include their target preparation and clear setup. These deltas are
-therefore not limited to setters inside `gpu_state_ms`, nor do they count every
+image creation and row-map/image uploads performed by its caller before that
+boundary are excluded. Clear operations include their target preparation and
+clear setup. These deltas are therefore not limited to setters inside
+`gpu_state_ms`, nor do they count every
 resource operation. Independent presentation/readback helpers are also excluded
 from the frame counters. The renderer's internal 64-bit lifetime statistics
 include every cached setter, including those excluded preparations/helpers.
@@ -449,7 +528,8 @@ does not allocate additional GPU image storage.
 
 ### Transfers and rejected or retained CPU work
 
-Image, palette, and blend-table uploads have separate counts and byte totals.
+Image, palette, blend-table, and plane-map uploads have separate counts and
+byte totals.
 Readbacks count actual GPU-to-CPU image synchronization. Destination copies
 count GPU snapshots used by blending or self-drawing; self-copies are also
 identified separately. Byte values are logical payload sizes, not measured
@@ -506,8 +586,8 @@ bucket traversal and content verification remain visible in `palette_lookup_ms`.
 Lookup and upload are separate spans within the calling frame phase. They are
 not extra time to add to `main_queue_ms`, `draw_script_ms`, or frame time.
 `upload_ms` remains the combined CPU duration of instrumented image, palette,
-and table uploads, so inspect their individual counters to identify the source
-of changes. Source-image uploads are independent of palette residency.
+table, and plane-map uploads, so inspect their individual counters to identify
+the source of changes. Source-image uploads are independent of palette residency.
 
 Successful-miss content copies, hash-chain publication, and eviction/insertion
 bookkeeping happen after the upload. They remain within the calling frame

@@ -99,6 +99,14 @@ typedef enum ep_counter
     /* Color rules are shader-only; count actual native use. */
     EP_COUNT_NATIVE_CHROMA_DRAWS,
     EP_COUNT_NATIVE_SUBSTITUTE_DRAWS,
+    /* Compact row effects retain their own work/transfer accounting. */
+    EP_COUNT_NATIVE_WATER_DRAWS,
+    EP_COUNT_NATIVE_PLANE_DRAWS,
+    EP_COUNT_PLANE_MAP_BUILDS,
+    EP_COUNT_PLANE_MAP_REUSES,
+    EP_COUNT_PLANE_MAP_UPLOADS,
+    EP_COUNT_PLANE_MAP_UPLOAD_BYTES,
+    EP_COUNT_PLANE_ROWS_PREPARED,
     EP_COUNT_COUNT
 } ep_counter;
 

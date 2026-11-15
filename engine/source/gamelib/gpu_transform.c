@@ -244,13 +244,81 @@ int gpu_transform_draw_affine(const gpu_transform_parameters *p, const s_drawmet
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Prepare the plane's reciprocal scale and accumulated vertical sample once.
+ * Keep a valid prefix when an invalid later row lies outside a clipped draw;
+ * callers own the source_height records and their GPU/cache lifetime.
+ */
+int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *p,
+                                     const s_drawmethod *m, gpu_plane_row *rows)
+{
+    float size, end, factor, sy = 0.0f;
+    const double coordinate_limit = (double)INT_MAX / 2.0;
+    int row;
+
+    if(!p || !m || !rows || p->source_width <= 0 || p->source_height <= 0)
+    {
+        return 0;
+    }
+    size = m->water.beginsize;
+    end = m->water.endsize;
+    if(!gpu_finite(size) || !gpu_finite(end) || size <= 0.0f || end < 0.0f)
+    {
+        return 0;
+    }
+    factor = (end - size) / p->source_height;
+
+    /* These additions intentionally retain the existing row recurrence.
+     * Clipped rows still contribute to the source Y of later visible rows. */
+    for(row = 0; row < p->source_height; ++row, size += factor)
+    {
+        float step, y_step;
+        int source_y;
+        if(!gpu_finite(size) || size <= FLT_MIN)
+        {
+            break;
+        }
+        step = 1.0f / size;
+        if(!gpu_finite(step) || !gpu_finite(sy) || (double)fabsf(sy) > coordinate_limit)
+        {
+            break;
+        }
+        source_y = (int)sy % p->source_height;
+        if(source_y < 0)
+        {
+            source_y += p->source_height;
+        }
+        rows[row].step = step;
+        rows[row].source_y = (float)source_y;
+        rows[row].reserved[0] = rows[row].reserved[1] = 0.0f;
+
+        if(m->water.perspective == WATER_PERSPECTIVE_TILE)
+        {
+            y_step = step;
+        }
+        else if(m->water.perspective == WATER_PERSPECTIVE_STRETCH)
+        {
+            y_step = step * p->source_height / p->source_width;
+        }
+        else
+        {
+            y_step = 1.0f;
+        }
+        sy += y_step;
+    }
+    return row;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
- *
+ * 2026-11-15 - Use cached row mapping and one quad when shader sampling is available.
  * Reproduce the existing plane's row-wise scale and accumulated vertical
  * sampling. Tile/stretch/no-perspective retain their established meanings,
  * including wavetime texture scrolling.
  */
 static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod *m,
+                          gpu_plane_sampling *plane,
                           gpu_transform_emit_quad emit, void *userdata)
 {
     float origin_x = (float)p->x - p->centerx - m->centerx;
@@ -285,10 +353,63 @@ static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod 
     center = p->target_width / 2.0f - left;
     origin_u = m->water.wavetime - origin_x + p->source_width;
 
+    if(plane && plane->rows)
+    {
+        float steps[2];
+        int endpoint;
+        int precise = fabsf(origin_x) <= 1048576.0f && fabsf(origin_y) <= 1048576.0f &&
+                      fabsf(origin_u) <= 1048576.0f &&
+                      p->source_width <= 65535 && p->source_height <= 65535 &&
+                      p->target_width <= 65535 && p->target_height <= 65535;
+
+        /* Only rows through the visible bottom are required. Invalid rows
+         * after this prefix must not reject an otherwise valid clipped image. */
+        if(rows > plane->valid_rows)
+        {
+            return GPU_TRANSFORM_FAILED;
+        }
+        steps[0] = plane->rows[0].step;
+        steps[1] = plane->rows[rows - 1].step;
+
+        /* Positive linearly advancing sizes have monotonic reciprocals.
+         * Their first/last extrema bound both horizontal endpoints for every
+         * required row without walking the validated recurrence again. */
+        for(endpoint = 0; endpoint < 2; ++endpoint)
+        {
+            float step = steps[endpoint];
+            float u_left = origin_u - center * step;
+            float u_right = origin_u + (right - left - center) * step;
+            if(!gpu_finite(step) || !gpu_finite(u_left) || !gpu_finite(u_right) ||
+               (double)fabsf(u_left) > coordinate_limit ||
+               (double)fabsf(u_right) > coordinate_limit)
+            {
+                return GPU_TRANSFORM_FAILED;
+            }
+            if(fabsf(u_left) > 1048576.0f || fabsf(u_right) > 1048576.0f)
+            {
+                precise = 0;
+            }
+        }
+        if(precise)
+        {
+            plane->enabled = 1;
+            plane->origin[0] = left;
+            plane->origin[1] = origin_y;
+            plane->origin[2] = origin_u;
+            plane->info[0] = center;
+            plane->info[1] = (float)plane->valid_rows;
+            return gpu_emit_rect(left, fmaxf(0.0f, origin_y), right, bottom,
+                                 0.0f, 0.0f, 0.0f, 0.0f,
+                                 GPU_SAMPLE_PLANE, emit, userdata);
+        }
+        /* Extreme coordinates retain the existing native row geometry, so
+         * shader arithmetic precision never removes a supported effect. */
+    }
+
     /* Preflight the full row sequence before any callback can change a target.
-     * This keeps fallback atomic: an invalid later row cannot leave earlier
-     * rows rendered before the software path retries the same draw. Include
-     * top-clipped rows because their vertical steps affect visible samples. */
+     * An invalid later row must not leave earlier rows rendered before the
+     * operation is rejected. Include top-clipped rows because their vertical
+     * steps affect visible samples. */
     size = begin;
     for(row = 0; row < rows; ++row, size += factor)
     {
@@ -404,11 +525,13 @@ static float gpu_wave_offset(float phase, int amplitude)
 /*
  * Damon V. Caskey
  * 2026-11-12
- *
- * Emit the existing sine-water displacement as one short quad per visible row.
+ * 2026-11-15 - Move bounded sine displacement into one-quad shader sampling.
+ * Emit sine water through native sampling, retaining row geometry only for
+ * unavailable sampling support or numerically extreme wave parameters.
  * Water overrides the partial scale/rotate transform, matching old dispatch.
  */
 static int gpu_draw_water(const gpu_transform_parameters *p, const s_drawmethod *m,
+                          gpu_water_sampling *water,
                           gpu_transform_emit_quad emit, void *userdata)
 {
     float left = (float)p->x - p->centerx - m->centerx;
@@ -461,6 +584,34 @@ static int gpu_draw_water(const gpu_transform_parameters *p, const s_drawmethod 
     origin_shift = m->water.watermode == WATER_MODE_SINE
                  ? gpu_wave_offset(phase, m->water.amplitude) : (float)m->water.amplitude;
     phase += first * phase_step;
+
+    /* Direct row evaluation removes the CPU phase walk. Bound fractional
+     * phase drift to ordinary wave sizes; integral increments retain exact
+     * phase arithmetic over the permitted height and allow larger waves. */
+    if(water && fabsf(left) <= 1048576.0f && fabsf(top) <= 1048576.0f &&
+       last - first <= 8192 && phase_step <= 256.0f &&
+       (m->water.amplitude <= 32 ||
+        (m->water.amplitude <= 4096 && phase_step == floorf(phase_step))))
+    {
+        float bounds_left = fmaxf(0.0f, left - origin_shift);
+        float bounds_right = fminf((float)p->target_width,
+                                  left + p->source_width + 2.0f * m->water.amplitude - origin_shift);
+        if(bounds_left >= bounds_right)
+        {
+            return GPU_TRANSFORM_EMPTY;
+        }
+        water->enabled = 1;
+        water->origin[0] = left;
+        water->origin[1] = top;
+        water->origin[2] = (float)first;
+        water->wave[0] = fmodf(phase, 256.0f);
+        water->wave[1] = phase_step;
+        water->wave[2] = (float)m->water.amplitude;
+        water->anchor = origin_shift;
+        return gpu_emit_rect(bounds_left, top + first, bounds_right, top + last,
+                             0.0f, 0.0f, 0.0f, 0.0f,
+                             GPU_SAMPLE_WATER, emit, userdata);
+    }
 
     /* Each visible row becomes a translated, one-pixel-high quad. Texture
      * sampling and material compositing remain in the fragment shader. */
@@ -936,6 +1087,7 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
  * 2026-11-12
  * 2026-11-13 - Dispatch explicit affine matrices before dormant legacy state.
  * 2026-11-14 - Prepare optional shader shear without changing family priority.
+ * 2026-11-15 - Select water and cached plane sampling without changing precedence.
  *
  * Select exactly one existing transformation family. Validate before emission,
  * and leave repeats, painter ordering, materials and target synchronization to
@@ -943,12 +1095,24 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
  */
 int gpu_transform_draw_sampled(const gpu_transform_parameters *p, const s_drawmethod *method,
                                gpu_shear_sampling *shear,
+                               gpu_water_sampling *water, gpu_plane_sampling *plane,
                                gpu_transform_emit_quad emit, void *userdata)
 {
     s_drawmethod plain;
     const s_drawmethod *m = method;
 
-    if(shear) shear->enabled = 0;
+    if(shear)
+    {
+        shear->enabled = 0;
+    }
+    if(water)
+    {
+        water->enabled = 0;
+    }
+    if(plane)
+    {
+        plane->enabled = 0;
+    }
 
     /* Invalid geometry cannot supply safe reciprocal scales, clipping bounds,
      * or texture coordinates. Reject it before choosing a transform family. */
@@ -993,7 +1157,7 @@ int gpu_transform_draw_sampled(const gpu_transform_parameters *p, const s_drawme
      * transformations that the original dispatch treated as alternatives. */
     if(m->water.watermode == WATER_MODE_SHEAR && m->water.beginsize > 0.0f)
     {
-        return gpu_draw_plane(p, m, emit, userdata);
+        return gpu_draw_plane(p, m, plane, emit, userdata);
     }
     if(m->water.watermode && m->water.amplitude)
     {
@@ -1003,7 +1167,7 @@ int gpu_transform_draw_sampled(const gpu_transform_parameters *p, const s_drawme
         {
             return GPU_TRANSFORM_FAILED;
         }
-        return gpu_draw_water(p, m, emit, userdata);
+        return gpu_draw_water(p, m, water, emit, userdata);
     }
     if(!m->scalex || !m->scaley)
     {
@@ -1019,11 +1183,12 @@ int gpu_transform_draw_sampled(const gpu_transform_parameters *p, const s_drawme
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Leave water and plane shader sampling opt-in for native callers.
  * Retain geometry-only callers and the native row fallback contract. Optional
  * sampling state is supplied explicitly by a capable renderer instead.
  */
 int gpu_transform_draw(const gpu_transform_parameters *p, const s_drawmethod *method,
                        gpu_transform_emit_quad emit, void *userdata)
 {
-    return gpu_transform_draw_sampled(p, method, NULL, emit, userdata);
+    return gpu_transform_draw_sampled(p, method, NULL, NULL, NULL, emit, userdata);
 }

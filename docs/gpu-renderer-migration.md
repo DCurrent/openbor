@@ -53,8 +53,10 @@ are file-format details, not additional engine scene formats.
 | RGB32 screens and scene composition | GPU textures and framebuffer objects |
 | Indexed sprites, source palettes and remaps | Cached index textures, bounded resident palette atlas, and draw-time palette lookup |
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
-| Existing scale, flip, rotation, water and plane transforms | GPU pixel sampling with existing transform parameters |
+| Existing scale, flip and rotation transforms | GPU pixel sampling with existing transform parameters |
 | Legacy shear | One bounded quad and exact shader row sampling; existing native row geometry retained when shader setup is unavailable |
+| Sine-water displacement | One bounded quad with shader phase/displacement for supported parameters; at most one horizontal pixel of accepted approximation |
+| Plane effects | One quad sampling a compact cached row map; exact CPU scale/source-row recurrence prepared once per map |
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling and existing material operations; unsupported native RGB32 draws are logged and skipped |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
@@ -146,8 +148,11 @@ The native OpenGL capability check reports:
   `Buffered submission: NATIVE - indexed triangles` execution row.
 - Optional legacy shear sampling, including its extra uniform allowance and
   explicit shader-versus-CPU row-setup status.
+- Independent water and plane sampling, their extra uniform allowances, the
+  plane's sixth sampler, and allocation of an actual RGBA32F probe texture.
 - Affine repeat preparation caching, its 8,192-instance limit, and the maximum
   CPU storage payload computed from the current entry layout.
+- Plane-map cache capacity, maximum row count, payload limits, and reuse policy.
 
 Each native capability report ends with one of these results:
 
@@ -176,6 +181,21 @@ combination without shader shear before reducing another capability. Its six
 uniforms contain 14 scalar components; initialization reserves 32 additional
 components to allow conservative vector packing. Existing shader thresholds
 and affine/color preference remain unchanged.
+
+The **Water and Plane Effects** checklist reports
+`NATIVE - shader sampling, one quad` for enabled water sampling and
+`NATIVE - cached rows, one quad` for enabled plane sampling. Each adds a budget
+of 16 fragment-uniform components to the selected shader. Plane sampling also
+requires a sixth fragment texture unit and successful allocation of the actual
+RGBA32F row format. Water sampling uses no additional texture and remains
+independent of that floating-texture check.
+
+Initialization tries optional water/plane combinations while preserving the
+existing affine, color-rule, and shear preference. Unavailable optional sampling
+reports `CPU - row geometry; native pixels`. Numerically extreme parameters,
+unavailable map storage, or a failed map upload retain that same native pixel
+path. These cases do not select a software rasterizer or weaken the RGB32
+no-retry policy.
 
 Missing native capabilities produce `WARNING` records with the cause and the
 affected operation. For example, insufficient affine capacity produces these
@@ -221,8 +241,11 @@ registration selects the native requirement; backend removal preserves it.
 
 `engine/sdl/gpu_renderer.c` owns the desktop resources, shaders, native draws,
 and GPU/CPU transfer boundaries. `gpu_transform.c` prepares transform geometry;
-it does not run the source-pixel/color blending loop. Water and plane mapping
-use row geometry so their existing settings keep their established meanings.
+it does not run the source-pixel/color blending loop. Bounded water effects
+evaluate displacement directly in the shader. Plane effects prepare their
+sequential row recurrence into a reusable map, then perform horizontal sampling
+and wrapping in the shader. Expanded row geometry remains only where optional
+sampling is unavailable or a particular input exceeds its numerical bounds.
 
 `video_copy_screen()` tries native texture presentation before requesting the
 CPU frame through `getVideoSurface()`. Merely uploading a completed CPU frame
@@ -304,6 +327,108 @@ Use `gpu_geometry_ms` and image-upload counters to measure these changes.
 The internal `affine_preparation_reuses` statistic is available to tests and
 debuggers; it is not a new periodic profiler field. Fewer preparation passes
 and avoided uploads establish removed work, not a promised FPS improvement.
+
+## Stage 5: water and plane sampling
+
+Water and plane pixels were already rendered natively. Their remaining CPU
+cost included constructing four vertices for every visible row; plane setup
+also walked the same recurrence twice for validation and emission. Supported
+draws now submit four vertices and six indices for the complete instance.
+Materials, repeat order, captures, and per-instance destination snapshots keep
+their existing behavior. No game-script or drawmethod API changes are required.
+
+### Sine water
+
+The shader derives the source row from the destination pixel, computes its
+quantized 256-step phase, rounds the sine displacement to a whole pixel, and
+selects the source texel. Mode 1 retains its initial-phase anchor; other active
+non-plane modes retain amplitude-centered displacement. Top clipping advances
+the initial phase before shader sampling, so the visible wave keeps its source
+row identity. Pixels beside each displaced row are discarded inside the
+conservative bounding quad.
+
+Direct phase evaluation replaces sequential floating-point addition. The
+accepted approximation is at most one horizontal pixel; source Y remains
+unchanged. The shader path requires all of these conservative bounds:
+
+- Visible height no greater than 8,192 rows.
+- Phase increment `256 / wavelength` no greater than 256.
+- Wave amplitude no greater than 32, or amplitude no greater than 4,096 with an
+  integral phase increment.
+- Absolute positioned image origins no greater than `2^20` on either axis.
+
+Integral increments retain exact phase indices within these bounds, but shader
+trigonometry and angle rounding can still move an integer displacement boundary
+by one pixel at larger amplitudes. This is not a promise of bit-identical sine
+results on every driver. Parameters beyond the bounds keep the established
+native row preparation so the optimization does not discard supported effects.
+
+### Perspective planes
+
+Plane setup retains the existing float recurrence for row scale and vertical
+sampling. The three perspective settings remain distinct:
+
+| Perspective | Source-Y increment per destination row |
+| --- | --- |
+| `WATER_PERSPECTIVE_NONE` | `1` |
+| `WATER_PERSPECTIVE_TILE` | Reciprocal row scale |
+| `WATER_PERSPECTIVE_STRETCH` | Reciprocal row scale multiplied by source height / width |
+
+Each prepared row stores its reciprocal horizontal scale and exact wrapped
+source Y in one 16-byte RGBA32F texel. The shader samples that record, calculates
+horizontal position, applies the existing 0.0001-texel boundary stabilization,
+then truncates toward zero and wraps into the source. It does not recompute the
+vertical recurrence per fragment or replace it with a perspective-matrix or
+logarithmic approximation. Top-clipped rows still contribute to the recurrence;
+an invalid later row does not reject a draw whose required prefix is valid.
+
+Horizontal sampling keeps the row start's whole and fractional parts separate
+until texel selection. Large scrolling values therefore do not discard the
+fraction merely through the final coordinate addition; negative scrolling
+still truncates toward zero before wrapping. The remaining row-offset product
+uses ordinary float arithmetic. Large horizontal products can still select an
+adjacent horizontal source texel near an integer boundary. The permitted
+approximation is at most one source texel along X, including wrapping at texture
+seams. Stored source Y, the vertical recurrence, and destination coverage remain
+exact; material evaluation must still match the selected texel exactly.
+
+The context owns up to 16 maps with least-recently-used replacement. Cache keys
+contain source width/height, `beginsize`, `endsize`, and perspective. Placement,
+`wavetime` scrolling, image identity, source pixels, palettes, and materials are
+not part of the key. Compatible draws and repeats therefore reuse prepared
+rows while their ordinary image/material state continues to update normally.
+
+Each map contains at most 16,384 rows. Its logical payload is at most 256 KiB,
+with a total cache payload limit of 4 MiB on the CPU and 4 MiB on the GPU.
+Allocation grows on demand; these limits exclude cache metadata, allocator
+overhead, and driver storage retained for queued commands. Successful row data
+uploads occur once per resident map. Eviction or context shutdown releases its
+residency; a later use prepares and uploads it again. Failed GPU uploads retain
+the CPU map for a subsequent attempt while the current draw uses native row
+geometry.
+
+The compact sampler also bounds image origins and horizontal source endpoints
+to `2^20`, with source/target axes no greater than 65,535; ordinary GPU texture
+limits and the 16,384-row cache limit still apply. Larger or numerically extreme
+inputs retain native row geometry. Missing optional shader/texture support and
+cache/upload failures are reported through the existing ordinary graphics log.
+
+### What changes in the workload
+
+Water removes the CPU row walk and reduces vertex payload from 64 bytes per
+visible row to 64 bytes per instance. Plane cache misses prepare the recurrence
+once, upload 16 bytes per valid row, and submit the same 64-byte quad. Resident
+map reuse skips both row preparation and row-data upload. Full source-height
+maps may include offscreen rows to support later placements, so a first heavily
+clipped draw does not necessarily transfer fewer total bytes than its former
+visible-only geometry.
+
+Buffered submission already combined row quads into one draw call; draw counts
+need not decrease. The new counters distinguish actual sampled draws, map
+preparation, cache reuse, and uploads. See
+[water and plane accounting](engine-profiling.md#water-and-plane-accounting).
+These are verifiable work reductions. DC3D gameplay measurements on real
+hardware are still needed before claiming an FPS or frame-time improvement.
 
 ## Exact legacy shear on the GPU
 
@@ -464,8 +589,9 @@ remaining engine workload; no speedup is assumed from the allocation alone.
 ## Context-local graphics-state reuse
 
 The native renderer caches framebuffer binding, viewport, scissor, fixed raster
-state, shader program, five texture-unit bindings, material uniforms, and the
-vertex/index bindings, attribute enables and attribute pointers.
+state, shader program, five texture-unit bindings plus the optional plane-row
+sampler, material uniforms, and the vertex/index bindings, attribute enables
+and attribute pointers.
 Cached setters compare the required value with the known current value and
 emit GL calls only for changes or unknown state. Texture filtering and clamp
 parameters are initialized with their texture objects instead of being
@@ -528,7 +654,15 @@ Scale/flip/shear retain the existing fixed-point sample phase. Plane and rotatio
 sampling use stable mappings; values within 0.0001 texel of an integer boundary
 snap to that boundary. Differences from repeated CPU floating addition or old
 rotation coefficient truncation are checked against independent canonical
-samplers, not accepted with a general neighboring-pixel tolerance.
+samplers. Ordinary plane fixtures, including large positive and negative
+scrolling, remain strict. Dedicated compact-plane stress cases permit only the
+one-source-texel horizontal limit described in Stage 5, with exact source Y,
+coverage, and materials.
+
+Sine water has the separate bounded approximation described in Stage 5.
+Validation permits at most a one-pixel horizontal displacement difference while
+requiring the original source row and ordinary material result. It does not
+permit arbitrary RGB errors, vertical drift, or accumulated plane-row changes.
 
 Affine has its own sampling policy. It inverse-maps destination pixel centers
 and selects source texels without the legacy rotation/plane snapping band.
@@ -593,6 +727,12 @@ The suites cover:
   colors, queue snapshots, repeats, affine draws, and overlapping self-draws;
   ignored-rule checks preserve CPU reference output and native availability.
 - Native transform output compared with production CPU rendering.
+- One-quad water/plane submission, clipped wave phase, bounded horizontal wave
+  differences, exact plane vertical recurrence, and preserved material sampling.
+- Strict plane sampling with large positive/negative scrolling, plus compact
+  high-reciprocal-scale stress cases bounded to one wrapped source texel along X.
+- Plane-map reuse across placement/scroll/image changes, changed recurrence
+  inputs, bounded eviction, upload failures, and context recreation.
 - Affine geometry and pixels checked against independent mappings, including
   adjacent fractional translations, clipped pivots/flips, material effects,
   repeated blend order, queue copies, capture/replay and invalid-input atomicity.

@@ -43,6 +43,11 @@ typedef struct gpu_renderer_stats
     uint64_t state_reuses;
     /* Repeated affine instances emitted from their validated cached data. */
     uint64_t affine_preparation_reuses;
+    /* Row effects distinguish actual one-quad draws from cached CPU recurrence
+     * preparation and its small, separately accounted GPU data uploads. */
+    uint64_t water_draws, plane_draws;
+    uint64_t plane_map_builds, plane_map_reuses;
+    uint64_t plane_map_uploads, plane_map_upload_bytes, plane_rows_prepared;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
 

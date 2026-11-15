@@ -175,6 +175,75 @@ static void test_native_profile_counters(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Attribute sampled row effects and intrinsic plane-map work to the actual
+ * frame. Position and scroll changes reuse maps; changed scale builds a new
+ * map without making scene pixels or the profiler synchronize with the CPU.
+ */
+static void test_native_profile_row_effects(void)
+{
+    s_screen *source = test_screen(8, 12, PIXEL_32);
+    s_screen *target = test_screen(32, 24, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    const ep_report *report;
+    uint64_t frame;
+    int pixel;
+
+    engine_profile_configure(1, 1, 0);
+    assert(SDL_setenv("OPENBOR_PROFILE_GPU", "0", 1) == 0);
+    assert(gpu_gl_init());
+    for(pixel = 0; pixel < source->width * source->height; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = 0x00123456;
+    }
+    assert(gpu_clear_screen(target));
+    frame = profile_test_begin(target);
+    assert(frame);
+    method.water.watermode = WATER_MODE_SINE;
+    method.water.amplitude = 4;
+    method.water.wavelength = 8;
+    assert(gpu_draw_screen(target, source, 12, 3, &method));
+
+    method = plainmethod;
+    method.water.watermode = WATER_MODE_SHEAR;
+    method.water.beginsize = 0.75f;
+    method.water.endsize = 1.5f;
+    method.water.perspective = WATER_PERSPECTIVE_TILE;
+    method.water.wavetime = 3;
+    assert(gpu_draw_screen(target, source, 2, 3, &method));
+    method.water.wavetime = -37;
+    assert(gpu_draw_screen(target, source, 4, -2, &method));
+    method.water.wavetime = 1025;
+    assert(gpu_draw_screen(target, source, 6, 5, &method));
+    method.water.endsize = 2.0f;
+    assert(gpu_draw_screen(target, source, 8, 5, &method));
+    method.water.endsize = 1.5f;
+    assert(gpu_draw_screen(target, source, 10, 5, &method));
+    report = profile_test_finish(frame, target);
+
+    assert(report->counts[EP_COUNT_NATIVE_WATER_DRAWS] == 1);
+    assert(report->counts[EP_COUNT_NATIVE_PLANE_DRAWS] == 5);
+    assert(report->counts[EP_COUNT_NATIVE_QUADS] == 6);
+    assert(report->counts[EP_COUNT_NATIVE_BATCHES] == 6);
+    assert(report->counts[EP_COUNT_PLANE_MAP_BUILDS] == 2);
+    assert(report->counts[EP_COUNT_PLANE_MAP_REUSES] == 3);
+    assert(report->counts[EP_COUNT_PLANE_MAP_UPLOADS] == 2);
+    assert(report->counts[EP_COUNT_PLANE_MAP_UPLOAD_BYTES] == 2 * 12 * 4 * sizeof(float));
+    assert(report->counts[EP_COUNT_PLANE_ROWS_PREPARED] == 24);
+    assert(report->counts[EP_COUNT_READBACKS] == 0);
+    assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
+    assert(gpu_gl_get_stats()->water_draws == 1);
+    assert(gpu_gl_get_stats()->plane_draws == 5);
+    assert(gpu_gl_get_stats()->plane_map_builds == 2);
+    assert(gpu_gl_get_stats()->plane_map_reuses == 3);
+    assert(gpu_gl_get_stats()->plane_rows_prepared == 24);
+    release_test_screen(target);
+    release_test_screen(source);
+    gpu_gl_shutdown();
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Attribute palette hits, misses and row uploads to an accepted frame without
  * confusing unchanged indexed pixels with new palette content versions.
@@ -455,6 +524,7 @@ static SDL_GLContext test_native_profile_context(SDL_Window *window, SDL_GLConte
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Measure shader row effects and reusable plane preparation separately.
  *
  * Run real native counters and optional timestamp-query lifecycle checks.
  * Missing graphics infrastructure skips this executable; missing timer-query
@@ -489,6 +559,7 @@ int main(void)
     assert(LoadGLFunctions());
     test_native_profile_disabled();
     test_native_profile_counters();
+    test_native_profile_row_effects();
     test_native_profile_palette_counters();
     timestamps_supported = test_native_profile_queries();
     if(timestamps_supported)
@@ -501,6 +572,6 @@ int main(void)
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU profiler tests passed: counters, byte totals, independent opt-out, nested queries, saturation, error ownership, context tokens.");
+    puts("GPU profiler tests passed: counters, byte totals, water/plane map reuse, independent opt-out, nested queries, saturation, error ownership, context tokens.");
     return 0;
 }

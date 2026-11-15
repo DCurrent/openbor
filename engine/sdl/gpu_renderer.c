@@ -30,15 +30,20 @@
 #define GPU_PALETTE_HASH_MIX_FIRST UINT32_C(0x85ebca6b)
 #define GPU_PALETTE_HASH_MIX_SECOND UINT32_C(0xc2b2ae35)
 #define GPU_TEXTURE_UNITS 5
+#define GPU_TRACKED_TEXTURE_UNITS 6
 #define GPU_AFFINE_COMPONENTS 256
 #define GPU_COLOR_COMPONENTS 160
 #define GPU_COMBINED_COMPONENTS 352
 #define GPU_SHEAR_COMPONENTS 32
+#define GPU_WATER_COMPONENTS 16
+#define GPU_PLANE_COMPONENTS 16
 #define GPU_MATERIAL_COMPONENTS 64
 #define GPU_FIXED_RASTER_CALLS 6
 #define GPU_GEOMETRY_STATE_CALLS 6
 #define GPU_STREAM_INITIAL_QUADS 1024
 #define GPU_AFFINE_PREPARED_LIMIT 8192
+#define GPU_PLANE_CACHE_CAPACITY 16
+#define GPU_PLANE_MAX_ROWS 16384
 #define GPU_POSITION_ATTRIBUTE 0
 #define GPU_TEXCOORD_ATTRIBUTE 1
 #define GPU_QUERY_CAPACITY 256
@@ -46,6 +51,9 @@
 #define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
 #ifndef GL_TIMESTAMP
 #define GL_TIMESTAMP 0x8E28
+#endif
+#ifndef GL_RGBA32F
+#define GL_RGBA32F 0x8814
 #endif
 #if REVERSE_COLOR
 #define GPU_PACKED_FORMAT GL_BGRA
@@ -120,6 +128,8 @@ typedef struct gpu_uniforms
     GLint affine_anchor, affine_pivot;
     GLint affine_x[8], affine_y[8], affine_d[8];
     GLint shear_origin, shear_extent, shear_shift, shear_source, shear_step, shear_clip;
+    GLint water_origin, water_wave, water_anchor;
+    GLint plane_rows, plane_origin, plane_info;
 } gpu_uniforms;
 
 typedef struct gpu_uniform_value
@@ -144,6 +154,8 @@ typedef struct gpu_material_state
     gpu_uniform_value affine_anchor, affine_pivot;
     gpu_uniform_value affine_x[8], affine_y[8], affine_d[8];
     gpu_uniform_value shear_origin, shear_extent, shear_shift, shear_source, shear_step, shear_clip;
+    gpu_uniform_value water_origin, water_wave, water_anchor;
+    gpu_uniform_value plane_rows, plane_origin, plane_info;
 } gpu_material_state;
 
 typedef struct gpu_state_cache
@@ -152,7 +164,7 @@ typedef struct gpu_state_cache
      * never to numeric GL names alone. Unknown state is restored on demand. */
     int active_unit_valid, active_unit;
     unsigned texture_valid;
-    GLuint textures[GPU_TEXTURE_UNITS];
+    GLuint textures[GPU_TRACKED_TEXTURE_UNITS];
     int framebuffer_valid, program_valid;
     GLuint framebuffer, program;
     int viewport_valid, viewport_width, viewport_height;
@@ -183,12 +195,28 @@ typedef struct gpu_prepared_affine
     int result;
 } gpu_prepared_affine;
 
+/* Plane recurrences depend on source dimensions and scale settings, not the
+ * current pixels, draw position or scrolling phase. Own that compact data and
+ * its immutable GPU texture so moving or capturing an image does not rebuild it. */
+typedef struct gpu_plane_map
+{
+    int occupied, source_width, source_height, perspective, valid_rows;
+    float begin, end;
+    size_t capacity;
+    gpu_plane_row *rows;
+    GLuint texture;
+    uint64_t last_used;
+} gpu_plane_map;
+
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
 static gpu_vertex *vertex_buffer;
 static int *quad_wraps;
 static size_t quad_count, quad_capacity;
 static gpu_prepared_affine *affine_preparations;
 static size_t affine_preparation_capacity;
+static gpu_plane_map plane_maps[GPU_PLANE_CACHE_CAPACITY];
+static uint64_t plane_map_clock;
+static int plane_cache_warning, plane_upload_warning;
 static GLuint vertex_buffer_object, index_buffer_object;
 static size_t stream_capacity, index_capacity, stream_cursor;
 static float bounds_left, bounds_top, bounds_right, bounds_bottom;
@@ -198,6 +226,7 @@ static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
 static int initialized, tables_dirty = 1, table_mask, affine_supported, color_rules_supported, shear_supported;
+static int water_supported, plane_supported;
 static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
 static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
 static int palette_cache_count;
@@ -654,13 +683,14 @@ static int gpu_load_functions(void)
  * 2026-11-13 - Select optional affine arithmetic without raising legacy limits.
  * 2026-11-14 - Select color rules independently from optional affine support.
  * 2026-11-14 - Select exact legacy shear independently from other features.
+ * 2026-11-15 - Select water sampling and compact plane maps independently.
  * Compile one scene shader, preserving the driver's diagnostic on failure.
  */
 static GLuint gpu_compile_shader(GLenum type, const char *source)
 {
     GLuint shader = gpu_CreateShader(type);
     GLint success = 0;
-    char message[4096], defines[128];
+    char message[4096], defines[192];
     const char *parts[2];
     if(!shader)
     {
@@ -671,8 +701,9 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
 
     /* Both internal sources start with the same version directive. Insert
      * capability defines after it, retaining GLSL's required first line. */
-    snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n#define GPU_SHEAR %d\n",
-             affine_supported, color_rules_supported, shear_supported);
+    snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n#define GPU_SHEAR %d\n#define GPU_WATER %d\n#define GPU_PLANE %d\n",
+             affine_supported, color_rules_supported, shear_supported,
+             water_supported, plane_supported);
     parts[0] = defines;
     parts[1] = strchr(source, '\n') + 1;
     gpu_ShaderSource(shader, 2, parts, NULL);
@@ -1207,6 +1238,185 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
                              (uint64_t)width * height * (format == GL_LUMINANCE ? 1 : 4));
     }
     return texture;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Verify floating row textures by allocating the actual sampled format.
+ * Missing support only retains native row geometry; ordinary drawing stays
+ * available and sine-water sampling does not depend on this texture format.
+ */
+static int gpu_probe_plane_texture(void)
+{
+    GLuint texture = gpu_new_texture(1, 1, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+    if(!texture)
+    {
+        gpu_log("WARNING: Floating plane-row textures unavailable; retaining CPU row geometry with native pixel rendering.");
+        return 0;
+    }
+    gpu_gl_invalidate_state();
+    glDeleteTextures(1, &texture);
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Release context-owned plane maps and their bounded CPU preparation cache.
+ * Stored rows contain values only; no script or image allocation is retained.
+ */
+static void gpu_release_plane_maps(void)
+{
+    int slot;
+    gpu_gl_invalidate_state();
+    for(slot = 0; slot < GPU_PLANE_CACHE_CAPACITY; ++slot)
+    {
+        if(plane_maps[slot].texture)
+        {
+            glDeleteTextures(1, &plane_maps[slot].texture);
+        }
+        free(plane_maps[slot].rows);
+    }
+    memset(plane_maps, 0, sizeof(plane_maps));
+    plane_map_clock = 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reuse the exact plane scale/source-row recurrence independently of scrolling,
+ * placement and image pixels. Bound cache size and evict the least recent map;
+ * allocation failure leaves native row geometry available for the same draw.
+ */
+static gpu_plane_map *gpu_prepare_plane_map(const gpu_transform_parameters *parameters,
+                                           const s_drawmethod *method)
+{
+    gpu_plane_map *entry = NULL;
+    gpu_plane_row *replacement;
+    int slot;
+    if(parameters->source_width <= 0 || parameters->source_height <= 0 ||
+       parameters->source_height > GPU_PLANE_MAX_ROWS ||
+       !isfinite(method->water.beginsize) || !isfinite(method->water.endsize) ||
+       method->water.beginsize <= 0.0f || method->water.endsize < 0.0f)
+    {
+        return NULL;
+    }
+
+    /* Sixteen small keys avoid hashing raw float bytes or retaining pointers
+     * to mutable drawmethods. Equality matches the recurrence's actual inputs. */
+    for(slot = 0; slot < GPU_PLANE_CACHE_CAPACITY; ++slot)
+    {
+        gpu_plane_map *candidate = &plane_maps[slot];
+        if(candidate->occupied &&
+           candidate->source_width == parameters->source_width &&
+           candidate->source_height == parameters->source_height &&
+           candidate->begin == method->water.beginsize &&
+           candidate->end == method->water.endsize &&
+           candidate->perspective == method->water.perspective)
+        {
+            candidate->last_used = ++plane_map_clock;
+            ++stats.plane_map_reuses;
+            engine_profile_count(EP_COUNT_PLANE_MAP_REUSES, 1);
+            return candidate;
+        }
+        if(!entry || (!candidate->occupied && entry->occupied) ||
+           (candidate->occupied == entry->occupied && candidate->last_used < entry->last_used))
+        {
+            entry = candidate;
+        }
+    }
+
+    /* Grow before eviction so failed allocation preserves the old cache entry.
+     * Each entry owns at most 16,384 rows of sixteen bytes each. */
+    if(entry->capacity < (size_t)parameters->source_height)
+    {
+        replacement = (gpu_plane_row *)realloc(entry->rows,
+                       (size_t)parameters->source_height * sizeof(*replacement));
+        if(!replacement)
+        {
+            if(!plane_cache_warning)
+            {
+                plane_cache_warning = 1;
+                gpu_log("WARNING: Plane row-map cache allocation failed; retaining CPU row geometry with native pixel rendering.");
+            }
+            return NULL;
+        }
+        entry->rows = replacement;
+        entry->capacity = parameters->source_height;
+    }
+    if(entry->texture)
+    {
+        gpu_gl_invalidate_state();
+        glDeleteTextures(1, &entry->texture);
+        entry->texture = 0;
+    }
+    entry->source_width = parameters->source_width;
+    entry->source_height = parameters->source_height;
+    entry->begin = method->water.beginsize;
+    entry->end = method->water.endsize;
+    entry->perspective = method->water.perspective;
+    entry->valid_rows = gpu_transform_prepare_plane_rows(parameters, method, entry->rows);
+    entry->last_used = ++plane_map_clock;
+    entry->occupied = 1;
+    ++stats.plane_map_builds;
+    stats.plane_rows_prepared += entry->valid_rows;
+    engine_profile_count(EP_COUNT_PLANE_MAP_BUILDS, 1);
+    engine_profile_count(EP_COUNT_PLANE_ROWS_PREPARED, entry->valid_rows);
+    return entry;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Upload a prepared plane map once, separate from image-pixel transfers.
+ * Failure occurs before destination writes and permits native row geometry;
+ * successful maps remain immutable until cache eviction or context shutdown.
+ */
+static int gpu_upload_plane_map(gpu_plane_map *entry)
+{
+    ep_scope upload_scope;
+    uint64_t bytes;
+    if(entry->texture)
+    {
+        return 1;
+    }
+    if(entry->valid_rows <= 0)
+    {
+        return 0;
+    }
+    entry->texture = gpu_new_texture(1, entry->valid_rows, GL_RGBA32F, GL_RGBA, GL_FLOAT, NULL);
+    if(entry->texture)
+    {
+        upload_scope = engine_profile_span_begin();
+        gpu_edit_texture(5, entry->texture);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, entry->valid_rows,
+                        GL_RGBA, GL_FLOAT, entry->rows);
+        if(glGetError() == GL_NO_ERROR)
+        {
+            engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+            bytes = (uint64_t)entry->valid_rows * sizeof(*entry->rows);
+            ++stats.plane_map_uploads;
+            stats.plane_map_upload_bytes += bytes;
+            engine_profile_count(EP_COUNT_PLANE_MAP_UPLOADS, 1);
+            engine_profile_count(EP_COUNT_PLANE_MAP_UPLOAD_BYTES, bytes);
+            return 1;
+        }
+        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+        gpu_gl_invalidate_state();
+        glDeleteTextures(1, &entry->texture);
+        entry->texture = 0;
+    }
+    if(!plane_upload_warning)
+    {
+        plane_upload_warning = 1;
+        gpu_log("WARNING: Plane row-map upload failed; retaining CPU row geometry with native pixel rendering.");
+    }
+    return 0;
 }
 
 /*
@@ -2139,6 +2349,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * 2026-11-14 - Bind supported chroma and Substitute without changing draw eligibility.
  * 2026-11-14 - Upload a contiguous vertex stream and submit indexed triangles.
  * 2026-11-14 - Supply exact legacy shear state through the common material path.
+ * 2026-11-15 - Sample water and cached plane rows through the same materials.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -2146,7 +2357,9 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
 static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mask,
                             const unsigned char *palette, const s_drawmethod *method,
                             int source_is_sprite, int primitive, unsigned color,
-                            const gpu_affine_sampling *affine, const gpu_shear_sampling *shear)
+                            const gpu_affine_sampling *affine, const gpu_shear_sampling *shear,
+                            const gpu_water_sampling *water, const gpu_plane_sampling *plane,
+                            GLuint plane_texture)
 {
     int rectangle[4], i, wrap, geometry_ready;
     int indexed = source && source->format == PIXEL_x8;
@@ -2230,6 +2443,10 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_bind_texture(2, masked ? mask->texture : white_texture);
     gpu_bind_texture(3, needs_destination ? target->snapshot : white_texture);
     gpu_bind_texture(4, table_texture);
+    if(plane)
+    {
+        gpu_bind_texture(5, plane_texture);
+    }
     gpu_select_texture_unit(0);
 
     /* Keep geometry in engine pixel units and pass the existing drawmethod
@@ -2251,6 +2468,10 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_uniform_integer(uniforms.mask, &gl_state.material.mask, 2);
     gpu_uniform_integer(uniforms.destination, &gl_state.material.destination, 3);
     gpu_uniform_integer(uniforms.tables, &gl_state.material.tables, 4);
+    if(plane)
+    {
+        gpu_uniform_integer(uniforms.plane_rows, &gl_state.material.plane_rows, 5);
+    }
     gpu_uniform_integer(uniforms.indexed, &gl_state.material.indexed, indexed);
     gpu_uniform_integer(uniforms.masked, &gl_state.material.masked, masked);
     gpu_uniform_integer(uniforms.color_key, &gl_state.material.color_key, !primitive &&
@@ -2313,6 +2534,25 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
         gpu_uniform_pair(uniforms.shear_clip, &gl_state.material.shear_clip,
                          shear->clip[0], shear->clip[1]);
     }
+    if(water)
+    {
+        /* One inverse-mapped quad evaluates wave phase/displacement per row
+         * in the shader; no CPU-generated strip geometry is submitted. */
+        gpu_uniform_vector(uniforms.water_origin, &gl_state.material.water_origin,
+                           water->origin[0], water->origin[1], water->origin[2]);
+        gpu_uniform_vector(uniforms.water_wave, &gl_state.material.water_wave,
+                           water->wave[0], water->wave[1], water->wave[2]);
+        gpu_uniform_float(uniforms.water_anchor, &gl_state.material.water_anchor, water->anchor);
+    }
+    if(plane)
+    {
+        /* The cached recurrence contains only intrinsic source-row data.
+         * Position and scrolling remain small independent uniform updates. */
+        gpu_uniform_vector(uniforms.plane_origin, &gl_state.material.plane_origin,
+                           plane->origin[0], plane->origin[1], plane->origin[2]);
+        gpu_uniform_pair(uniforms.plane_info, &gl_state.material.plane_info,
+                         plane->info[0], plane->info[1]);
+    }
     if(affine)
     {
         /* Geometry and color remain separate. These small per-draw values
@@ -2363,6 +2603,16 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
      * logical row quads while sharing one indexed triangle draw. */
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    if(water)
+    {
+        ++stats.water_draws;
+        engine_profile_count(EP_COUNT_NATIVE_WATER_DRAWS, 1);
+    }
+    if(plane)
+    {
+        ++stats.plane_draws;
+        engine_profile_count(EP_COUNT_NATIVE_PLANE_DRAWS, 1);
+    }
     if(chroma_enabled)
     {
         engine_profile_count(EP_COUNT_NATIVE_CHROMA_DRAWS, 1);
@@ -2463,6 +2713,7 @@ static int gpu_reserve_affine_preparations(size_t count)
  * 2026-11-13 - Preflight all affine repeats before the first target write.
  * 2026-11-14 - Prepare shader shear independently for each repeated instance.
  * 2026-11-15 - Reuse validated affine quads and sampling across both passes.
+ * 2026-11-15 - Reuse plane recurrence maps and move bounded waves to sampling.
  * Apply existing repeat/span semantics using the same prepared source image.
  * Collect each instance before drawing, and reject overflowing spans before
  * submission so a rejected repeat never leaves a partially drawn image.
@@ -2475,6 +2726,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     const s_drawmethod *method = drawmethod && (drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
                               ? drawmethod : &plainmethod;
     gpu_transform_parameters parameters;
+    gpu_plane_map *plane_map = NULL;
     long long final_x, final_y;
     int i, j, submitted = 0;
     int use_affine = (method->config & DRAWMETHOD_CONFIG_AFFINE) != 0;
@@ -2505,6 +2757,16 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     parameters.centerx = centerx;
     parameters.centery = centery;
     parameters.is_sprite = sprite;
+
+    /* Prepare intrinsic plane rows once for every repeated instance. Moving
+     * or scrolling the image changes its uniforms, never this recurrence. */
+    if(!use_affine && plane_supported && method->water.watermode == WATER_MODE_SHEAR &&
+       method->water.beginsize > 0.0f && (!sprite || (method->scalex && method->scaley)))
+    {
+        ep_scope geometry_scope = engine_profile_span_begin();
+        plane_map = gpu_prepare_plane_map(&parameters, method);
+        engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    }
 
     /* Extreme affine inverses can be representable for one clipped instance
      * but not another. Validate every mapping before any destination write;
@@ -2556,10 +2818,18 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
             gpu_affine_sampling affine;
             gpu_affine_sampling *sampling = &affine;
             gpu_shear_sampling shear;
+            gpu_water_sampling water;
+            gpu_plane_sampling plane;
             ep_scope geometry_scope;
             int geometry_result;
             parameters.x = (int)((long long)x + (long long)i * method->xspan);
             parameters.y = (int)((long long)y + (long long)j * method->yspan);
+            memset(&plane, 0, sizeof(plane));
+            if(plane_map)
+            {
+                plane.rows = plane_map->rows;
+                plane.valid_rows = plane_map->valid_rows;
+            }
             quad_count = 0;
             geometry_scope = engine_profile_span_begin();
             if(reuse_affine)
@@ -2581,9 +2851,27 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
                     ? gpu_transform_draw_affine(&parameters, method, sampling, gpu_collect_quad, NULL)
                     : gpu_transform_draw_sampled(&parameters, method,
                                                  shear_supported ? &shear : NULL,
+                                                 water_supported ? &water : NULL,
+                                                 plane_map ? &plane : NULL,
                                                  gpu_collect_quad, NULL);
             }
             engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+            if(geometry_result == GPU_TRANSFORM_DRAWN && plane.enabled && quad_count &&
+               !gpu_upload_plane_map(plane_map))
+            {
+                /* Optional row-texture failure has not touched target pixels.
+                 * Preserve the effect through its existing native geometry,
+                 * without selecting CPU pixel rendering or changing draw order. */
+                plane.enabled = 0;
+                quad_count = 0;
+                native_failure = EP_FALLBACK_OTHER;
+                geometry_scope = engine_profile_span_begin();
+                geometry_result = gpu_transform_draw_sampled(&parameters, method,
+                                  shear_supported ? &shear : NULL,
+                                  water_supported ? &water : NULL, NULL,
+                                  gpu_collect_quad, NULL);
+                engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+            }
             if(geometry_result == GPU_TRANSFORM_FAILED && native_failure == EP_FALLBACK_OTHER)
             {
                 native_failure = EP_FALLBACK_TRANSFORM;
@@ -2591,7 +2879,10 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
             if(geometry_result == GPU_TRANSFORM_FAILED ||
                !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0,
                                  use_affine ? sampling : NULL,
-                                 !use_affine && shear_supported && shear.enabled ? &shear : NULL))
+                                 !use_affine && shear_supported && shear.enabled ? &shear : NULL,
+                                 !use_affine && water_supported && water.enabled ? &water : NULL,
+                                 plane.enabled ? &plane : NULL,
+                                 plane.enabled ? plane_map->texture : 0))
             {
                 /* Earlier instances may already have changed the target.
                  * Only failure before any submission can safely return. */
@@ -2741,6 +3032,7 @@ static int gpu_collect_rectangle(float x, float y, float width, float height)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Leave optional row sampling disabled for solid primitives.
  * Render box and dot primitives in target pixel coordinates, retaining
  * their existing clipping, tint and destination-blend behavior.
  */
@@ -2770,7 +3062,8 @@ static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
         ep_scope geometry_scope = engine_profile_span_begin();
         int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
         engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
-        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL, NULL))
+        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
+                                             NULL, NULL, NULL, NULL, 0))
         {
             return 1;
         }
@@ -2890,6 +3183,7 @@ static int gpu_clip_line(int *x1, int *y1, int *x2, int *y2, int width, int heig
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-14 - Rasterize horizontal and vertical lines as one rectangle.
+ * 2026-11-15 - Leave optional row sampling disabled for line primitives.
  * Retain the engine's integer line coverage while preparing one GPU draw.
  * Axis-aligned lines use inclusive rectangles; slopes retain visible points.
  * Material processing and framebuffer access remain on the GPU.
@@ -2983,7 +3277,8 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     }
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
-    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL, NULL))
+    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
+                                         NULL, NULL, NULL, NULL, 0))
     {
         return 1;
     }
@@ -3137,6 +3432,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-14 - Distinguish shader shear from retained CPU row preparation.
  * 2026-11-15 - Report rejected RGB32 operations without software retry.
  * 2026-11-15 - Identify RGB32 as the sole scene format.
+ * 2026-11-15 - Report water sampling and compact plane recurrence support.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3188,6 +3484,26 @@ static void gpu_log_capability_result(int native_available)
     {
         gpu_log("WARNING: Legacy shear shader unavailable; retaining CPU row geometry with native pixel rendering.");
     }
+    gpu_log("Water and Plane Effects\n"
+            "\tSine water sampling:               %s\n"
+            "\tPlane row sampling:                %s\n"
+            "\tWave accuracy:                    Quantized phase; bounded one-pixel horizontal approximation\n"
+            "\tExtreme wave parameters:          CPU row geometry; native pixels\n"
+            "\tPlane preparation:                Exact CPU recurrence cached independently of position/scroll\n"
+            "\tPlane sampling accuracy:          Exact source row; bounded one-source-texel horizontal rounding\n"
+            "\tPlane data transfer:              16 bytes per row once per resident map\n",
+            native_available && water_supported ? "NATIVE - shader sampling, one quad" :
+                native_available ? "CPU - row geometry; native pixels" : "UNAVAILABLE",
+            native_available && plane_supported ? "NATIVE - cached rows, one quad" :
+                native_available ? "CPU - row geometry; native pixels" : "UNAVAILABLE");
+    if(native_available && !water_supported)
+    {
+        gpu_log("WARNING: Water sampling shader unavailable; retaining CPU row geometry with native pixel rendering.");
+    }
+    if(native_available && !plane_supported)
+    {
+        gpu_log("WARNING: Compact plane sampling unavailable; retaining CPU row geometry with native pixel rendering.");
+    }
     gpu_log("Color Rules\n"
             "\tChroma key execution:              %s\n"
             "\tSubstitute execution:              %s\n"
@@ -3218,6 +3534,7 @@ static void gpu_log_capability_result(int native_available)
  * 2026-11-14 - Validate vertex/index storage before enabling native drawing.
  * 2026-11-14 - Preserve existing capabilities when optional shear is unavailable.
  * 2026-11-15 - Require native RGB32 drawing even when initialization fails.
+ * 2026-11-15 - Probe optional water/plane sampling without retiring other features.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves RGB32 drawing unavailable.
  */
@@ -3226,10 +3543,12 @@ int gpu_gl_init(void)
     GLuint vertex = 0, fragment = 0;
     GLenum limits_error;
     GLint linked = 0, units = 0, fragment_components = 0;
-    int digit, functions_available, shader_variants[8], variant_count = 0, variant_index = 0;
+    int digit, optional_index, functions_available, plane_textures = 0;
+    int shader_variants[32], variant_count = 0, variant_index = 0;
     const int base_variants[4] = {3, 1, 2, 0};
     const int base_components[4] = {GPU_COMBINED_COMPONENTS, GPU_AFFINE_COMPONENTS,
                                     GPU_COLOR_COMPONENTS, GPU_MATERIAL_COMPONENTS};
+    const int optional_variants[8] = {28, 12, 20, 4, 24, 8, 16, 0};
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
@@ -3245,6 +3564,8 @@ int gpu_gl_init(void)
      * setup of its replacement, including initialization failure retries. */
     gpu_gl_invalidate_state();
     affine_supported = color_rules_supported = shear_supported = 0;
+    water_supported = plane_supported = 0;
+    plane_cache_warning = plane_upload_warning = 0;
     maximum_texture_size = 0;
     gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
@@ -3312,19 +3633,35 @@ int gpu_gl_init(void)
             /* Consume any remaining errors from the three independent queries. */
         }
     }
-    /* Preserve the existing affine/color preference. Try shader shear beside
-     * each material combination, then retain that same combination without
-     * shear before reducing another capability. Six extra uniforms consume
-     * 14 scalar components, or 24 with conservative vec4 packing; reserve 32. */
+    /* Probe the actual row texture format only when the ordinary backend and
+     * sixth sampler are available. Water needs uniforms only and remains
+     * independent from this optional floating-texture capability. */
+    if(functions_available && limits_error == GL_NO_ERROR &&
+       maximum_texture_size >= 1536 && units >= GPU_TRACKED_TEXTURE_UNITS)
+    {
+        plane_textures = gpu_probe_plane_texture();
+    }
+
+    /* Preserve affine/color and then shear preference while trying optional
+     * water/plane combinations. Failed optional shaders must not retire an
+     * already supported material feature or select CPU pixel rendering. */
     for(digit = 0; digit < 4; ++digit)
     {
-        if(fragment_components >= base_components[digit] + GPU_SHEAR_COMPONENTS)
+        for(optional_index = 0; optional_index < 8; ++optional_index)
         {
-            shader_variants[variant_count++] = base_variants[digit] | 4;
-        }
-        if(fragment_components >= base_components[digit] || !base_variants[digit])
-        {
-            shader_variants[variant_count++] = base_variants[digit];
+            int optional = optional_variants[optional_index];
+            int required = base_components[digit] +
+                ((optional & 4) ? GPU_SHEAR_COMPONENTS : 0) +
+                ((optional & 8) ? GPU_WATER_COMPONENTS : 0) +
+                ((optional & 16) ? GPU_PLANE_COMPONENTS : 0);
+            if((optional & 16) && !plane_textures)
+            {
+                continue;
+            }
+            if(fragment_components >= required || (!base_variants[digit] && !optional))
+            {
+                shader_variants[variant_count++] = base_variants[digit] | optional;
+            }
         }
     }
     gpu_log("Resource Limits\n"
@@ -3333,14 +3670,20 @@ int gpu_gl_init(void)
             "\t%-34s %-16d %d\n"
             "\t%-34s %-16d %d for native affine\n"
             "\t%-34s %-16d %d for color rules; %d with affine\n"
-            "\t%-34s %-16d %d additional to the selected shader\n",
+            "\t%-34s %-16d %d additional to the selected shader\n"
+            "\t%-34s %-16d %d additional to the selected shader\n"
+            "\t%-34s %-16d %d additional to the selected shader\n"
+            "\tFloating plane-row textures:       %s (sixth sampler required)\n",
             "Capability", "Available", "Required",
             "Maximum texture size:", maximum_texture_size, 1536,
             "Fragment texture units:", units, GPU_TEXTURE_UNITS,
             "Fragment uniform components:", fragment_components, GPU_AFFINE_COMPONENTS,
             "Color-rule uniform components:", fragment_components, GPU_COLOR_COMPONENTS,
             GPU_COMBINED_COMPONENTS,
-            "Legacy shear uniform components:", fragment_components, GPU_SHEAR_COMPONENTS);
+            "Legacy shear uniform components:", fragment_components, GPU_SHEAR_COMPONENTS,
+            "Water uniform components:", fragment_components, GPU_WATER_COMPONENTS,
+            "Plane uniform components:", fragment_components, GPU_PLANE_COMPONENTS,
+            plane_textures ? "AVAILABLE" : "UNAVAILABLE");
     if(fragment_components < GPU_AFFINE_COMPONENTS)
     {
         gpu_log("WARNING: Insufficient fragment uniform components for native affine transforms.\n"
@@ -3384,6 +3727,8 @@ compile_scene_shader:
     affine_supported = (shader_variants[variant_index] & 1) != 0;
     color_rules_supported = (shader_variants[variant_index] & 2) != 0;
     shear_supported = (shader_variants[variant_index] & 4) != 0;
+    water_supported = (shader_variants[variant_index] & 8) != 0;
+    plane_supported = (shader_variants[variant_index] & 16) != 0;
     vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
     fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_fragment_shader_source);
     if(!vertex || !fragment)
@@ -3491,6 +3836,12 @@ compile_scene_shader:
     GPU_UNIFORM(shear_source, "shearSource");
     GPU_UNIFORM(shear_step, "shearStep");
     GPU_UNIFORM(shear_clip, "shearClip");
+    GPU_UNIFORM(water_origin, "waterOrigin");
+    GPU_UNIFORM(water_wave, "waterWave");
+    GPU_UNIFORM(water_anchor, "waterAnchor");
+    GPU_UNIFORM(plane_rows, "planeRowsTexture");
+    GPU_UNIFORM(plane_origin, "planeOrigin");
+    GPU_UNIFORM(plane_info, "planeInfo");
     for(digit = 0; digit < 8; ++digit)
     {
         char name[32];
@@ -3528,15 +3879,20 @@ compile_scene_shader:
             "\tState cache policy:                Compare on change\n"
             "\tAffine repeat preparations:        Cached after complete validation\n"
             "\tAffine repeat cache limit:         %u instances; %" PRIu64 " bytes\n"
-            "\tAffine repeat cache allocation:    Grows on demand; reused until shutdown\n",
+            "\tAffine repeat cache allocation:    Grows on demand; reused until shutdown\n"
+            "\tPlane row cache:                   %u maps; at most %u rows per map\n"
+            "\tPlane row cache payload limit:     %" PRIu64 " bytes each on CPU and GPU\n"
+            "\tPlane row cache policy:            Match dimensions/scales/perspective; replace least recently used\n",
             (unsigned)GPU_PALETTE_CACHE_CAPACITY, (uint64_t)GPU_PALETTE_BYTES,
             (uint64_t)GPU_PALETTE_CACHE_CAPACITY * GPU_PALETTE_BYTES,
             (uint64_t)(sizeof(palette_cache) + sizeof(palette_buckets)
                        + sizeof(palette_cache_count) + sizeof(palette_lru_head)
                        + sizeof(palette_lru_tail) + sizeof(palette_selected_slot)),
-            (unsigned)GPU_TEXTURE_UNITS, (uint64_t)sizeof(gl_state),
+            (unsigned)(plane_supported ? GPU_TRACKED_TEXTURE_UNITS : GPU_TEXTURE_UNITS), (uint64_t)sizeof(gl_state),
             (unsigned)GPU_AFFINE_PREPARED_LIMIT,
-            (uint64_t)GPU_AFFINE_PREPARED_LIMIT * sizeof(gpu_prepared_affine));
+            (uint64_t)GPU_AFFINE_PREPARED_LIMIT * sizeof(gpu_prepared_affine),
+            (unsigned)GPU_PLANE_CACHE_CAPACITY, (unsigned)GPU_PLANE_MAX_ROWS,
+            (uint64_t)GPU_PLANE_CACHE_CAPACITY * GPU_PLANE_MAX_ROWS * sizeof(gpu_plane_row));
     gpu_query_init();
     gpu_log_capability_result(1);
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
@@ -3556,12 +3912,16 @@ shader_failed:
                 "\tAffine requested by retry:         %s\n"
                 "\tColor rules requested by retry:    %s\n"
                 "\tLegacy shear requested by retry:   %s\n"
+                "\tWater sampling requested by retry: %s\n"
+                "\tPlane sampling requested by retry: %s\n"
                 "\tIf native affine is unavailable:   Draw rejected; no software retry\n"
                 "\tIf color rules are unavailable:    Ignored; no software implementation.\n"
-                "\tIf shader shear is unavailable:    CPU row geometry; native pixels.",
+                "\tIf shader row effects unavailable: CPU row geometry; native pixels.",
                 (shader_variants[variant_index] & 1) ? "Yes" : "No",
                 (shader_variants[variant_index] & 2) ? "Yes" : "No",
-                (shader_variants[variant_index] & 4) ? "Yes" : "No");
+                (shader_variants[variant_index] & 4) ? "Yes" : "No",
+                (shader_variants[variant_index] & 8) ? "Yes" : "No",
+                (shader_variants[variant_index] & 16) ? "Yes" : "No");
         goto compile_scene_shader;
     }
 failed:
@@ -3569,6 +3929,7 @@ failed:
      * native-required dispatch remains in force without a registered backend. */
     gpu_gl_invalidate_state();
     gpu_release_geometry();
+    gpu_release_plane_maps();
     if(vertex)
     {
         gpu_DeleteShader(vertex);
@@ -3603,6 +3964,7 @@ failed:
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Retire context-owned plane maps with the other native resources.
  * Preserve live screen contents before destroying a graphics context. This
  * infrequent readback keeps pause buffers, scripted targets and mode changes
  * functional without maintaining a CPU copy after every rendered frame.
@@ -3652,6 +4014,7 @@ void gpu_gl_shutdown(void)
     glDeleteTextures(1, &palette_texture);
     glDeleteTextures(1, &table_texture);
     gpu_release_geometry();
+    gpu_release_plane_maps();
     free(vertex_buffer);
     free(quad_wraps);
     free(affine_preparations);
@@ -3693,6 +4056,7 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-14 - Release scene vertex-array state at the presentation boundary.
+ * 2026-11-15 - Release the optional sixth row-map texture unit when selected.
  * Restore neutral GL state before the existing presenter or YUV renderer
  * draws to the window. Scene drawing restores its own state on its next use.
  */
@@ -3723,7 +4087,8 @@ void gpu_gl_prepare_present(void)
 
     /* Reset every texture unit used by scene rendering. Descending order
      * leaves unit zero active for the existing single-texture presenter. */
-    for(unit = GPU_TEXTURE_UNITS - 1; unit >= 0; unit--)
+    for(unit = (plane_supported ? GPU_TRACKED_TEXTURE_UNITS : GPU_TEXTURE_UNITS) - 1;
+        unit >= 0; unit--)
     {
         gpu_ActiveTexture(GL_TEXTURE0 + unit);
         glBindTexture(GL_TEXTURE_2D, 0);

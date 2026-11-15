@@ -643,6 +643,521 @@ static void test_sprite_mask(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Independently locate the source texel used by small water and plane images.
+ * Integer wave steps make these material tests exact; plane rows retain the
+ * established recurrence and canonical horizontal boundary policy.
+ */
+static int test_row_texel(int width, int height, const s_screen *target,
+                          const s_drawmethod *method, int draw_x, int draw_y,
+                          int pivot_x, int pivot_y, int x, int y, int *sx, int *sy)
+{
+    int left = draw_x - pivot_x - method->centerx;
+    int top = draw_y - pivot_y - method->centery;
+    int row = y - top;
+    if(row < 0 || row >= height || x < 0 || x >= target->width ||
+       y < 0 || y >= target->height ||
+       (method->clipw > 0 && method->cliph > 0 &&
+        (x < method->clipx || x >= method->clipx + method->clipw ||
+         y < method->clipy || y >= method->clipy + method->cliph)))
+    {
+        return 0;
+    }
+    if(method->water.watermode != WATER_MODE_SHEAR)
+    {
+        const float angle = (float)(2.0 * 3.14159265358979323846 / 256.0);
+        int initial = method->water.wavetime % 256;
+        int amplitude = method->water.amplitude;
+        int phase, anchor, shift;
+        if(initial < 0)
+        {
+            initial += 256;
+        }
+        phase = (int)fmodf(initial + row * (256.0f / method->water.wavelength), 256.0f);
+        anchor = method->water.watermode == WATER_MODE_SINE ?
+            (int)floorf((1.0f + sinf(initial * angle)) * amplitude + 0.5f) : amplitude;
+        shift = (int)floorf((1.0f + sinf(phase * angle)) * amplitude + 0.5f) - anchor;
+        *sx = x - left - shift;
+        *sy = row;
+        return *sx >= 0 && *sx < width;
+    }
+    else
+    {
+        float size = method->water.beginsize;
+        float factor = (method->water.endsize - size) / height;
+        float source_y = 0, step, start;
+        int clipped_left = left < 0 ? 0 : left;
+        int index;
+        double coordinate, nearest;
+        if(x < clipped_left || x >= left + width)
+        {
+            return 0;
+        }
+        for(index = 0; index < row; ++index, size += factor)
+        {
+            step = 1.0f / size;
+            source_y += method->water.perspective == WATER_PERSPECTIVE_TILE ? step :
+                        method->water.perspective == WATER_PERSPECTIVE_STRETCH ?
+                        step * height / width : 1.0f;
+        }
+        step = 1.0f / size;
+        start = method->water.wavetime - left + width -
+                (target->width / 2.0f - clipped_left) * step;
+        coordinate = (double)start + (x - clipped_left) * (double)step;
+        nearest = floor(coordinate + 0.5);
+        if(fabs(coordinate - nearest) < 0.0001)
+        {
+            coordinate = nearest;
+        }
+        *sx = (int)coordinate % width;
+        if(*sx < 0)
+        {
+            *sx += width;
+        }
+        *sy = (int)source_y % height;
+        return 1;
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Select both existing wave anchors and every plane perspective for shared
+ * material fixtures without altering their independent texel expectations.
+ */
+static void test_row_method(s_drawmethod *method, int effect)
+{
+    *method = plainmethod;
+    if(effect < 2)
+    {
+        method->water.watermode = (e_water_mode)(effect + 1);
+        method->water.amplitude = 2;
+        method->water.wavelength = 8;
+        method->water.wavetime = 37;
+    }
+    else
+    {
+        method->water.watermode = WATER_MODE_SHEAR;
+        method->water.beginsize = 0.75f;
+        method->water.endsize = 1.25f;
+        method->water.perspective = (e_water_perspective)(effect - 2);
+        method->water.wavetime = 11;
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Verify sampled water and cached planes preserve indexed coverage, remaps,
+ * tint, destination opacity, chroma and final Substitute in complete images.
+ */
+static void test_row_palette_materials(void)
+{
+    s_screen *source = test_screen(4, 4, PIXEL_x8);
+    s_screen *target = test_screen(16, 12, PIXEL_32);
+    unsigned *palette = (unsigned *)source->palette;
+    unsigned remap[256] = {0};
+    const unsigned background = 0x00317bcdu;
+    int effect, policy, x, y, channel;
+    palette[0] = remap[0] = 0x00ffffffu;
+    palette[1] = 0;
+    palette[2] = 0x00d98b43u; palette[3] = 0x0012a6e8u;
+    remap[1] = 0x0042a135u;
+    remap[2] = 0x006c2be7u; remap[3] = 0x00e87329u;
+    for(y = 0; y < source->height; ++y)
+    {
+        for(x = 0; x < source->width; ++x)
+        {
+            source->data[y * source->width + x] = (unsigned char)((x + y) % 4);
+        }
+    }
+    for(effect = 0; effect < 5; ++effect)
+    {
+        for(policy = 0; policy < 4; ++policy)
+        {
+            s_drawmethod method;
+            gpu_renderer_stats before;
+            const unsigned *active_palette = palette;
+            test_row_method(&method, effect);
+            method.config |= DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY;
+            method.centerx = method.centery = 1;
+            method.clipx = 3; method.clipy = 4; method.clipw = 10; method.cliph = 6;
+            if(policy == 1)
+            {
+                method.table = (unsigned char *)remap;
+                active_palette = remap;
+                method.tintmode = 2; method.tintcolor = 0x0092c7efu;
+                method.alpha = 6;
+            }
+            if(policy == 2)
+            {
+                method.fillcolor = 0x00ab731fu;
+                method.colors.chroma_enabled = 1u << 2;
+                method.colors.chroma[2] = palette[2];
+                method.colors.substitute_enabled = 1u << 3;
+                method.colors.substitute[3].match = method.fillcolor;
+                method.colors.substitute[3].replacement = 0x00091119u;
+            }
+            if(policy == 3)
+            {
+                method.alpha = 6;
+                method.channelr = 17; method.channelg = 128; method.channelb = 251;
+            }
+            assert(gpu_draw_box(target, 0, 0, target->width, target->height, background, &plainmethod));
+            before = *gpu_gl_get_stats();
+            assert(gpu_draw_screen(target, source, 6, 4, &method));
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+            assert(gpu_gl_get_stats()->water_draws == before.water_draws + (effect < 2));
+            assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect >= 2));
+            gpu_sync_cpu(target);
+            for(y = 0; y < target->height; ++y)
+            {
+                for(x = 0; x < target->width; ++x)
+                {
+                    unsigned expected = background;
+                    int sx, sy;
+                    if(test_row_texel(4, 4, target, &method, 6, 4, 0, 0, x, y, &sx, &sy))
+                    {
+                        unsigned index = source->data[sy * 4 + sx];
+                        if(index && !(policy == 2 && index == 2))
+                        {
+                            unsigned color = method.fillcolor ? method.fillcolor : active_palette[index];
+                            const unsigned opacity[3] = {method.channelr, method.channelg, method.channelb};
+                            expected = 0;
+                            for(channel = 0; channel < 24; channel += 8)
+                            {
+                                unsigned value = color >> channel;
+                                if(method.tintmode)
+                                {
+                                    value = gpu_shader_blend_reference((int)method.tintmode, method.tintcolor >> channel, value);
+                                }
+                                if(policy == 3)
+                                {
+                                    value = gpu_shader_channel_reference(value, background >> channel, opacity[channel / 8]);
+                                }
+                                else if(method.alpha > 0)
+                                {
+                                    value = gpu_shader_blend_reference(method.alpha, value, background >> channel);
+                                }
+                                expected |= (value & 255u) << channel;
+                            }
+                            if(policy == 2 && expected == method.colors.substitute[3].match)
+                            {
+                                expected = method.colors.substitute[3].replacement;
+                            }
+                        }
+                    }
+                    if(test_pixel(target, x, y) != expected)
+                    {
+                        fprintf(stderr, "row material effect%d policy%d pixel(%d,%d): expected %06x, actual %06x\n",
+                                effect, policy, x, y, expected, test_pixel(target, x, y));
+                        assert(0);
+                    }
+                }
+            }
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Encode multiple independent four-byte RLE rows so water and plane sprite
+ * tests observe row selection, source pivots and the matching opacity texel.
+ */
+static s_sprite *test_row_sprite(const unsigned char *pixels, int height)
+{
+    size_t payload = ((size_t)height * (sizeof(int) + 7) + 3) & ~(size_t)3;
+    s_sprite *sprite = calloc(1, sizeof(*sprite) + payload + PAL_BYTES);
+    unsigned char *encoded;
+    int row;
+    assert(sprite);
+    sprite->magic = sprite_magic;
+    sprite->width = sprite->srcwidth = 4;
+    sprite->height = sprite->srcheight = height;
+    sprite->pixelformat = PIXEL_x8;
+    sprite->palette = (unsigned char *)sprite + sizeof(*sprite) + payload;
+    encoded = (unsigned char *)sprite->data + height * sizeof(int);
+    for(row = 0; row < height; ++row)
+    {
+        sprite->data[row] = (int)(encoded - (unsigned char *)&sprite->data[row]);
+        encoded[0] = 0; encoded[1] = 4;
+        memcpy(encoded + 2, pixels + row * 4, 4);
+        encoded[6] = 0xff;
+        encoded += 7;
+    }
+    return sprite;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Preserve sprite and drawmethod pivots, per-texel opacity precedence and
+ * native color rules through both wave anchors and every plane perspective.
+ */
+static void test_row_sprite_masks(void)
+{
+    const unsigned char indices[16] = {1,2,3,0, 2,1,0,3, 3,0,1,2, 0,3,2,1};
+    const unsigned char opacity[16] = {255,128,0,64, 0,255,64,128, 64,0,255,128, 128,64,0,255};
+    const unsigned background = 0x0032579bu;
+    unsigned remap[256] = {0};
+    s_sprite *sprite = test_row_sprite(indices, 4);
+    s_sprite *mask = test_row_sprite(opacity, 4);
+    s_screen *target = test_screen(20, 14, PIXEL_32);
+    int effect, x, y, channel;
+    remap[1] = 0; remap[2] = 0x00e0a060u; remap[3] = 0x0017b9dau;
+    sprite->centerx = sprite->centery = 1;
+    sprite->mask = mask;
+    for(effect = 0; effect < 5; ++effect)
+    {
+        s_drawmethod method;
+        gpu_renderer_stats before;
+        test_row_method(&method, effect);
+        method.centerx = 2; method.centery = 1;
+        method.clipx = 4; method.clipy = 5; method.clipw = 12; method.cliph = 4;
+        method.scalex = 512; method.scaley = 768;
+        method.config |= DRAWMETHOD_CONFIG_FLIP_X | DRAWMETHOD_CONFIG_FLIP_Y;
+        method.table = (unsigned char *)remap;
+        method.alpha = 6; method.tintmode = 1; method.tintcolor = 0x00ffffffu;
+        method.channelr = method.channelg = method.channelb = 0;
+        method.colors.chroma_enabled = 1;
+        method.colors.chroma[0] = remap[3];
+        method.colors.substitute_enabled = 1;
+        method.colors.substitute[0].match = 0;
+        method.colors.substitute[0].replacement = 0x00111923u;
+        assert(gpu_draw_box(target, 0, 0, target->width, target->height, background, &plainmethod));
+        before = *gpu_gl_get_stats();
+        assert(gpu_draw_sprite(target, sprite, 8, 6, &method));
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+        assert(gpu_gl_get_stats()->water_draws == before.water_draws + (effect < 2));
+        assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect >= 2));
+        gpu_sync_cpu(target);
+        for(y = 0; y < target->height; ++y)
+        {
+            for(x = 0; x < target->width; ++x)
+            {
+                unsigned expected = background;
+                int sx, sy;
+                if(test_row_texel(4, 4, target, &method, 8, 6, 1, 1, x, y, &sx, &sy))
+                {
+                    int offset = sy * 4 + sx;
+                    unsigned index = indices[offset];
+                    if(index && index != 3)
+                    {
+                        expected = 0;
+                        for(channel = 0; channel < 24; channel += 8)
+                        {
+                            expected |= gpu_shader_channel_reference(remap[index] >> channel,
+                                background >> channel, opacity[offset]) << channel;
+                        }
+                        if(!expected)
+                        {
+                            expected = method.colors.substitute[0].replacement;
+                        }
+                    }
+                }
+                assert(test_pixel(target, x, y) == expected);
+            }
+        }
+    }
+    gpu_release_sprite(mask); gpu_release_sprite(sprite);
+    free(mask); free(sprite);
+    release_test_screen(target);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Replay copied water/plane methods into a capture while sampling a newer
+ * GPU-authored source. Overlapping repeats blend in order and the capture
+ * remains resident until the final assertion explicitly reads its output.
+ */
+static void test_row_queue_capture(void)
+{
+    s_screen *source = test_screen(4, 4, PIXEL_32);
+    s_screen *capture = test_screen(12, 10, PIXEL_32);
+    s_screen *output = test_screen(12, 10, PIXEL_32);
+    const unsigned foreground = 0x00d39b57u, background = 0x00112335u;
+    int effect, x, y, channel;
+    for(effect = 0; effect < 5; ++effect)
+    {
+        s_drawmethod method, copied;
+        gpu_renderer_stats before;
+        unsigned twice = 0;
+        test_row_method(&method, effect);
+        method.alpha = 6;
+        method.xrepeat = 2;
+        method.xspan = 0;
+        copied = method;
+        spriteq_unlock(); spriteq_clear();
+        spriteq_add_screen(4, 3, 7, source, &method, 0);
+        method.water.watermode = WATER_MODE_NONE;
+        method.alpha = -1;
+        assert(gpu_draw_box(source, 0, 0, 4, 4, foreground, &plainmethod));
+        assert(gpu_draw_box(capture, 0, 0, 12, 10, background, &plainmethod));
+        before = *gpu_gl_get_stats();
+        spriteq_draw(capture, 0, 7, 7, 1, 0);
+        assert(gpu_draw_screen(output, capture, 0, 0, &plainmethod));
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->water_draws == before.water_draws + (effect < 2 ? 2 : 0));
+        assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect >= 2 ? 2 : 0));
+        for(channel = 0; channel < 24; channel += 8)
+        {
+            unsigned once = gpu_shader_blend_reference(6, foreground >> channel, background >> channel);
+            twice |= gpu_shader_blend_reference(6, foreground >> channel, once) << channel;
+        }
+        gpu_sync_cpu(output);
+        for(y = 0; y < output->height; ++y)
+        {
+            for(x = 0; x < output->width; ++x)
+            {
+                int sx, sy;
+                unsigned expected = test_row_texel(4, 4, capture, &copied, 5, 3, 0, 0, x, y, &sx, &sy)
+                    ? twice : background;
+                if(test_pixel(output, x, y) != expected)
+                {
+                    fprintf(stderr, "row queue effect%d pixel(%d,%d): expected %06x, actual %06x\n",
+                            effect, x, y, expected, test_pixel(output, x, y));
+                    assert(0);
+                }
+            }
+        }
+    }
+    spriteq_clear();
+    release_test_screen(output);
+    release_test_screen(capture);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Repeated self-draws must sample each preceding native result. The expected
+ * image uses an independent snapshot per instance, preserving untouched water
+ * gaps and wrapped plane texels without allowing a stale CPU shadow to help.
+ */
+static void test_row_self_feedback(void)
+{
+    s_screen *source = test_screen(16, 8, PIXEL_32);
+    s_screen *target = test_screen(16, 8, PIXEL_32);
+    unsigned expected[16 * 8], snapshot[16 * 8];
+    int effect, repeat, x, y, pixel;
+    for(pixel = 0; pixel < 16 * 8; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = 0x00100000u | (unsigned)(pixel + 1);
+    }
+    for(effect = 0; effect <= 3; effect += 3)
+    {
+        s_drawmethod method;
+        gpu_renderer_stats before;
+        test_row_method(&method, effect);
+        method.xrepeat = 2;
+        method.xspan = 0;
+        memcpy(expected, source->data, sizeof(expected));
+        assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+        before = *gpu_gl_get_stats();
+        assert(gpu_draw_screen(target, target, 0, 0, &method));
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->destination_copies == before.destination_copies + 2);
+        for(repeat = 0; repeat < 2; ++repeat)
+        {
+            memcpy(snapshot, expected, sizeof(snapshot));
+            for(y = 0; y < target->height; ++y)
+            {
+                for(x = 0; x < target->width; ++x)
+                {
+                    int sx, sy;
+                    if(test_row_texel(16, 8, target, &method, 0, 0, 0, 0, x, y, &sx, &sy))
+                    {
+                        expected[y * target->width + x] = snapshot[sy * target->width + sx];
+                    }
+                }
+            }
+        }
+        gpu_sync_cpu(target);
+        for(pixel = 0; pixel < 16 * 8; ++pixel)
+        {
+            assert(test_pixel(target, pixel % 16, pixel / 16) == expected[pixel]);
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Fill the bounded plane cache, preserve a recently used map through eviction,
+ * and rebuild the evicted map with correct texels. Run first in each context
+ * so recreation must discard every old CPU row record and texture identity.
+ */
+static void test_plane_cache_lifecycle(void)
+{
+    enum { map_capacity = 16 };
+    s_screen *source = test_screen(4, 4, PIXEL_32);
+    s_screen *target = test_screen(12, 10, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    gpu_renderer_stats before;
+    int map, pixel, x, y;
+
+    /* Distinct source texels reveal stale texture bindings after the least
+     * recent map is recycled. Sixteen entries are the renderer's cache bound. */
+    for(pixel = 0; pixel < 16; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = 0x00100000u | (unsigned)(pixel + 1);
+    }
+    assert(gpu_gl_get_stats()->plane_map_builds == 0);
+    assert(gpu_gl_get_stats()->plane_map_reuses == 0);
+    assert(gpu_clear_screen(target));
+    before = *gpu_gl_get_stats();
+    method.water.watermode = WATER_MODE_SHEAR;
+    method.water.beginsize = 0.5f;
+    method.water.perspective = WATER_PERSPECTIVE_TILE;
+    for(map = 0; map < map_capacity; ++map)
+    {
+        method.water.endsize = 1.0f + (float)map / 16.0f;
+        assert(gpu_draw_screen(target, source, 2, 2, &method));
+    }
+    method.water.endsize = 1.0f;
+    assert(gpu_draw_screen(target, source, 2, 2, &method));
+    method.water.endsize = 2.0f;
+    assert(gpu_draw_screen(target, source, 2, 2, &method));
+    method.water.endsize = 1.0f;
+    assert(gpu_draw_screen(target, source, 2, 2, &method));
+    method.water.endsize = 1.0625f;
+    assert(gpu_draw_screen(target, source, 2, 2, &method));
+
+    /* Touching the first entry saves it; the second entry must be rebuilt.
+     * No scene readback or software draw may hide a cache lifetime mistake. */
+    assert(gpu_gl_get_stats()->plane_map_builds == map_capacity + 2);
+    assert(gpu_gl_get_stats()->plane_map_reuses == 2);
+    assert(gpu_gl_get_stats()->plane_map_uploads == map_capacity + 2);
+    assert(gpu_gl_get_stats()->plane_rows_prepared == (map_capacity + 2) * 4);
+    assert(gpu_gl_get_stats()->plane_map_upload_bytes == (map_capacity + 2) * 4 * 4 * sizeof(float));
+    assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + map_capacity + 4);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+    gpu_sync_cpu(target);
+    for(y = 0; y < target->height; ++y)
+    {
+        for(x = 0; x < target->width; ++x)
+        {
+            int sx, sy;
+            unsigned expected = test_row_texel(4, 4, target, &method, 2, 2, 0, 0, x, y, &sx, &sy)
+                ? ((unsigned *)source->data)[sy * 4 + sx] : 0;
+            assert(test_pixel(target, x, y) == expected);
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Select indexed texels through signed shear before applying palette, tint,
  * destination opacity and the optional source/final color rules.
@@ -1263,6 +1778,7 @@ static void test_shutdown(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Exercise sampled row effects, masks, capture and feedback across contexts.
  * Create a real hidden OpenGL context and run native rendering/coherence
  * tests. Report unavailable graphics environments separately from failures.
  */
@@ -1293,6 +1809,7 @@ int main(void)
     }
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
+    test_plane_cache_lifecycle();
     /* Exercise resource dependencies first, then material calculations and
      * shutdown while the same context owns every cached object. */
     test_queue_capture();
@@ -1304,6 +1821,10 @@ int main(void)
     test_indexed_palette();
     test_blend_modes();
     test_sprite_mask();
+    test_row_palette_materials();
+    test_row_sprite_masks();
+    test_row_queue_capture();
+    test_row_self_feedback();
     test_shear_palette_materials();
     test_shear_sprite_mask();
     test_affine_palette_materials();
@@ -1319,12 +1840,14 @@ int main(void)
     assert(context);
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
+    test_plane_cache_lifecycle();
     test_queue_capture();
     test_affine_queue_replay();
+    test_row_queue_capture();
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU renderer tests passed: captures, ordering, palette, blend, shear, affine, coherence, recreation.");
+    puts("GPU renderer tests passed: captures, ordering, palette, blend, shear, water/plane materials and masks, affine, coherence, recreation.");
     return 0;
 }

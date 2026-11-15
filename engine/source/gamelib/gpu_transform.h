@@ -49,9 +49,37 @@ typedef struct gpu_shear_sampling
     float clip[2];   /* Destination clip: inclusive left, exclusive right. */
 } gpu_shear_sampling;
 
+typedef struct gpu_water_sampling
+{
+    /* Shader sampling begins at the first visible source row. Keeping its
+     * already reduced phase avoids repeating top-clipped work per fragment. */
+    int enabled;
+    float origin[3]; /* Unclipped left/top and first visible source row. */
+    float wave[3];   /* First visible phase, phase increment and amplitude. */
+    float anchor;    /* Rounded first-row sine offset, or centered amplitude. */
+} gpu_water_sampling;
+
+typedef struct gpu_plane_row
+{
+    /* One floating-point texture texel retains the exact CPU recurrence.
+     * Padding supplies a stable RGBA upload layout without packed arithmetic. */
+    float step, source_y, reserved[2];
+} gpu_plane_row;
+
+typedef struct gpu_plane_sampling
+{
+    /* The renderer owns row storage and may reuse a validated prefix. Draw
+     * setup fills the remaining uniforms without changing cached row data. */
+    int enabled;
+    const gpu_plane_row *rows;
+    int valid_rows;
+    float origin[3]; /* Clipped left, unclipped top and horizontal scroll. */
+    float info[2];   /* Target midpoint relative to left, row texture height. */
+} gpu_plane_sampling;
+
 enum gpu_transform_result
 {
-    /* FAILED requests fallback; EMPTY and DRAWN both complete native handling. */
+    /* FAILED reports rejected geometry; EMPTY and DRAWN complete handling. */
     GPU_TRANSFORM_FAILED = -1,
     GPU_TRANSFORM_EMPTY = 0,
     GPU_TRANSFORM_DRAWN = 1
@@ -66,7 +94,9 @@ enum gpu_sampling_mode
     GPU_SAMPLE_FIXED8 = 2,
     GPU_SAMPLE_CONTINUOUS = 3,
     GPU_SAMPLE_AFFINE = 4,
-    GPU_SAMPLE_SHEAR = 5
+    GPU_SAMPLE_SHEAR = 5,
+    GPU_SAMPLE_WATER = 6,
+    GPU_SAMPLE_PLANE = 7
 };
 
 /*
@@ -85,11 +115,18 @@ int gpu_transform_draw(const gpu_transform_parameters *parameters,
                        const s_drawmethod *method,
                        gpu_transform_emit_quad emit, void *userdata);
 
-/* Optional native sampling removes shear row geometry when its exact shader
- * representation is available. NULL retains the established geometry path. */
+/* Optional native sampling removes expanded row geometry. NULL retains each
+ * established native geometry path; plane rows must be prepared beforehand. */
 int gpu_transform_draw_sampled(const gpu_transform_parameters *parameters,
                                const s_drawmethod *method, gpu_shear_sampling *shear,
+                               gpu_water_sampling *water, gpu_plane_sampling *plane,
                                gpu_transform_emit_quad emit, void *userdata);
+
+/* Prepare the exact plane recurrence once into caller-owned source_height
+ * records. Return its valid prefix length, including top-clipped rows; an
+ * invalid later row does not invalidate an earlier drawable prefix. */
+int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *parameters,
+                                     const s_drawmethod *method, gpu_plane_row *rows);
 
 /* The native renderer retains the affine sampling state alongside its quad.
  * Generic geometry callers can use gpu_transform_draw without retaining it. */

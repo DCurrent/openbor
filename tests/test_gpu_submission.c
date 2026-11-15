@@ -307,7 +307,86 @@ static void test_submission_shear(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Verify water and plane effects submit one real quad instead of row meshes.
+ * Integer phase steps and exact reciprocal scales provide independent pixels
+ * while upload interception proves six indices and four vertices per draw.
+ */
+static void test_submission_row_effects(void)
+{
+    s_screen *source = test_screen(8, 33, PIXEL_32);
+    s_screen *target = test_screen(16, 37, PIXEL_32);
+    unsigned expected[16 * 37];
+    int effect, row, x;
+    submission_fill_source(source);
+
+    for(effect = 0; effect < 5; ++effect)
+    {
+        s_drawmethod method = plainmethod;
+        gpu_renderer_stats before;
+        float source_y = 0.0f;
+        memset(expected, 0, sizeof(expected));
+        if(effect < 2)
+        {
+            method.water.watermode = (e_water_mode)(effect + 1);
+            method.water.amplitude = 2;
+            method.water.wavelength = 8.0f;
+            method.water.wavetime = 37;
+        }
+        else
+        {
+            method.water.watermode = WATER_MODE_SHEAR;
+            method.water.beginsize = method.water.endsize = 1.0f;
+            method.water.perspective = (e_water_perspective)(effect - 2);
+        }
+
+        /* The plane's selected origin aligns horizontal source texels at
+         * unit scale. Only its documented vertical recurrence changes rows. */
+        for(row = 0; row < source->height; ++row)
+        {
+            int shift = 0;
+            int sy = row;
+            if(effect < 2)
+            {
+                const float angle = (float)(2.0 * 3.14159265358979323846 / 256.0);
+                int phase = (37 + row * 32) % 256;
+                int anchor = effect == 0 ? (int)floorf((1.0f + sinf(37 * angle)) * 2 + 0.5f) : 2;
+                shift = (int)floorf((1.0f + sinf(phase * angle)) * 2 + 0.5f) - anchor;
+            }
+            else
+            {
+                sy = (int)source_y % source->height;
+                source_y += effect == 4 ? 33.0f / 8.0f : 1.0f;
+            }
+            for(x = 0; x < source->width; ++x)
+            {
+                expected[(row + 2) * target->width + 4 + shift + x] =
+                    ((unsigned *)source->data)[sy * source->width + x];
+            }
+        }
+        assert(gpu_clear_screen(target));
+        before = *gpu_gl_get_stats();
+        memset(&submission_calls, 0, sizeof(submission_calls));
+        assert(gpu_draw_screen(target, source, 4, 2, &method));
+        assert(submission_calls.draws == 1 && submission_calls.elements == 6);
+        assert(submission_calls.vertex_updates == 1);
+        assert(submission_calls.vertex_bytes == 4 * sizeof(gpu_vertex));
+        assert(submission_calls.vertex_bytes == 64);
+        assert(submission_calls.immediate_calls == 0);
+        assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->water_draws == before.water_draws + (effect < 2));
+        assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect >= 2));
+        submission_verify(target, expected, "single-quad water and plane");
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Exercise retained row geometry beyond the sampled water range.
  * Submit enough row geometry to roll the streaming VBO while retaining each
  * earlier draw's vertices and reusing the static quad-index buffer.
  */
@@ -326,14 +405,14 @@ static void test_submission_stream(void)
     assert(expected);
     submission_fill_source(source);
     method.water.watermode = WATER_MODE_SINE;
-    method.water.wavelength = 1;
+    method.water.wavelength = 0.5f;
     method.water.amplitude = 1;
     assert(gpu_clear_screen(target));
     memset(&submission_calls, 0, sizeof(submission_calls));
 
-    /* One full wave cycle per row gives every row the same anchored phase.
-     * Nonzero amplitude selects row geometry while leaving the expected image
-     * unwarped. Different columns expose stale VBO ranges after rollover. */
+    /* Two full wave cycles per row exceed the sampled shader's phase-step
+     * range while leaving every row unwarped. This deliberately retained
+     * geometry path keeps the stream test independent of fast water draws. */
     for(draw = 0; draw < repeats; ++draw)
     {
         assert(gpu_draw_screen(target, source, 1 + draw * 9, 2, &method));
@@ -361,6 +440,7 @@ static void test_submission_stream(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Keep real EBO growth through the retained water row path.
  * Fail EBO growth, VBO orphaning and vertex upload before destination writes,
  * then retry each operation to prove capacity and binding recovery.
  */
@@ -380,9 +460,10 @@ static void test_submission_failures(void)
     assert(expected);
     submission_fill_source(source);
     method.water.watermode = WATER_MODE_SINE;
-    /* The one-pixel wavelength advances exactly 256 phase units per row.
-     * Every row keeps the same displacement relative to its anchored origin. */
-    method.water.wavelength = 1;
+    /* A half-pixel wavelength advances exactly 512 phase units per row.
+     * This exceeds sampled-water eligibility while preserving a zero shift,
+     * so one instance still forces EBO growth before any destination write. */
+    method.water.wavelength = 0.5f;
     method.water.amplitude = 1;
 
     for(failure = 0; failure < sizeof(failures) / sizeof(failures[0]); ++failure)
@@ -471,6 +552,7 @@ static void test_submission_external_state(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Trace one-quad water and plane draws across context recreation.
  * Run the real native backend in two separate contexts. Submission tracing
  * proves buffered execution; image comparisons prove retained draw semantics.
  */
@@ -510,6 +592,7 @@ int main(void)
             test_submission_failures();
         }
         test_submission_shear();
+        test_submission_row_effects();
         test_submission_external_state();
         assert(submission_calls.immediate_calls == 0);
         gpu_gl_shutdown();
@@ -525,7 +608,7 @@ int main(void)
     SDL_DestroyWindow(window);
     SDL_Quit();
     printf("GPU buffered submission tests passed: streamed indexed triangles, VBO rollover, "
-           "six-index/64-byte shear, three atomic failure/retry cases, "
+           "six-index/64-byte shear, water and plane, three atomic failure/retry cases, "
            "vertex-state restoration and context recreation.\n");
     return 0;
 }

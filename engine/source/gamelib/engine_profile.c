@@ -115,7 +115,9 @@ static const char *const counter_names[EP_COUNT_COUNT] =
     "readbacks", "readback_bytes", "dest_copies", "dest_copy_bytes", "self_copies",
     "software_draws", "software_clears", "software_copies", "gpu_query_pairs",
     "gpu_query_dropped", "gpu_query_skipped", "native_chroma_draws",
-    "native_substitute_draws"
+    "native_substitute_draws", "native_water_draws", "native_plane_draws",
+    "plane_map_builds", "plane_map_reuses", "plane_map_uploads",
+    "plane_map_upload_bytes", "plane_rows_prepared"
 };
 
 static const char *const fallback_names[EP_FALLBACK_COUNT] =

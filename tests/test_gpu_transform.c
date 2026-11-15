@@ -230,6 +230,7 @@ static void test_scale_and_flip(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Pass independent water and plane sampling options explicitly.
  * Check optional shear sampling against hand values and the unchanged row
  * geometry contract, including clipped phases and extreme reflected shifts.
  */
@@ -252,7 +253,7 @@ static void test_sampled_shear_contract(void)
         memset(&sampled, 0, sizeof(sampled));
         memset(&legacy, 0, sizeof(legacy));
         assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
-        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
         assert(legacy.count == 1 && legacy.quads[0].wrap == GPU_SAMPLE_FIXED8);
         near_value(legacy.quads[0].vertices[0].x, width == 10 ? 3 : 2);
         near_value(legacy.quads[0].vertices[2].x, 10);
@@ -283,7 +284,7 @@ static void test_sampled_shear_contract(void)
     memset(&sampled, 0, sizeof(sampled));
     memset(&legacy, 0, sizeof(legacy));
     assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
-    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
     assert(legacy.count == 16 && sampling.enabled && sampled.count == 1);
     near_value(sampling.step[0], 0);
     near_value(sampling.step[1], 0);
@@ -311,7 +312,7 @@ static void test_sampled_shear_contract(void)
         memset(&sampled, 0, sizeof(sampled));
         memset(&legacy, 0, sizeof(legacy));
         assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
-        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
         assert(legacy.count == 1 && legacy.quads[0].wrap == GPU_SAMPLE_FIXED8);
         assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
         near_value(sampling.shift[0], index == 0 ? -8388608 : 8388608);
@@ -330,6 +331,7 @@ static void test_sampled_shear_contract(void)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Pass independent water and plane sampling options explicitly.
  * Bound optional sampler precision without requesting CPU pixel fallback.
  * Large visible shear uses one callback; empty coverage submits no geometry.
  */
@@ -348,7 +350,7 @@ static void test_sampled_shear_limits(void)
         p = (gpu_transform_parameters){2, 2, 8, 8, 0, 0, 0, 0, 0};
         *dimensions[dimension] = 65535;
         memset(&sampled, 0, sizeof(sampled));
-        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
         assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
 
         /* The next dimension is still valid native geometry. Explicitly
@@ -357,7 +359,7 @@ static void test_sampled_shear_limits(void)
         memset(&sampled, 0, sizeof(sampled));
         memset(&legacy, 0, sizeof(legacy));
         assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
-        assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
         assert(!sampling.enabled && legacy.count > 0 && sampled.count == legacy.count);
         assert(sampled.quads[0].wrap == GPU_SAMPLE_FIXED8);
         assert(!memcmp(sampled.quads, legacy.quads, (size_t)legacy.count * sizeof(legacy.quads[0])));
@@ -367,7 +369,7 @@ static void test_sampled_shear_limits(void)
      * contract without enlarging the capture helper's fixed capacity. */
     p = (gpu_transform_parameters){4, 60000, 512, 60000, 0, 0, 0, 0, 0};
     memset(&sampled, 0, sizeof(sampled));
-    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_DRAWN);
     assert(sampling.enabled && sampled.count == 1 && sampled.quads[0].wrap == GPU_SAMPLE_SHEAR);
     near_value(sampling.extent[2], 60000);
     near_value(sampled.quads[0].vertices[0].x, 0);
@@ -379,13 +381,13 @@ static void test_sampled_shear_limits(void)
      * both complete native handling without invoking the callback. */
     p = (gpu_transform_parameters){8, 4, 16, 16, 100, 0, 0, 0, 0};
     memset(&sampled, 0, sizeof(sampled));
-    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_EMPTY);
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_EMPTY);
     assert(!sampling.enabled && sampled.count == 0);
     p.source_width = 1;
     p.x = 0;
     m.scalex = 128;
     sampling.enabled = 1;
-    assert(gpu_transform_draw_sampled(&p, &m, &sampling, capture, &sampled) == GPU_TRANSFORM_EMPTY);
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL, capture, &sampled) == GPU_TRANSFORM_EMPTY);
     assert(!sampling.enabled && sampled.count == 0);
 }
 
@@ -514,6 +516,110 @@ static void test_water(void)
         near_value(state.quads[row].vertices[0].y, row);
         near_value(state.quads[row].vertices[0].v, row + 2.5f);
         assert(state.quads[row].wrap == 0);
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Prepare one water quad while retaining clipped phase and the documented
+ * legacy geometry path outside the shader's bounded approximation domain.
+ */
+static void test_sampled_water_contract(void)
+{
+    gpu_transform_parameters p = {8, 8, 64, 64, 20, -2, 0, 0, 0};
+    s_drawmethod m = method();
+    gpu_water_sampling water;
+    capture_state sampled, legacy;
+    int mode;
+    m.water.amplitude = 4;
+    m.water.wavelength = 8.0f;
+    m.water.wavetime = 37;
+    for(mode = 1; mode <= 2; ++mode)
+    {
+        m.water.watermode = (e_water_mode)mode;
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&water, 0, sizeof(water));
+        assert(gpu_transform_draw_sampled(&p, &m, NULL, &water, NULL,
+                                          capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(water.enabled && sampled.count == 1);
+        assert(sampled.quads[0].wrap == GPU_SAMPLE_WATER);
+        near_value(water.origin[0], 20);
+        near_value(water.origin[1], -2);
+        near_value(water.origin[2], 2);
+        near_value(water.wave[0], 101);
+        near_value(water.wave[1], 32);
+        near_value(water.wave[2], 4);
+        near_value(water.anchor, mode == 1 ?
+            floorf((1.0f + sinf((float)(37 * (2.0 * 3.14159265358979323846 / 256.0)))) * 4 + 0.5f) : 4);
+    }
+
+    /* Large phase steps and large fractional-wave amplitudes retain their
+     * existing native row mesh instead of silently changing displacement. */
+    for(mode = 0; mode < 2; ++mode)
+    {
+        m.water.watermode = WATER_MODE_SINE;
+        m.water.amplitude = mode ? 33 : 4;
+        m.water.wavelength = mode ? 10.5f : 0.5f;
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&legacy, 0, sizeof(legacy));
+        memset(&water, 0, sizeof(water));
+        assert(gpu_transform_draw(&p, &m, capture, &legacy) == GPU_TRANSFORM_DRAWN);
+        assert(gpu_transform_draw_sampled(&p, &m, NULL, &water, NULL,
+                                          capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(!water.enabled && sampled.count == legacy.count);
+        assert(!memcmp(sampled.quads, legacy.quads,
+                       (size_t)legacy.count * sizeof(legacy.quads[0])));
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Preserve the exact intrinsic plane recurrence in compact rows, then reuse
+ * that preparation for a single clipped quad without recomputing its map.
+ */
+static void test_sampled_plane_contract(void)
+{
+    gpu_transform_parameters p = {16, 12, 64, 64, 8, -3, 0, 0, 0};
+    s_drawmethod m = method();
+    gpu_plane_row rows[12];
+    gpu_plane_sampling plane;
+    capture_state sampled;
+    int perspective, row;
+    m.water.watermode = WATER_MODE_SHEAR;
+    m.water.beginsize = 0.75f;
+    m.water.endsize = 2.0f;
+    m.water.wavetime = 5;
+    for(perspective = WATER_PERSPECTIVE_NONE; perspective <= WATER_PERSPECTIVE_STRETCH; ++perspective)
+    {
+        float size = m.water.beginsize;
+        float factor = (m.water.endsize - size) / p.source_height;
+        float source_y = 0;
+        m.water.perspective = (e_water_perspective)perspective;
+        assert(gpu_transform_prepare_plane_rows(&p, &m, rows) == p.source_height);
+        for(row = 0; row < p.source_height; ++row, size += factor)
+        {
+            float step = 1.0f / size;
+            near_value(rows[row].step, step);
+            near_value(rows[row].source_y, (int)source_y % p.source_height);
+            source_y += perspective == WATER_PERSPECTIVE_TILE ? step :
+                        perspective == WATER_PERSPECTIVE_STRETCH ?
+                        step * p.source_height / p.source_width : 1.0f;
+        }
+        memset(&sampled, 0, sizeof(sampled));
+        memset(&plane, 0, sizeof(plane));
+        plane.rows = rows;
+        plane.valid_rows = p.source_height;
+        assert(gpu_transform_draw_sampled(&p, &m, NULL, NULL, &plane,
+                                          capture, &sampled) == GPU_TRANSFORM_DRAWN);
+        assert(plane.enabled && sampled.count == 1);
+        assert(sampled.quads[0].wrap == GPU_SAMPLE_PLANE);
+        near_value(plane.origin[0], 8);
+        near_value(plane.origin[1], -3);
+        near_value(plane.origin[2], 13);
+        near_value(plane.info[0], 24);
+        near_value(plane.info[1], 12);
     }
 }
 
@@ -781,6 +887,7 @@ static void test_affine_validation(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Check compact plane rows and bounded sampled-water eligibility.
  * 2026-11-14 - Exercise optional shear sampling and retained native rows.
  *
  * Run the standalone renderer arithmetic suite and report a concise result.
@@ -796,6 +903,8 @@ int main(void)
     test_rotation();
     test_plane();
     test_water();
+    test_sampled_water_contract();
+    test_sampled_plane_contract();
     test_validation();
     test_coordinate_limits();
     test_affine_mapping();

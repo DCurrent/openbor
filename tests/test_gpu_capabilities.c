@@ -35,6 +35,15 @@ typedef enum capability_case
     CAPABILITY_SHEAR_LINK,
     CAPABILITY_SHEAR_ONLY_UNIFORMS,
     CAPABILITY_COLOR_SHEAR_UNIFORMS,
+    CAPABILITY_WATER_COMPILE,
+    CAPABILITY_WATER_LINK,
+    CAPABILITY_PLANE_COMPILE,
+    CAPABILITY_PLANE_LINK,
+    CAPABILITY_FIVE_TEXTURE_UNITS,
+    CAPABILITY_FLOAT_TEXTURE_ALLOCATION,
+    CAPABILITY_WATER_ONLY_UNIFORMS,
+    CAPABILITY_RUNTIME_PLANE_ALLOCATION,
+    CAPABILITY_RUNTIME_PLANE_UPLOAD,
     CAPABILITY_COUNT
 } capability_case;
 
@@ -49,12 +58,20 @@ static const char *const capability_names[CAPABILITY_COUNT] =
     "missing buffer entry point", "buffer object allocation failure",
     "buffer storage allocation failure", "shear compile failure",
     "shear link failure", "shear-only uniform capacity",
-    "color and shear uniform capacity"
+    "color and shear uniform capacity", "water compile failure",
+    "water link failure", "plane compile failure", "plane link failure",
+    "five texture units", "floating plane texture allocation failure",
+    "water-only uniform capacity", "runtime plane texture allocation failure",
+    "runtime plane row upload failure"
 };
 static capability_case capability_mode;
 static unsigned capability_injected_compiles, capability_injected_links;
 static unsigned capability_affine_fragments, capability_legacy_fragments, capability_color_fragments;
 static unsigned capability_shear_fragments, capability_last_fragment_variant;
+static unsigned capability_water_fragments, capability_plane_fragments;
+static unsigned capability_float_probes, capability_float_failures;
+static unsigned capability_runtime_plane_allocations, capability_runtime_plane_updates;
+static unsigned capability_runtime_plane_failures;
 static unsigned capability_draw_elements, capability_elements;
 typedef void (APIENTRYP capability_draw_fn)(GLenum, GLsizei, GLenum, const void *);
 static capability_draw_fn capability_real_draw_elements;
@@ -64,6 +81,11 @@ static PFNGLCHECKFRAMEBUFFERSTATUSPROC capability_real_framebuffer_status;
 static PFNGLGENBUFFERSPROC capability_real_gen_buffers;
 static PFNGLDELETEBUFFERSPROC capability_real_delete_buffers;
 static PFNGLBUFFERDATAPROC capability_real_buffer_data;
+static PFNGLACTIVETEXTUREPROC capability_real_active_texture;
+static void (APIENTRY *capability_real_texture_image)(GLenum, GLint, GLint, GLsizei,
+                                                     GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+static void (APIENTRY *capability_real_texture_subimage)(GLenum, GLint, GLint, GLint,
+                                                        GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 static unsigned capability_buffer_generations, capability_buffer_failures;
 static unsigned capability_buffer_count, capability_buffer_deletions;
 static GLuint capability_buffers[2];
@@ -74,6 +96,7 @@ void *__real_SDL_GL_GetProcAddress(const char *name);
  * 2026-11-13
  * 2026-11-14 - Cover independent color and affine resource thresholds.
  * 2026-11-14 - Check shear budgets independently of retained material features.
+ * 2026-11-15 - Separate water uniform capacity from the optional plane sampler.
  * Restrict one reported resource without changing the actual test context.
  */
 static void APIENTRY capability_get_integer(GLenum name, GLint *value)
@@ -99,6 +122,10 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
     {
         *value = 192;
     }
+    else if(capability_mode == CAPABILITY_WATER_ONLY_UNIFORMS && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    {
+        *value = 80;
+    }
     else if(capability_mode == CAPABILITY_INVALID_QUERY && name == GL_MAX_FRAGMENT_UNIFORM_COMPONENTS)
     {
         /* An unsupported limit produces a real driver error. Startup must
@@ -109,6 +136,10 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
     else if(capability_mode == CAPABILITY_LOW_TEXTURE_UNITS && name == GL_MAX_TEXTURE_IMAGE_UNITS)
     {
         *value = 4;
+    }
+    else if(capability_mode == CAPABILITY_FIVE_TEXTURE_UNITS && name == GL_MAX_TEXTURE_IMAGE_UNITS)
+    {
+        *value = 5;
     }
     else if(capability_mode == CAPABILITY_SMALL_TEXTURES && name == GL_MAX_TEXTURE_SIZE)
     {
@@ -125,6 +156,7 @@ static void APIENTRY capability_get_integer(GLenum name, GLint *value)
  * 2026-11-13
  * 2026-11-14 - Reject color and combined variants independently.
  * 2026-11-14 - Reject optional shear without losing affine or color features.
+ * 2026-11-15 - Isolate water and plane compilation/link failures independently.
  * Exercise genuine compiler/linker failures for the selected shader variant.
  */
 static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
@@ -134,17 +166,19 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
     PFNGLGETSHADERIVPROC get_shader =
         (PFNGLGETSHADERIVPROC)__real_SDL_GL_GetProcAddress("glGetShaderiv");
     GLint type;
-    int part, affine = 0, legacy = 0, color = 0, shear = 0;
+    int part, affine = 0, legacy = 0, color = 0, shear = 0, water = 0, plane = 0;
 
     /* The source define identifies the optional implementation. Valid legacy
      * retries still compile and link on the real driver. */
     get_shader(shader, GL_SHADER_TYPE, &type);
     for(part = 0; part < count; ++part)
     {
-        if(strstr(strings[part], "#define GPU_AFFINE 1")) affine = 1;
-        if(strstr(strings[part], "#define GPU_AFFINE 0")) legacy = 1;
-        if(strstr(strings[part], "#define GPU_COLOR_RULES 1")) color = 1;
-        if(strstr(strings[part], "#define GPU_SHEAR 1")) shear = 1;
+        if(strstr(strings[part], "#define GPU_AFFINE 1")) { affine = 1; }
+        if(strstr(strings[part], "#define GPU_AFFINE 0")) { legacy = 1; }
+        if(strstr(strings[part], "#define GPU_COLOR_RULES 1")) { color = 1; }
+        if(strstr(strings[part], "#define GPU_SHEAR 1")) { shear = 1; }
+        if(strstr(strings[part], "#define GPU_WATER 1")) { water = 1; }
+        if(strstr(strings[part], "#define GPU_PLANE 1")) { plane = 1; }
     }
     if(type == GL_FRAGMENT_SHADER)
     {
@@ -152,12 +186,17 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
         capability_legacy_fragments += legacy;
         capability_color_fragments += color;
         capability_shear_fragments += shear;
-        capability_last_fragment_variant = (unsigned)(affine | (color << 1) | (shear << 2));
+        capability_water_fragments += water;
+        capability_plane_fragments += plane;
+        capability_last_fragment_variant = (unsigned)(affine | (color << 1) | (shear << 2) |
+                                                     (water << 3) | (plane << 4));
         if(capability_mode == CAPABILITY_ALL_COMPILE ||
            (capability_mode == CAPABILITY_AFFINE_COMPILE && affine) ||
            (capability_mode == CAPABILITY_COLOR_COMPILE && color) ||
            (capability_mode == CAPABILITY_COMBINED_COMPILE && affine && color) ||
-           (capability_mode == CAPABILITY_SHEAR_COMPILE && shear))
+           (capability_mode == CAPABILITY_SHEAR_COMPILE && shear) ||
+           (capability_mode == CAPABILITY_WATER_COMPILE && water) ||
+           (capability_mode == CAPABILITY_PLANE_COMPILE && plane))
         {
             const GLchar *invalid = "#version 120\n#error injected_capability_compile_failure\n";
             ++capability_injected_compiles;
@@ -166,7 +205,9 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
         }
         if((capability_mode == CAPABILITY_AFFINE_LINK && affine) ||
            (capability_mode == CAPABILITY_COLOR_LINK && color) ||
-           (capability_mode == CAPABILITY_SHEAR_LINK && shear))
+           (capability_mode == CAPABILITY_SHEAR_LINK && shear) ||
+           (capability_mode == CAPABILITY_WATER_LINK && water) ||
+           (capability_mode == CAPABILITY_PLANE_LINK && plane))
         {
             /* Vertex output uses vec2. A used vec3 input compiles separately
              * but must fail the real program's interface-link validation. */
@@ -271,6 +312,84 @@ static void APIENTRY capability_buffer_data(GLenum target, GLsizeiptr size,
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Reject the actual optional RGBA32F probe without changing ordinary RGB32
+ * texture support, or reject one later plane allocation after healthy startup.
+ * The real GL error must be consumed before native drawing.
+ */
+static void APIENTRY capability_texture_image(GLenum target, GLint level, GLint internal_format,
+                                               GLsizei width, GLsizei height, GLint border,
+                                               GLenum format, GLenum type, const GLvoid *pixels)
+{
+    if(internal_format == 0x8814 && type == GL_FLOAT && width == 1 && height == 1)
+    {
+        ++capability_float_probes;
+        if(capability_mode == CAPABILITY_FLOAT_TEXTURE_ALLOCATION)
+        {
+            ++capability_float_failures;
+            capability_real_texture_image(target, level, -1, width, height, border,
+                                           format, type, pixels);
+            return;
+        }
+    }
+    if(internal_format == 0x8814 && type == GL_FLOAT && width == 1 && height > 1)
+    {
+        ++capability_runtime_plane_allocations;
+        if(capability_mode == CAPABILITY_RUNTIME_PLANE_ALLOCATION &&
+           !capability_runtime_plane_failures)
+        {
+            ++capability_runtime_plane_failures;
+            capability_real_texture_image(target, level, -1, width, height, border,
+                                           format, type, pixels);
+            return;
+        }
+    }
+    capability_real_texture_image(target, level, internal_format, width, height, border,
+                                   format, type, pixels);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Fail one real row-data upload after texture allocation succeeds. Later
+ * retries use the ordinary driver and must recover the same cached mapping.
+ */
+static void APIENTRY capability_texture_subimage(GLenum target, GLint level, GLint x, GLint y,
+                                                  GLsizei width, GLsizei height, GLenum format,
+                                                  GLenum type, const GLvoid *pixels)
+{
+    if(type == GL_FLOAT && width == 1 && height > 1)
+    {
+        ++capability_runtime_plane_updates;
+        if(capability_mode == CAPABILITY_RUNTIME_PLANE_UPLOAD &&
+           !capability_runtime_plane_failures)
+        {
+            ++capability_runtime_plane_failures;
+            capability_real_texture_subimage((GLenum)0xffffffffu, level, x, y, width, height,
+                                              format, type, pixels);
+            return;
+        }
+    }
+    capability_real_texture_subimage(target, level, x, y, width, height, format, type, pixels);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Five-unit contexts must retain ordinary rendering without selecting the
+ * unavailable sixth sampler, including presentation-state restoration.
+ */
+static void APIENTRY capability_active_texture(GLenum texture)
+{
+    if(capability_mode == CAPABILITY_FIVE_TEXTURE_UNITS)
+    {
+        assert(texture >= GL_TEXTURE0 && texture < GL_TEXTURE0 + 5);
+    }
+    capability_real_active_texture(texture);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Distinguish one shader-sampled shear quad from retained CPU row geometry.
  * Keep the ordinary indexed submission active for the pixel comparison.
@@ -289,6 +408,7 @@ static void APIENTRY capability_submit_elements(GLenum mode, GLsizei count,
  * 2026-11-13
  * 2026-11-14 - Restrict required buffer functions and startup allocations.
  * 2026-11-14 - Observe native shear geometry without production test hooks.
+ * 2026-11-15 - Probe floating row textures and enforce the available sampler range.
  * Intercept only selected capabilities through the existing dynamic GL loader.
  */
 void *__wrap_SDL_GL_GetProcAddress(const char *name)
@@ -340,6 +460,23 @@ void *__wrap_SDL_GL_GetProcAddress(const char *name)
     {
         capability_real_draw_elements = (capability_draw_fn)entry;
         return entry ? (void *)capability_submit_elements : NULL;
+    }
+    if(!strcmp(name, "glTexImage2D"))
+    {
+        capability_real_texture_image = (void (APIENTRY *)(GLenum, GLint, GLint, GLsizei,
+                                          GLsizei, GLint, GLenum, GLenum, const GLvoid *))entry;
+        return entry ? (void *)capability_texture_image : NULL;
+    }
+    if(!strcmp(name, "glTexSubImage2D"))
+    {
+        capability_real_texture_subimage = (void (APIENTRY *)(GLenum, GLint, GLint, GLint,
+                                              GLsizei, GLsizei, GLenum, GLenum, const GLvoid *))entry;
+        return entry ? (void *)capability_texture_subimage : NULL;
+    }
+    if(!strcmp(name, "glActiveTexture") || !strcmp(name, "glActiveTextureARB"))
+    {
+        capability_real_active_texture = (PFNGLACTIVETEXTUREPROC)entry;
+        return entry ? (void *)capability_active_texture : NULL;
     }
     return entry;
 }
@@ -413,12 +550,145 @@ static void capability_check_shear(int shear_expected)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Require independent water/plane capability failures to preserve native
+ * material pixels, while successful variants reduce each image to one quad.
+ * Runtime row-texture failures must recover without rebuilding the mapping.
+ */
+static void capability_check_row_effects(int water_expected, int plane_expected)
+{
+    static const unsigned colors[] =
+    {
+        0x00112335, 0x0047596b,
+        0x007d8fa1, 0x00b3c5d7,
+        0x00e91b2d, 0x003f5163
+    };
+    const unsigned background = 0x0013579b;
+    s_screen *source = test_screen(2, 3, PIXEL_32);
+    s_screen *target = test_screen(8, 6, PIXEL_32);
+    int runtime_failure = capability_mode == CAPABILITY_RUNTIME_PLANE_ALLOCATION ||
+                          capability_mode == CAPABILITY_RUNTIME_PLANE_UPLOAD;
+    int effect, x, y;
+
+    memcpy(source->data, colors, sizeof(colors));
+    for(effect = 0; effect < 2; ++effect)
+    {
+        s_drawmethod method = plainmethod;
+        int attempt, attempts = effect && runtime_failure ? 3 : 1;
+        if(effect)
+        {
+            method.water.watermode = WATER_MODE_SHEAR;
+            method.water.beginsize = method.water.endsize = 1.0f;
+            method.water.perspective = WATER_PERSPECTIVE_TILE;
+        }
+        else
+        {
+            method.water.watermode = WATER_MODE_SINE;
+            method.water.amplitude = 1;
+            method.water.wavelength = 4.0f;
+        }
+        for(attempt = 0; attempt < attempts; ++attempt)
+        {
+            gpu_renderer_stats before;
+            int sampled = effect ? plane_expected : water_expected;
+            if(effect && runtime_failure && !attempt)
+            {
+                sampled = 0;
+            }
+            assert(gpu_draw_box(target, 0, 0, 8, 6, background, &plainmethod));
+            before = *gpu_gl_get_stats();
+            capability_draw_elements = capability_elements = 0;
+            assert(gpu_draw_screen(target, source, 2, 1, &method));
+            assert(gpu_gl_get_stats()->draws == before.draws + 1);
+            assert(gpu_gl_get_stats()->fallback_draws == before.fallback_draws);
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(capability_draw_elements == 1);
+            assert(capability_elements == (sampled ? 6u : 18u));
+            assert(gpu_gl_get_stats()->water_draws == before.water_draws + (!effect && sampled));
+            assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect && sampled));
+            assert(glGetError() == GL_NO_ERROR);
+            if(effect && runtime_failure)
+            {
+                /* Failed optional uploads leave the prepared rows reusable.
+                 * The next draw uploads once; a third draw reuses residency. */
+                assert(capability_runtime_plane_failures == 1);
+                assert(gpu_gl_get_stats()->plane_map_builds == before.plane_map_builds + (attempt == 0));
+                assert(gpu_gl_get_stats()->plane_rows_prepared == before.plane_rows_prepared + (attempt == 0 ? 3u : 0u));
+                assert(gpu_gl_get_stats()->plane_map_reuses == before.plane_map_reuses + (attempt != 0));
+                assert(gpu_gl_get_stats()->plane_map_uploads == before.plane_map_uploads + (attempt == 1));
+                assert(gpu_gl_get_stats()->plane_map_upload_bytes == before.plane_map_upload_bytes + (attempt == 1 ? 48u : 0u));
+            }
+            gpu_sync_cpu(target);
+
+            /* Integral water phase gives displacements 0/1/0. The unit plane
+             * maps the same image unchanged, including signed horizontal wrap. */
+            for(y = 0; y < target->height; ++y)
+            {
+                int left = 2 + (!effect && y == 2);
+                for(x = 0; x < target->width; ++x)
+                {
+                    unsigned expected = background;
+                    if(y >= 1 && y <= 3 && x >= left && x < left + 2)
+                    {
+                        expected = colors[(y - 1) * 2 + x - left];
+                    }
+                    assert(test_pixel(target, x, y) == expected);
+                }
+            }
+        }
+    }
+    gpu_gl_prepare_present();
+    assert(glGetError() == GL_NO_ERROR);
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * State expected feature retention explicitly for each injected failure or
+ * resource limit, independently from the production variant-selection loop.
+ */
+static int capability_expected_variant(capability_case mode)
+{
+    switch(mode)
+    {
+    case CAPABILITY_HEALTHY:
+    case CAPABILITY_RUNTIME_PLANE_ALLOCATION:
+    case CAPABILITY_RUNTIME_PLANE_UPLOAD: return 31;
+    case CAPABILITY_LOW_UNIFORMS: return 0;
+    case CAPABILITY_AFFINE_COMPILE:
+    case CAPABILITY_AFFINE_LINK: return 30;
+    case CAPABILITY_COLOR_COMPILE:
+    case CAPABILITY_COLOR_LINK:
+    case CAPABILITY_COMBINED_COMPILE: return 29;
+    case CAPABILITY_AFFINE_ONLY_UNIFORMS: return 1;
+    case CAPABILITY_COLOR_ONLY_UNIFORMS: return 2;
+    case CAPABILITY_SHEAR_COMPILE:
+    case CAPABILITY_SHEAR_LINK: return 27;
+    case CAPABILITY_SHEAR_ONLY_UNIFORMS: return 4;
+    case CAPABILITY_COLOR_SHEAR_UNIFORMS: return 6;
+    case CAPABILITY_WATER_COMPILE:
+    case CAPABILITY_WATER_LINK: return 23;
+    case CAPABILITY_PLANE_COMPILE:
+    case CAPABILITY_PLANE_LINK:
+    case CAPABILITY_FIVE_TEXTURE_UNITS:
+    case CAPABILITY_FLOAT_TEXTURE_ALLOCATION: return 15;
+    case CAPABILITY_WATER_ONLY_UNIFORMS: return 8;
+    default: return -1;
+    }
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Verify unavailable color rules leave ordinary native draws intact.
  * 2026-11-14 - Require buffered startup success or explicit coherent fallback.
  * 2026-11-14 - Retain independent features and native pixels without shear.
  * 2026-11-15 - Require truthful rejection diagnostics without CPU retry promises.
  * 2026-11-15 - Report RGB32 scenes separately from indexed artwork sources.
+ * 2026-11-15 - Verify independent water/plane capability failures and retained pixels.
+ * 2026-11-15 - Recover runtime plane allocation/upload failures with one bounded warning.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
@@ -426,14 +696,21 @@ static void capability_run(SDL_Window *window, capability_case mode)
     SDL_GLContext context;
     FILE *capture;
     int saved_stdout, native_expected, affine_expected, color_expected, shear_expected, result, index;
+    int expected_variant, water_expected, plane_expected;
+    int runtime_failure = mode == CAPABILITY_RUNTIME_PLANE_ALLOCATION ||
+                          mode == CAPABILITY_RUNTIME_PLANE_UPLOAD;
     gpu_renderer_stats before_init;
     long startup_bytes, final_bytes;
-    char log[32768];
+    char log[131072];
 
     capability_mode = mode;
     capability_injected_compiles = capability_injected_links = 0;
     capability_affine_fragments = capability_legacy_fragments = capability_color_fragments = 0;
     capability_shear_fragments = capability_last_fragment_variant = 0;
+    capability_water_fragments = capability_plane_fragments = 0;
+    capability_float_probes = capability_float_failures = 0;
+    capability_runtime_plane_allocations = capability_runtime_plane_updates = 0;
+    capability_runtime_plane_failures = 0;
     capability_draw_elements = capability_elements = 0;
     capability_buffer_generations = capability_buffer_failures = 0;
     capability_buffer_count = capability_buffer_deletions = 0;
@@ -460,25 +737,13 @@ static void capability_run(SDL_Window *window, capability_case mode)
     startup_bytes = ftell(capture);
     assert(startup_bytes > 0);
 
-    native_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_LOW_UNIFORMS ||
-                      mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK ||
-                      mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COLOR_LINK ||
-                      mode == CAPABILITY_COMBINED_COMPILE || mode == CAPABILITY_AFFINE_ONLY_UNIFORMS ||
-                      mode == CAPABILITY_COLOR_ONLY_UNIFORMS || mode == CAPABILITY_SHEAR_COMPILE ||
-                      mode == CAPABILITY_SHEAR_LINK || mode == CAPABILITY_SHEAR_ONLY_UNIFORMS ||
-                      mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
-    affine_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_COLOR_COMPILE ||
-                      mode == CAPABILITY_COLOR_LINK || mode == CAPABILITY_COMBINED_COMPILE ||
-                      mode == CAPABILITY_AFFINE_ONLY_UNIFORMS || mode == CAPABILITY_SHEAR_COMPILE ||
-                      mode == CAPABILITY_SHEAR_LINK;
-    color_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_AFFINE_COMPILE ||
-                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_ONLY_UNIFORMS ||
-                     mode == CAPABILITY_SHEAR_COMPILE || mode == CAPABILITY_SHEAR_LINK ||
-                     mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
-    shear_expected = mode == CAPABILITY_HEALTHY || mode == CAPABILITY_AFFINE_COMPILE ||
-                     mode == CAPABILITY_AFFINE_LINK || mode == CAPABILITY_COLOR_COMPILE ||
-                     mode == CAPABILITY_COLOR_LINK || mode == CAPABILITY_COMBINED_COMPILE ||
-                     mode == CAPABILITY_SHEAR_ONLY_UNIFORMS || mode == CAPABILITY_COLOR_SHEAR_UNIFORMS;
+    expected_variant = capability_expected_variant(mode);
+    native_expected = expected_variant >= 0;
+    affine_expected = native_expected && (expected_variant & 1) != 0;
+    color_expected = native_expected && (expected_variant & 2) != 0;
+    shear_expected = native_expected && (expected_variant & 4) != 0;
+    water_expected = native_expected && (expected_variant & 8) != 0;
+    plane_expected = native_expected && (expected_variant & 16) != 0;
     assert(result == native_expected && gpu_is_active() == native_expected);
     if(mode == CAPABILITY_INVALID_QUERY) assert(glGetError() == GL_NO_ERROR);
     if(mode == CAPABILITY_MISSING_BUFFER_ENTRY ||
@@ -577,15 +842,22 @@ static void capability_run(SDL_Window *window, capability_case mode)
         }
         assert(gpu_gl_get_stats()->fallback_draws == color_fallbacks);
         assert(gpu_gl_get_stats()->draws > color_draws);
-        assert(capability_last_fragment_variant ==
-               (unsigned)(affine_expected | (color_expected << 1) | (shear_expected << 2)));
+        assert(capability_last_fragment_variant == (unsigned)expected_variant);
         capability_check_shear(shear_expected);
+        capability_check_row_effects(water_expected, plane_expected);
         release_test_screen(target);
         release_test_screen(source);
     }
     assert(fflush(stdout) == 0);
     final_bytes = ftell(capture);
-    assert(final_bytes == startup_bytes);
+    if(runtime_failure)
+    {
+        assert(final_bytes > startup_bytes);
+    }
+    else
+    {
+        assert(final_bytes == startup_bytes);
+    }
 
     /* Read the complete report after restoring stdout so failures can include
      * the captured evidence without writing into their own input stream. */
@@ -598,6 +870,23 @@ static void capability_run(SDL_Window *window, capability_case mode)
     assert(fclose(capture) == 0);
     capability_expect(log, "[GPU] ========== GPU CAPABILITY REPORT ==========");
     assert(!strstr(log, "[ENGINE PROFILE]"));
+    if(runtime_failure)
+    {
+        const char *warning = strstr(log, "WARNING: Plane row-map upload failed;");
+        assert(warning);
+        assert(!strstr(warning + 1, "WARNING: Plane row-map upload failed;"));
+        capability_expect(log, "WARNING: Plane row-map upload failed; retaining CPU row geometry with native pixel rendering.");
+        assert(capability_runtime_plane_allocations == 2);
+        assert(capability_runtime_plane_updates ==
+               (mode == CAPABILITY_RUNTIME_PLANE_ALLOCATION ? 1u : 2u));
+        assert(capability_runtime_plane_failures == 1);
+        assert(capability_float_probes == 1 && capability_float_failures == 0);
+        assert(glGetError() == GL_NO_ERROR);
+    }
+    else
+    {
+        assert(!strstr(log, "WARNING: Plane row-map upload failed;"));
+    }
     capability_expect(log, affine_expected ?
         "RESULT: NATIVE - native scene rendering and affine transforms available." :
         native_expected ?
@@ -617,11 +906,35 @@ static void capability_run(SDL_Window *window, capability_case mode)
             capability_expect(log, "WARNING: Legacy shear shader unavailable; retaining CPU row geometry with native pixel rendering.");
         else
             assert(!strstr(log, "WARNING: Legacy shear shader unavailable;"));
+        capability_expect(log, water_expected ?
+            "Sine water sampling:               NATIVE - shader sampling, one quad" :
+            "Sine water sampling:               CPU - row geometry; native pixels");
+        capability_expect(log, plane_expected ?
+            "Plane row sampling:                NATIVE - cached rows, one quad" :
+            "Plane row sampling:                CPU - row geometry; native pixels");
+        if(!water_expected)
+        {
+            capability_expect(log, "WARNING: Water sampling shader unavailable; retaining CPU row geometry with native pixel rendering.");
+        }
+        else
+        {
+            assert(!strstr(log, "WARNING: Water sampling shader unavailable;"));
+        }
+        if(!plane_expected)
+        {
+            capability_expect(log, "WARNING: Compact plane sampling unavailable; retaining CPU row geometry with native pixel rendering.");
+        }
+        else
+        {
+            assert(!strstr(log, "WARNING: Compact plane sampling unavailable;"));
+        }
     }
     else
     {
         capability_expect(log, "Legacy shear setup:");
         capability_expect(log, "UNAVAILABLE - RGB32 drawing disabled");
+        capability_expect(log, "Sine water sampling:               UNAVAILABLE");
+        capability_expect(log, "Plane row sampling:                UNAVAILABLE");
     }
     capability_expect(log, color_expected ?
         "Chroma key execution:              NATIVE - available" :
@@ -648,10 +961,12 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "If native affine is unavailable:   Draw rejected; no software retry");
         capability_expect(log, "If color rules are unavailable:    Ignored; no software implementation.");
         capability_expect(log, "Legacy shear requested by retry:");
+        capability_expect(log, "Water sampling requested by retry:");
+        capability_expect(log, "Plane sampling requested by retry:");
     }
     /* A capable native backend can still be hosted by llvmpipe. Its separate
      * software-driver warning must not be confused with an engine fallback. */
-    if(mode == CAPABILITY_HEALTHY)
+    if(mode == CAPABILITY_HEALTHY || runtime_failure)
     {
         capability_expect(log, "GLSL");
         capability_expect(log, "Maximum texture size:");
@@ -659,6 +974,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
         capability_expect(log, "Fragment uniform components:");
         assert(capability_affine_fragments == 1 && capability_legacy_fragments == 0);
         assert(capability_color_fragments == 1 && capability_shear_fragments == 1);
+        assert(capability_water_fragments == 1 && capability_plane_fragments == 1);
     }
     if(mode == CAPABILITY_LOW_UNIFORMS)
     {
@@ -700,37 +1016,41 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, "shader compilation failed");
         capability_expect(log, "injected_capability_compile_failure");
-        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 8u : 4u));
+        assert(capability_injected_compiles == (mode == CAPABILITY_ALL_COMPILE ? 32u : 16u));
         if(mode == CAPABILITY_ALL_COMPILE)
         {
-            assert(capability_affine_fragments == 4 && capability_legacy_fragments == 4);
-            assert(capability_color_fragments == 4 && capability_shear_fragments == 4);
+            assert(capability_affine_fragments == 16 && capability_legacy_fragments == 16);
+            assert(capability_color_fragments == 16 && capability_shear_fragments == 16);
+            assert(capability_water_fragments == 16 && capability_plane_fragments == 16);
         }
     }
     if(mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "shader link failed");
-        assert(capability_injected_links == 4);
+        assert(capability_injected_links == 16);
     }
     if(mode == CAPABILITY_AFFINE_COMPILE || mode == CAPABILITY_AFFINE_LINK)
     {
         capability_expect(log, "affine");
-        assert(capability_affine_fragments == 4 && capability_color_fragments == 3);
-        assert(capability_shear_fragments == 3);
+        assert(capability_affine_fragments == 16 && capability_color_fragments == 9);
+        assert(capability_shear_fragments == 9);
+        assert(capability_water_fragments == 9 && capability_plane_fragments == 9);
     }
     if(mode == CAPABILITY_COLOR_COMPILE || mode == CAPABILITY_COMBINED_COMPILE)
     {
         capability_expect(log, "shader compilation failed");
-        assert(capability_injected_compiles == 2);
-        assert(capability_affine_fragments == 3 && capability_color_fragments == 2);
-        assert(capability_shear_fragments == 2);
+        assert(capability_injected_compiles == 8);
+        assert(capability_affine_fragments == 9 && capability_color_fragments == 8);
+        assert(capability_shear_fragments == 5);
+        assert(capability_water_fragments == 5 && capability_plane_fragments == 5);
     }
     if(mode == CAPABILITY_COLOR_LINK)
     {
         capability_expect(log, "shader link failed");
-        assert(capability_injected_links == 2);
-        assert(capability_affine_fragments == 3 && capability_color_fragments == 2);
-        assert(capability_shear_fragments == 2);
+        assert(capability_injected_links == 8);
+        assert(capability_affine_fragments == 9 && capability_color_fragments == 8);
+        assert(capability_shear_fragments == 5);
+        assert(capability_water_fragments == 5 && capability_plane_fragments == 5);
     }
     if(mode == CAPABILITY_AFFINE_ONLY_UNIFORMS)
     {
@@ -756,10 +1076,51 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, mode == CAPABILITY_SHEAR_COMPILE ?
             "shader compilation failed" : "shader link failed");
-        assert(capability_injected_compiles == (mode == CAPABILITY_SHEAR_COMPILE ? 1u : 0u));
-        assert(capability_injected_links == (mode == CAPABILITY_SHEAR_LINK ? 1u : 0u));
+        assert(capability_injected_compiles == (mode == CAPABILITY_SHEAR_COMPILE ? 4u : 0u));
+        assert(capability_injected_links == (mode == CAPABILITY_SHEAR_LINK ? 4u : 0u));
+        assert(capability_affine_fragments == 5 && capability_color_fragments == 5);
+        assert(capability_shear_fragments == 4 && capability_legacy_fragments == 0);
+        assert(capability_water_fragments == 3 && capability_plane_fragments == 3);
+    }
+    if(mode == CAPABILITY_WATER_COMPILE || mode == CAPABILITY_WATER_LINK)
+    {
+        capability_expect(log, mode == CAPABILITY_WATER_COMPILE ?
+            "shader compilation failed" : "shader link failed");
+        assert(capability_injected_compiles == (mode == CAPABILITY_WATER_COMPILE ? 2u : 0u));
+        assert(capability_injected_links == (mode == CAPABILITY_WATER_LINK ? 2u : 0u));
+        assert(capability_affine_fragments == 3 && capability_color_fragments == 3);
+        assert(capability_shear_fragments == 3 && capability_water_fragments == 2);
+        assert(capability_plane_fragments == 2 && capability_legacy_fragments == 0);
+    }
+    if(mode == CAPABILITY_PLANE_COMPILE || mode == CAPABILITY_PLANE_LINK)
+    {
+        capability_expect(log, mode == CAPABILITY_PLANE_COMPILE ?
+            "shader compilation failed" : "shader link failed");
+        assert(capability_injected_compiles == (mode == CAPABILITY_PLANE_COMPILE ? 1u : 0u));
+        assert(capability_injected_links == (mode == CAPABILITY_PLANE_LINK ? 1u : 0u));
         assert(capability_affine_fragments == 2 && capability_color_fragments == 2);
-        assert(capability_shear_fragments == 1 && capability_legacy_fragments == 0);
+        assert(capability_shear_fragments == 2 && capability_water_fragments == 2);
+        assert(capability_plane_fragments == 1 && capability_legacy_fragments == 0);
+    }
+    if(mode == CAPABILITY_FIVE_TEXTURE_UNITS || mode == CAPABILITY_FLOAT_TEXTURE_ALLOCATION)
+    {
+        capability_expect(log, "Floating plane-row textures:       UNAVAILABLE (sixth sampler required)");
+        assert(capability_affine_fragments == 1 && capability_color_fragments == 1);
+        assert(capability_shear_fragments == 1 && capability_water_fragments == 1);
+        assert(capability_plane_fragments == 0 && capability_legacy_fragments == 0);
+        assert(capability_float_probes == (mode == CAPABILITY_FIVE_TEXTURE_UNITS ? 0u : 1u));
+        assert(capability_float_failures == (mode == CAPABILITY_FIVE_TEXTURE_UNITS ? 0u : 1u));
+        if(mode == CAPABILITY_FLOAT_TEXTURE_ALLOCATION)
+        {
+            capability_expect(log, "WARNING: Floating plane-row textures unavailable;");
+        }
+        assert(glGetError() == GL_NO_ERROR);
+    }
+    if(mode == CAPABILITY_WATER_ONLY_UNIFORMS)
+    {
+        assert(capability_affine_fragments == 0 && capability_color_fragments == 0);
+        assert(capability_shear_fragments == 0 && capability_plane_fragments == 0);
+        assert(capability_water_fragments == 1 && capability_legacy_fragments == 1);
     }
     if(mode == CAPABILITY_INCOMPLETE_FRAMEBUFFER)
         capability_expect(log, "RGB32 framebuffer probe failed");
@@ -776,6 +1137,8 @@ static void capability_run(SDL_Window *window, capability_case mode)
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-14 - Include optional shear failures and separate uniform budgets.
+ * 2026-11-15 - Cover independent water/plane shaders and floating row-texture support.
+ * 2026-11-15 - Verify runtime row-texture failure recovery and resident cache reuse.
  * Exercise capability reports with all profiling disabled from process start.
  */
 int main(void)
@@ -818,6 +1181,6 @@ int main(void)
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU capability log tests passed: 24 startup scenarios, optional shear and retained row geometry, buffered submission and allocation cleanup, native-only color rules, ignored unavailable effects, retained ordinary draws, profiler opt-out, no draw-time spam.");
+    printf("GPU capability log tests passed: %d scenarios, independent shear/water/plane variants, floating row-texture and sampler limits, runtime plane upload recovery, retained native pixels, buffered allocation cleanup, native-only color rules, profiler opt-out, no draw-time spam.\n", CAPABILITY_COUNT);
     return 0;
 }
