@@ -117,12 +117,14 @@ static void test_presenter_state_boundaries(s_screen *screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Exercise production presentation, mode switching, CPU-filter fallback and
+ * 2026-11-15 - Require native RGB32 through mode failures and context teardown.
+ * Exercise production presentation, mode switching, unported CPU filters and
  * YUV transitions without linking unrelated game/audio subsystems.
  */
 int main(void)
 {
     s_videomodes mode = { .hRes = 8, .vRes = 8, .pixel = 4 };
+    s_videomodes legacy_mode = { .hRes = 8, .vRes = 8, .pixel = 2 };
     s_videomodes closed = {0};
     s_screen *screen = test_screen(8, 8, PIXEL_32);
     yuv_video_mode movie_mode = {8, 8, 8, 8};
@@ -140,7 +142,8 @@ int main(void)
         return 77;
     }
     nativeWidth = nativeHeight = 64;
-    savedata.usegl = 1;
+    /* A legacy SDL preference must not select software for migrated RGB32. */
+    savedata.usegl = 0;
     savedata.hwscale = 1.0f;
     if(!video_set_mode(mode) || !opengl)
     {
@@ -152,6 +155,7 @@ int main(void)
     /* Distinct top/bottom strips expose inverted presentation, while the
      * center fill verifies pixels survive the native-target handoff. */
     assert(gpu_is_active());
+    assert(savedata.usegl == 1);
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00123456, &plainmethod));
     assert(gpu_draw_box(screen, 0, 0, 8, 1, 0x000000ff, &plainmethod));
     assert(gpu_draw_box(screen, 0, 7, 8, 1, 0x0000ff00, &plainmethod));
@@ -170,6 +174,7 @@ int main(void)
     savedata.hwscale = 2.0f;
     assert(video_set_mode(mode));
     assert(opengl && !gpu_is_active());
+    assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
 
     /* Returning from a CPU filter must restore native drawing. Entering YUV
@@ -184,26 +189,58 @@ int main(void)
     memset(chroma_v, 128, sizeof(chroma_v));
     assert(video_setup_yuv_overlay(&movie_mode));
     assert(!gpu_is_active());
+    assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(test_pixel(screen, 2, 2) == 0x00887766);
     assert(video_prepare_yuv_frame(&frame));
     assert(video_display_yuv_frame());
     assert(video_restore_mode());
     assert(gpu_is_active());
 
-    /* Diagnostics can retain GL presentation while disabling native drawing. */
+    /* Explicitly disabling the required GPU rejects the mode. Neither scene
+     * drawing nor presentation may silently read back and select software. */
     assert(SDL_setenv("OPENBOR_GPU", "0", 1) == 0);
-    assert(video_set_mode(mode));
-    assert(opengl && !gpu_is_active());
-    assert(video_copy_screen(screen));
+    assert(!video_set_mode(mode));
+    assert(!opengl && !gpu_is_active() && savedata.usegl == 1);
+    readbacks = gpu_gl_get_stats()->readbacks;
+    assert(!video_copy_screen(screen));
+    assert(gpu_gl_get_stats()->readbacks == readbacks);
     assert(SDL_setenv("OPENBOR_GPU", "1", 1) == 0);
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
 
-    /* Switching presenter family also changes window/context ownership. */
+    /* Losing the scene backend must not revive its RGB32 presentation retry. */
+    gpu_gl_shutdown();
+    assert(opengl && !gpu_is_active());
+    readbacks = gpu_gl_get_stats()->readbacks;
+    assert(!video_copy_screen(screen));
+    assert(gpu_gl_get_stats()->readbacks == readbacks);
+    assert(video_set_mode(mode));
+    assert(opengl && gpu_is_active());
+
+    /* A later SDL preference still cannot bypass required native drawing. */
     savedata.usegl = 0;
     assert(video_set_mode(mode));
-    assert(!opengl && !gpu_is_active());
+    assert(opengl && gpu_is_active() && savedata.usegl == 1);
     assert(video_copy_screen(screen));
+
+    /* The unported 16-bit mode remains usable, including a presenter-family
+     * change. It uses its own source format rather than an RGB32 fallback. */
+    {
+        s_screen *legacy = test_screen(8, 8, PIXEL_16);
+        savedata.usegl = 1;
+        assert(video_set_mode(legacy_mode));
+        assert(opengl && gpu_is_active());
+        /* Mixed RGB32 subscreens in this explicitly unported format keep
+         * CPU operations needed by its global 16-bit material tables. */
+        assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+        assert(video_copy_screen(legacy));
+        savedata.usegl = 0;
+        assert(video_set_mode(legacy_mode));
+        assert(!opengl && !gpu_is_active());
+        assert(gpu_allow_cpu_operation(legacy, GPU_OPERATION_SCREEN));
+        assert(video_copy_screen(legacy));
+        release_test_screen(legacy);
+    }
     savedata.usegl = 1;
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
@@ -220,6 +257,6 @@ int main(void)
     SDL_DestroyWindow(window);
     window = NULL;
     SDL_Quit();
-    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filters, YUV, opt-out, SDL switch.");
+    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filters, YUV, required RGB32 failures, explicit 16-bit SDL mode.");
     return 0;
 }

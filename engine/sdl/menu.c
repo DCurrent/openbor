@@ -511,6 +511,12 @@ static int ControlBGM()
 	return status;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Initialize launcher resources only after its requested video mode is ready.
+ * Failed required GPU setup must not leave an invisible launcher running.
+ */
 static void initMenu(int type)
 {
 
@@ -537,7 +543,14 @@ static void initMenu(int type)
 #endif
 	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 
-	video_set_mode(videomodes);
+	/* Native RGB32 initialization can fail explicitly. Stop through the
+	 * platform cleanup path instead of attempting software menu drawing. */
+	if(!video_set_mode(videomodes))
+	{
+		gpu_log("ERROR: Unable to initialize the launcher video mode; stopping without a software rendering retry.");
+		borExit(EXIT_FAILURE);
+		return;
+	}
 
 	// Read Logo or Menu from Array.
 	if(!type)

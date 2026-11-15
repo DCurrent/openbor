@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 ## Scope
 
@@ -228,8 +228,9 @@ a separate **Color Rules** section in `Logs/OpenBorLog.txt`. It states whether
 chroma and Substitute are native, their five-slot capacities, RGB32 destination
 scope, and matching order. Read these rows alongside the general scene/affine
 result; the existing `NATIVE` result line alone does not establish native
-color-rule availability. If no native backend initializes, scene drawing uses
-the ordinary software renderer and ignores these shader-only controls.
+color-rule availability. Normal desktop RGB32 modes require native scene
+initialization; failure does not select the software renderer. Explicitly
+unmigrated CPU modes continue to ignore these shader-only controls.
 
 The renderer attempts supported combined and individual shader variants.
 If the combined program cannot initialize, it prefers retaining existing
@@ -239,9 +240,11 @@ the color rules. Startup reports `UNAVAILABLE - ignored` and explains that
 these rules have no CPU implementation. The rules never force an otherwise
 supported native draw onto the CPU. No per-draw warning is emitted.
 
-Execution requires an RGB32 native destination. Other destinations and draws
-that already require software retain their ordinary rendering behavior without
-chroma or Substitute. There is no color-rule format error or shutdown.
+Execution requires an RGB32 native destination. Other destinations and
+explicitly unmigrated CPU modes retain their ordinary rendering behavior
+without chroma or Substitute. Missing optional color support alone causes no
+format error or shutdown. Rejection of the underlying native RGB32 operation,
+such as an unsupported transform, logs and skips the draw without CPU retry.
 
 Indexed chroma also needs a usable source palette. If an indexed fill has no
 palette, chroma is ignored for that draw while the native fill and any supported
@@ -259,8 +262,10 @@ pixels or prove hardware acceleration. See
 [color-rule accounting](engine-profiling.md#drawmethod-color-rule-accounting).
 
 Enabling chroma or Substitute alone adds no destination snapshot or readback.
-Existing blending, self-drawing, and CPU fallback can still need those transfers.
-Uniform state is cached, including changes back to disabled rules.
+Existing blending and self-drawing can still need GPU snapshots. Explicit CPU
+image access can still require readback; rejected native RGB32 draws do not
+read back for a rendering retry. Uniform state is cached, including changes
+back to disabled rules.
 
 ## Limits and validation
 
@@ -279,10 +284,10 @@ Run `bash tests/run_gpu_tests.sh` for validation. Coverage includes complete
 native images, all five slots, palette/fill order, blend-produced matches,
 source coverage, zero opacity,
 primitive colors, repeat/affine geometry, queue copies, self-draws, and state
-reuse without unnecessary transfers. Software checks verify that configured
-rules leave ordinary rendering unchanged. Capability fixtures exercise optional
-shader compilation/linking failures, reduced resource limits, and native draws
-that ignore unavailable rules without switching to software.
+reuse without unnecessary transfers. Retained CPU-mode checks verify that
+configured rules leave ordinary rendering unchanged. Capability fixtures
+exercise optional shader compilation/linking failures, reduced resource limits,
+and native draws that ignore unavailable rules without switching to software.
 
 The runner also links the production script APIs to verify constant lookup,
 common/object/legacy call forms, atomic validation, getters, reset behavior,

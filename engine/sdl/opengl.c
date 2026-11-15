@@ -257,6 +257,7 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
  * 2026-11-12
  * 2026-11-13 - Make presentation failures and CPU drawing modes visible at startup.
  * 2026-11-13 - Format presentation checks and initialized settings for readers.
+ * 2026-11-15 - Leave failed native RGB32 mode selection to the strict caller policy.
  * Create the desktop GL presentation context and its completed-image shader.
  * Preserve live screens across mode changes, validate the presentation path,
  * then enable native scene drawing when the selected output mode supports it.
@@ -419,7 +420,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	/*
 	 * CPU output filters operate on the whole composed image. Keep that mode
 	 * fully on the legacy path instead of reading a GPU frame back each time.
-	 * Initialization failure leaves the existing GL presenter usable.
+	 * The caller rejects normal RGB32 modes if native initialization fails.
 	 */
 	if(!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)))
 	{
@@ -427,6 +428,9 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 	else
 	{
+		/* This filter still consumes a CPU-composed image. Select that existing
+		 * mode explicitly rather than enabling it after a native draw failure. */
+		gpu_set_native_required(0);
 		gpu_log("WARNING: CPU output filter %d is active.\n"
 		        "\tScene drawing uses the CPU; OpenGL presents the completed frames.\n"
 		        "\tNative scene capabilities were not tested because this filter selects software drawing.\n"
@@ -471,20 +475,20 @@ int video_gl_set_mode(s_videomodes videomodes)
 		        "\tSwap interval:                     %d\n"
 		        "\tDisplay refresh rate:              %s\n"
 		        "\tOutput color depth:                %d bits\n",
-		        gpu_is_active() ? "Active (supported RGB32 targets)" : "Inactive (CPU scene drawing)",
+		        gpu_is_active() ? "Active (supported RGB32 targets)" :
+		        (savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)) ?
+		        "Inactive (CPU output filter)" : "Unavailable (RGB32 draws disabled)",
 		        savedata.fpslimit == 1 ? "Enabled" : "Disabled",
 		        swap_interval == 0 ? "Disabled" : swap_interval < 0 ? "Adaptive" : "Enabled",
 		        swap_interval, refresh_label, videomodes.pixel * 8);
 	}
 	return 1;
 error:
-	/* Release any partial context before the caller constructs an SDL presenter. */
-	gpu_log("WARNING: GPU presentation fallback.\n"
-	        "\tReason: %s.\n"
-	        "\tSwitching to SDL presentation and CPU scene drawing.\n"
-	        "\tSignificant slowdown is possible.", fallback_reason);
+	/* Release partial resources without changing the caller's required drawing
+	 * mode. Its explicit unported-format/filter policy controls any other path. */
+	gpu_log("ERROR: GPU presentation initialization failed.\n"
+	        "\tReason: %s.", fallback_reason);
 	video_gl_shutdown();
-	savedata.usegl = 0;
 	return 0;
 }
 
@@ -726,6 +730,7 @@ void video_gl_set_color_correction(int gamma, int brightness)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Identify movie presentation separately from native scene drawing.
+ * 2026-11-15 - Explicitly select the unmigrated movie composition mode.
  * Switch the presenter from game RGB output to decoded YUV video planes.
  * Preserve native screen contents before retiring scene drawing, then prepare
  * three plane textures and the conversion shader used during movie playback.
@@ -734,6 +739,7 @@ int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
 	/* Scripted screens remain valid while movie frames use the upload path. */
 	gpu_gl_shutdown();
+	gpu_set_native_required(0);
 	gpu_log("Video playback uses OpenGL YUV presentation. Native scene drawing is suspended until normal game video-mode initialization resumes.");
 
 	/* Source plane dimensions and display aspect can differ for decoded video. */

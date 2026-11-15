@@ -38,6 +38,7 @@
 #define GPU_FIXED_RASTER_CALLS 6
 #define GPU_GEOMETRY_STATE_CALLS 6
 #define GPU_STREAM_INITIAL_QUADS 1024
+#define GPU_AFFINE_PREPARED_LIMIT 8192
 #define GPU_POSITION_ATTRIBUTE 0
 #define GPU_TEXCOORD_ATTRIBUTE 1
 #define GPU_QUERY_CAPACITY 256
@@ -172,10 +173,22 @@ typedef struct gpu_palette_entry
     int lru_previous, lru_next;
 } gpu_palette_entry;
 
+/* Retain validated geometry and shader state for each affine repeat. One
+ * entry costs a few hundred bytes, so bound residency while preserving the
+ * original two-pass path for unusually large repeat grids or low memory. */
+typedef struct gpu_prepared_affine
+{
+    gpu_affine_sampling sampling;
+    gpu_vertex vertices[4];
+    int result;
+} gpu_prepared_affine;
+
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
 static gpu_vertex *vertex_buffer;
 static int *quad_wraps;
 static size_t quad_count, quad_capacity;
+static gpu_prepared_affine *affine_preparations;
+static size_t affine_preparation_capacity;
 static GLuint vertex_buffer_object, index_buffer_object;
 static size_t stream_capacity, index_capacity, stream_cursor;
 static float bounds_left, bounds_top, bounds_right, bounds_bottom;
@@ -571,7 +584,7 @@ static int gpu_load_functions(void)
 {
     int available = 1;
     /* Resolve the complete dispatch set before registering the backend.
-     * Missing entry points leave the existing software renderer available. */
+     * Missing entry points leave native RGB32 drawing unavailable. */
 #define GPU_LOAD(name, type) \
     do \
     { \
@@ -668,7 +681,7 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
     if(!success)
     {
         /* Keep the driver's explanation before releasing the failed object,
-         * so startup can report the shader issue and retain software drawing. */
+         * so startup can report why this native shader variant is unusable. */
         message[0] = '\0';
         gpu_GetShaderInfoLog(shader, sizeof(message), NULL, message);
         message[sizeof(message) - 1] = '\0';
@@ -735,7 +748,7 @@ static int gpu_geometry_failure(void)
     gpu_gl_invalidate_state();
     while(glGetError() != GL_NO_ERROR)
     {
-        /* Consume allocation/update errors before coherent CPU fallback. */
+        /* Consume allocation/update errors before returning the rejection. */
     }
     return 0;
 }
@@ -1324,7 +1337,7 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
  * Damon V. Caskey
  * 2026-11-12
  * Lazily allocate a screen texture and, for RGB targets, its framebuffer.
- * Oversized or unsupported images remain on the coherent software path.
+ * Reject oversized or unsupported images before changing their contents.
  */
 static gpu_image *gpu_screen_image(s_screen *screen, int upload)
 {
@@ -1976,8 +1989,8 @@ static void gpu_uniform_color_bytes(GLint location, gpu_uniform_value *cached, u
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-14 - Keep vertices contiguous and sampling metadata separate.
- * Collect geometry before touching the target. This allows parameter or
- * allocation failure to select software without replaying a partial GPU draw.
+ * Collect geometry before touching the target. Parameter or allocation
+ * failure then rejects the operation without leaving a partial GPU draw.
  */
 static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused)
 {
@@ -1986,7 +1999,7 @@ static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused
     if(quad_count == quad_capacity)
     {
         /* Grow geometrically and retain the allocation between draws. Size
-         * checks keep an oversized request on the untouched fallback path. */
+         * checks reject an oversized request without changing its target. */
         size_t maximum = (size_t)INT_MAX / 6;
         size_t capacity = quad_capacity ? quad_capacity * 2 : 64;
         gpu_vertex *replacement;
@@ -2392,7 +2405,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
  *
  * Accept already validated transform output without retaining or drawing it.
  * Affine repeats use this callback to prove that every instance is supported
- * before any earlier instance can change the target and prohibit fallback.
+ * before any earlier instance can change the target.
  */
 static int gpu_preflight_quad(const gpu_vertex vertices[4], int wrap, void *userdata)
 {
@@ -2406,12 +2419,65 @@ static int gpu_preflight_quad(const gpu_vertex vertices[4], int wrap, void *user
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Retain the exact quad emitted by affine preflight alongside its sampling
+ * values, allowing the submission pass to skip a second matrix preparation.
+ */
+static int gpu_save_affine_quad(const gpu_vertex vertices[4], int wrap, void *userdata)
+{
+    gpu_prepared_affine *entry = (gpu_prepared_affine *)userdata;
+    if(wrap != GPU_SAMPLE_AFFINE)
+    {
+        return 0;
+    }
+    memcpy(entry->vertices, vertices, sizeof(entry->vertices));
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Grow preparation storage on demand and reuse it across subsequent draws.
+ * Large grids or allocation failure retain validation and recomputation;
+ * either path continues to rasterize every accepted draw on the GPU.
+ */
+static int gpu_reserve_affine_preparations(size_t count)
+{
+    size_t capacity;
+    gpu_prepared_affine *replacement;
+    if(count > GPU_AFFINE_PREPARED_LIMIT)
+    {
+        return 0;
+    }
+    if(count <= affine_preparation_capacity)
+    {
+        return 1;
+    }
+    capacity = affine_preparation_capacity ? affine_preparation_capacity : 8;
+    while(capacity < count)
+    {
+        capacity *= 2;
+    }
+    replacement = (gpu_prepared_affine *)realloc(affine_preparations,
+                                                capacity * sizeof(*replacement));
+    if(!replacement)
+    {
+        return 0;
+    }
+    affine_preparations = replacement;
+    affine_preparation_capacity = capacity;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Preflight all affine repeats before the first target write.
  * 2026-11-14 - Prepare shader shear independently for each repeated instance.
+ * 2026-11-15 - Reuse validated affine quads and sampling across both passes.
  * Apply existing repeat/span semantics using the same prepared source image.
  * Collect each instance before drawing, and reject overflowing spans before
- * submission so software fallback cannot repeat already-composited instances.
+ * submission so a rejected repeat never leaves a partially drawn image.
  */
 static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mask,
                             const unsigned char *palette, int x, int y,
@@ -2423,7 +2489,9 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_transform_parameters parameters;
     long long final_x, final_y;
     int i, j, submitted = 0;
-    if((method->config & DRAWMETHOD_CONFIG_AFFINE) && !affine_supported)
+    int use_affine = (method->config & DRAWMETHOD_CONFIG_AFFINE) != 0;
+    int reuse_affine = 0;
+    if(use_affine && !affine_supported)
     {
         native_failure = EP_FALLBACK_TRANSFORM;
         return 0;
@@ -2451,20 +2519,36 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     parameters.is_sprite = sprite;
 
     /* Extreme affine inverses can be representable for one clipped instance
-     * but not another. Validate all repeated mappings while fallback remains
-     * possible; the common single-instance draw needs no duplicate setup. */
-    if((method->config & DRAWMETHOD_CONFIG_AFFINE)
-       && (method->xrepeat > 1 || method->yrepeat > 1))
+     * but not another. Validate every mapping before any destination write;
+     * the common single-instance draw needs no duplicate setup. */
+    if(use_affine && (method->xrepeat > 1 || method->yrepeat > 1))
     {
         ep_scope geometry_scope = engine_profile_span_begin();
+        /* Failed reservation must not change draw eligibility. For large
+         * grids, retain the old preflight and recompute each submitted quad. */
+        if((size_t)method->xrepeat <= SIZE_MAX / (size_t)method->yrepeat)
+        {
+            size_t count = (size_t)method->xrepeat * (size_t)method->yrepeat;
+            reuse_affine = gpu_reserve_affine_preparations(count);
+        }
         for(j = 0; j < method->yrepeat; j++)
         {
             for(i = 0; i < method->xrepeat; i++)
             {
+                gpu_prepared_affine *entry = reuse_affine
+                    ? &affine_preparations[(size_t)j * method->xrepeat + i] : NULL;
+                int result;
                 parameters.x = (int)((long long)x + (long long)i * method->xspan);
                 parameters.y = (int)((long long)y + (long long)j * method->yspan);
-                if(gpu_transform_draw(&parameters, method, gpu_preflight_quad, NULL)
-                   == GPU_TRANSFORM_FAILED)
+                result = entry
+                    ? gpu_transform_draw_affine(&parameters, method, &entry->sampling,
+                                                gpu_save_affine_quad, entry)
+                    : gpu_transform_draw(&parameters, method, gpu_preflight_quad, NULL);
+                if(entry)
+                {
+                    entry->result = result;
+                }
+                if(result == GPU_TRANSFORM_FAILED)
                 {
                     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
                     native_failure = EP_FALLBACK_TRANSFORM;
@@ -2482,19 +2566,35 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
         for(i = 0; i < method->xrepeat; i++)
         {
             gpu_affine_sampling affine;
+            gpu_affine_sampling *sampling = &affine;
             gpu_shear_sampling shear;
-            int use_affine = method->config & DRAWMETHOD_CONFIG_AFFINE;
             ep_scope geometry_scope;
             int geometry_result;
             parameters.x = (int)((long long)x + (long long)i * method->xspan);
             parameters.y = (int)((long long)y + (long long)j * method->yspan);
             quad_count = 0;
             geometry_scope = engine_profile_span_begin();
-            geometry_result = use_affine
-                            ? gpu_transform_draw_affine(&parameters, method, &affine, gpu_collect_quad, NULL)
-                            : gpu_transform_draw_sampled(&parameters, method,
-                                                         shear_supported ? &shear : NULL,
-                                                         gpu_collect_quad, NULL);
+            if(reuse_affine)
+            {
+                gpu_prepared_affine *entry =
+                    &affine_preparations[(size_t)j * method->xrepeat + i];
+                sampling = &entry->sampling;
+                geometry_result = entry->result;
+                stats.affine_preparation_reuses++;
+                if(geometry_result == GPU_TRANSFORM_DRAWN &&
+                   !gpu_collect_quad(entry->vertices, GPU_SAMPLE_AFFINE, NULL))
+                {
+                    geometry_result = GPU_TRANSFORM_FAILED;
+                }
+            }
+            else
+            {
+                geometry_result = use_affine
+                    ? gpu_transform_draw_affine(&parameters, method, sampling, gpu_collect_quad, NULL)
+                    : gpu_transform_draw_sampled(&parameters, method,
+                                                 shear_supported ? &shear : NULL,
+                                                 gpu_collect_quad, NULL);
+            }
             engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
             if(geometry_result == GPU_TRANSFORM_FAILED && native_failure == EP_FALLBACK_OTHER)
             {
@@ -2502,11 +2602,11 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
             }
             if(geometry_result == GPU_TRANSFORM_FAILED ||
                !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0,
-                                 use_affine ? &affine : NULL,
+                                 use_affine ? sampling : NULL,
                                  !use_affine && shear_supported && shear.enabled ? &shear : NULL))
             {
                 /* Earlier instances may already have changed the target.
-                 * Only failure before any submission can safely fall back. */
+                 * Only failure before any submission can safely return. */
                 if(submitted)
                 {
                     gpu_fatal("repeated image draw");
@@ -2525,10 +2625,12 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Draw one screen through the native RGB target path. Unsupported formats
- * return before writes and retain their original software implementation.
+ * 2026-11-15 - Allow verified full replacements to discard destination upload.
+ * Draw one screen through the native RGB target path. Unsupported operations
+ * return before writes, allowing dispatch to report the rejected request.
  */
-static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method)
+static int gpu_screen_draw_internal(s_screen *dest, s_screen *src, int x, int y,
+                                    const s_drawmethod *method, int discard_destination)
 {
     gpu_image *target, *source;
     const unsigned char *palette;
@@ -2543,9 +2645,10 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y, const s_
         return 1;
     }
 
-    /* Bring CPU-authored images up to date before sampling or modifying
-     * them. GPU-authored screens already have a current cached texture. */
-    target = gpu_screen_image(dest, 1);
+    /* Ordinary draws need destination contents for preserved pixels or
+     * blending. A strict full-screen replacement never samples those pixels,
+     * so skip uploading any CPU changes that the copy will overwrite. */
+    target = gpu_screen_image(dest, !discard_destination);
     source = gpu_screen_image(src, 1);
     if(!target || !source)
     {
@@ -2558,11 +2661,23 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y, const s_
         return 1;
     }
 fallback:
-    /* The caller synchronizes CPU shadows before entering the software
-     * rasterizer. Reaching here guarantees that this draw changed no pixels. */
+    /* Reaching here guarantees that this draw changed no pixels. Native-only
+     * dispatch reports the rejection without retrying RGB32 drawing on CPU. */
     engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Ordinary screen draws preserve prior destination pixels for clipping and
+ * material effects. Only the verified screen-copy entry can discard them.
+ */
+static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y,
+                           const s_drawmethod *method)
+{
+    return gpu_screen_draw_internal(dest, src, x, y, method, 0);
 }
 
 /*
@@ -2839,7 +2954,7 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
 
         /* Sloped lines retain the engine's integer error threshold. Collect
          * every point before drawing so allocation failure leaves the target
-         * unchanged and the caller can still use its existing fallback. */
+         * unchanged when dispatch reports the rejected request. */
         if(dx > dy)
         {
             threshold = dx >> 1;
@@ -2944,6 +3059,7 @@ static int gpu_screen_clear(s_screen *screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Bypass obsolete destination uploads for complete RGB32 copies.
  * Copy the overlapping screen area with replacement semantics, independent
  * of any previously selected drawing method or clipping globals.
  */
@@ -2960,7 +3076,13 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
         return 1;
     }
     method.alpha = 0;
-    return gpu_screen_draw(dest, src, 0, 0, &method);
+    /* Partial copies preserve uncovered pixels. Distinct RGB32 sources
+     * covering both destination axes replace every pixel, including black,
+     * with no blending, clipping override or transparent-color rejection. */
+    return gpu_screen_draw_internal(dest, src, 0, 0, &method,
+                                    dest->pixelformat == PIXEL_32 &&
+                                    src->width >= dest->width &&
+                                    src->height >= dest->height);
 }
 
 static const gpu_backend renderer_backend = {
@@ -3025,6 +3147,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-14 - Identify native horizontal/vertical line rectangle coverage.
  * 2026-11-14 - Report the initialized buffered triangle submission path.
  * 2026-11-14 - Distinguish shader shear from retained CPU row preparation.
+ * 2026-11-15 - Report rejected RGB32 operations without software retry.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3039,38 +3162,37 @@ static void gpu_log_capability_result(int native_available)
         }
         else
         {
-            gpu_log("RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.");
-            gpu_log("WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.");
+            gpu_log("RESULT: LIMITED NATIVE - native scene rendering available; affine transforms unavailable.");
+            gpu_log("WARNING: Affine draws are rejected; RGB32 drawing has no software retry.");
         }
         /* Startup validates this backend, not every future resource or effect.
-         * State these restrictions before gameplay can encounter a fallback. */
+         * State these restrictions before gameplay can encounter a rejection. */
         gpu_log("Native Drawing Scope\n"
                 "\tDestination format:                RGB32\n"
                 "\tSource formats:                    Indexed and RGB32\n"
                 "\tDraw methods:                      Supported native operations\n"
                 "\tBuffered submission:               NATIVE - indexed triangles\n"
                 "\tHorizontal/vertical lines:         NATIVE - one rectangle per visible line\n");
-        gpu_log("Potential CPU Fallbacks\n"
-                "\tThese conditions may require CPU drawing during gameplay:\n"
-                "\t  - 8-bit or 16-bit destination screens\n"
+        gpu_log("Native Drawing Limits\n"
+                "\tThese RGB32 operations are rejected without software retry:\n"
                 "\t  - Unsupported draw methods\n"
                 "\t  - Numerically extreme transforms\n"
                 "\t  - Images larger than %d pixels on either axis\n"
                 "\t  - Resource allocation failures\n"
-                "\tSignificant slowdown is possible when these paths are used.\n",
+                "\tOther image formats:               8-bit and 16-bit destinations remain CPU operations\n",
                 maximum_texture_size);
     }
     else
     {
-        gpu_log("RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
-        gpu_log("WARNING: Scene drawing will use CPU software rendering. Significant slowdown is possible.");
+        gpu_log("RESULT: UNAVAILABLE - native scene rendering unavailable; RGB32 drawing is disabled.");
+        gpu_log("WARNING: RGB32 scene drawing requires the GPU; no software retry is available.");
     }
     gpu_log("Legacy Shear\n"
             "\tLegacy shear setup:                %s\n"
             "\tSampling:                          Existing 8.8 rounding and clipped source phase\n"
             "\tManual affine:                     Takes priority over legacy shear\n"
             "\tImages exceeding 65535 per axis:    CPU row geometry; native pixels when otherwise supported\n",
-            !native_available ? "UNAVAILABLE - software renderer" :
+            !native_available ? "UNAVAILABLE - RGB32 drawing disabled" :
             shear_supported ? "NATIVE - shader sampling, one quad" :
                               "CPU - row geometry; native pixels");
     if(native_available && !shear_supported)
@@ -3083,7 +3205,7 @@ static void gpu_log_capability_result(int native_available)
             "\tSlots per drawmethod:              %d chroma keys; %d substitutes\n"
             "\tDestination format:                RGB32 native targets\n"
             "\tSoftware implementation:           None; rules ignored\n"
-            "\tOther drawing paths:               Rules ignored; ordinary drawing continues\n"
+            "\tOther image formats:               Rules ignored\n"
             "\tChroma matching:                   Source RGB after palette lookup, before effects\n"
             "\tSubstitute matching:               Final RGB bytes after blending\n",
             native_colors ? "NATIVE - available" : "UNAVAILABLE - ignored",
@@ -3091,7 +3213,8 @@ static void gpu_log_capability_result(int native_available)
             DRAWMETHOD_COLOR_SLOTS, DRAWMETHOD_COLOR_SLOTS);
     if(!native_colors)
     {
-        gpu_log("WARNING: Chroma and Substitute rules are unavailable and will be ignored. Ordinary drawing continues.");
+        gpu_log("WARNING: Chroma and Substitute rules are unavailable and will be ignored. %s",
+                native_available ? "Other native drawing continues." : "RGB32 drawing is unavailable.");
     }
     gpu_log("========== END GPU CAPABILITY REPORT ==========");
 }
@@ -3105,8 +3228,9 @@ static void gpu_log_capability_result(int native_available)
  * 2026-11-14 - Probe optional color rules without retiring earlier native paths.
  * 2026-11-14 - Validate vertex/index storage before enabling native drawing.
  * 2026-11-14 - Preserve existing capabilities when optional shear is unavailable.
+ * 2026-11-15 - Require native RGB32 drawing even when initialization fails.
  * Initialize native scene rendering only after all required capabilities and
- * shader resources are usable. Failure leaves the existing renderer intact.
+ * shader resources are usable. Failure leaves RGB32 drawing unavailable.
  */
 int gpu_gl_init(void)
 {
@@ -3121,6 +3245,9 @@ int gpu_gl_init(void)
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
     const char *vendor, *device, *version, *shader_version;
+    /* Selecting this backend commits RGB32 dispatch to native drawing even
+     * if configuration or capability checks reject initialization. */
+    gpu_set_native_required(1);
     if(initialized)
     {
         return 1;
@@ -3230,7 +3357,7 @@ int gpu_gl_init(void)
         gpu_log("WARNING: Insufficient fragment uniform components for native affine transforms.\n"
                 "\tAvailable:                         %d\n"
                 "\tRequired:                          %d\n"
-                "\tAffine draws will use CPU software rendering.",
+                "\tAffine draws are rejected; no software retry is available.",
                 fragment_components, GPU_AFFINE_COMPONENTS);
     }
     if(fragment_components < GPU_COLOR_COMPONENTS ||
@@ -3409,13 +3536,18 @@ compile_scene_shader:
             "\tGraphics state cache:              Enabled\n"
             "\tCached texture units:              %u\n"
             "\tState cache CPU storage:           %" PRIu64 " bytes\n"
-            "\tState cache policy:                Compare on change\n",
+            "\tState cache policy:                Compare on change\n"
+            "\tAffine repeat preparations:        Cached after complete validation\n"
+            "\tAffine repeat cache limit:         %u instances; %" PRIu64 " bytes\n"
+            "\tAffine repeat cache allocation:    Grows on demand; reused until shutdown\n",
             (unsigned)GPU_PALETTE_CACHE_CAPACITY, (uint64_t)GPU_PALETTE_BYTES,
             (uint64_t)GPU_PALETTE_CACHE_CAPACITY * GPU_PALETTE_BYTES,
             (uint64_t)(sizeof(palette_cache) + sizeof(palette_buckets)
                        + sizeof(palette_cache_count) + sizeof(palette_lru_head)
                        + sizeof(palette_lru_tail) + sizeof(palette_selected_slot)),
-            (unsigned)GPU_TEXTURE_UNITS, (uint64_t)sizeof(gl_state));
+            (unsigned)GPU_TEXTURE_UNITS, (uint64_t)sizeof(gl_state),
+            (unsigned)GPU_AFFINE_PREPARED_LIMIT,
+            (uint64_t)GPU_AFFINE_PREPARED_LIMIT * sizeof(gpu_prepared_affine));
     gpu_query_init();
     gpu_log_capability_result(1);
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
@@ -3435,7 +3567,7 @@ shader_failed:
                 "\tAffine requested by retry:         %s\n"
                 "\tColor rules requested by retry:    %s\n"
                 "\tLegacy shear requested by retry:   %s\n"
-                "\tIf native affine is unavailable:   CPU software rendering\n"
+                "\tIf native affine is unavailable:   Draw rejected; no software retry\n"
                 "\tIf color rules are unavailable:    Ignored; no software implementation.\n"
                 "\tIf shader shear is unavailable:    CPU row geometry; native pixels.",
                 (shader_variants[variant_index] & 1) ? "Yes" : "No",
@@ -3445,7 +3577,7 @@ shader_failed:
     }
 failed:
     /* Initialization can fail at any stage. Release only acquired resources;
-     * dispatch remains unregistered so callers continue with software draws. */
+     * native-required dispatch remains in force without a registered backend. */
     gpu_gl_invalidate_state();
     gpu_release_geometry();
     if(vertex)
@@ -3475,7 +3607,7 @@ failed:
     program = white_texture = palette_texture = table_texture = 0;
     gpu_reset_palette_cache();
     gpu_log_capability_result(0);
-    fprintf(stderr, "Native GPU scene renderer unavailable; retaining software rendering.\n");
+    fprintf(stderr, "Native GPU scene renderer unavailable; RGB32 drawing disabled without software retry.\n");
     return 0;
 }
 
@@ -3533,9 +3665,12 @@ void gpu_gl_shutdown(void)
     gpu_release_geometry();
     free(vertex_buffer);
     free(quad_wraps);
+    free(affine_preparations);
     vertex_buffer = NULL;
     quad_wraps = NULL;
+    affine_preparations = NULL;
     quad_count = quad_capacity = 0;
+    affine_preparation_capacity = 0;
     program = white_texture = palette_texture = table_texture = 0;
     gpu_reset_palette_cache();
     initialized = 0;

@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 ## Purpose and scope
 
@@ -20,9 +20,12 @@ requires no game script, asset, lighting, or rendering changes. New drawmethod
 color rules are separately opt-in; they are not enabled in DC3D automatically.
 
 The profiler separates update phases, main-queue playback, offscreen captures,
-CPU-side native-renderer work, presentation, transfers, and software fallbacks.
-Optional GPU timestamps provide a second timeline. Existing input order, frame
-limiting, game ticks, drawing order, and renderer selection remain unchanged.
+CPU-side native-renderer work, presentation, transfers, rejected native
+operations, and explicitly retained software work. Optional GPU timestamps
+provide a second timeline. Profiling itself does not change input order, frame
+limiting, game ticks, drawing order, or renderer selection. The current branch
+requires native rendering for normal desktop RGB32 scene modes; the
+[migration guide](gpu-renderer-migration.md#scope) describes that policy.
 
 These measurements locate engine costs. They do not prove that any proposed
 optimization will improve a particular game, and instrumentation has its own
@@ -66,7 +69,7 @@ normal engine startup recreates its log.
 | `OPENBOR_PROFILE_SCRIPT` | Enabled on this branch | Exact value `0` disables detailed interpreter/native-call timing without disabling the existing frame, renderer, or GPU reports. |
 | `OPENBOR_PROFILE_SCRIPT_INTERVAL` | `16` | Measure all interpreter/native transitions within one eligible recorded frame out of this many, from `1` through `1000`. Invalid values use `16`. Value `1` measures every recorded frame and has greater observer cost. |
 | `OPENBOR_PROFILE_GPU` | Enabled when supported | Exact value `0` disables GPU timestamps while leaving CPU profiling and native rendering enabled. |
-| `OPENBOR_GPU` | Native renderer enabled when supported | Existing exact value `0` selects software scene drawing while retaining the selected OpenGL presenter. This is independent of timestamp sampling. |
+| `OPENBOR_GPU` | Native renderer required for normal desktop RGB32 modes | Exact value `0` disables native initialization and fails a required native mode. It no longer selects software comparison rendering. This is independent of timestamp sampling. |
 
 Renderer configuration is logged as readable sections when the video mode is
 selected. Check **Starting Values**, **GPU CAPABILITY REPORT**, **Active
@@ -142,7 +145,7 @@ nanoseconds until reporting.
 | `spans_inclusive` | Nested operation durations, such as queue playback, uploads, or swap. These overlap the phases and may overlap one another. |
 | `counts_mean` | Per-accepted-frame mean operation counts and logical byte volumes. |
 | `counts_max` | Highest single-frame value for each count/byte field in the window. |
-| `fallback_totals` | Number of declined native operations by reason, including an absent native backend. |
+| `fallback_totals` | Number of declined native operations by reason, including an absent native backend. The historical field name does not imply a CPU rendering retry. |
 | `gpu_elapsed` | Completed timestamp samples for one scope, mean per available sample, and sum divided by accepted frame count. |
 | `diagnostics` | Cancelled frames, rejected gaps, late GPU results, clock-read count, and the skipped-reporting-frame marker. |
 | `Renderer Caches` section | Palette and graphics-state cache configuration, including capacities and memory sizes; this is a lifecycle report, not a per-window measurement. |
@@ -344,6 +347,22 @@ section identifies shader sampling or retained CPU row setup. Both paths still
 render pixels natively, so CPU row setup alone does not increment the software
 raster or fallback counters.
 
+Stage 4 retains validated affine-repeat quads and sampling data in a reusable
+cache of up to 8,192 instances. Compare `gpu_geometry_ms` with matching
+`native_draws`, `native_quads`, and `native_batches`: caching removes the second
+preparation pass without combining repeats or changing their order. Larger
+grids or cache-allocation failure retain preflight and recomputation with GPU
+pixel rendering. `affine_preparation_reuses` is an internal renderer statistic
+used by tests/debuggers, not a field in periodic profile reports.
+
+Full replacement copies between distinct RGB32 screens also skip upload of
+obsolete destination CPU pixels when the source covers the complete target.
+Compare image-upload counts/bytes and `upload_ms` for equivalent copy workloads.
+Partial copies still upload dirty destination pixels to preserve their border;
+source uploads remain independent. Successful native calls also skip software
+draw-state initialization. That small setup saving remains in the enclosing
+phase rather than receiving a separate timer.
+
 ### Drawmethod color-rule accounting
 
 The [drawmethod color API](drawmethod-colors.md) adds these fields to the
@@ -361,10 +380,12 @@ performed, unique sprites, or unique queue entries. Native repeats can create
 multiple submissions; do not add both fields as a total draw count.
 
 These controls have no CPU implementation. Missing shader support leaves
-ordinary native drawing available and ignores the rules; existing software
+ordinary native drawing available and ignores the rules; retained CPU-mode
 draws also ignore them. There is no software-color counter or color-rule
 fallback reason. Other causes, including an absent backend, unsupported
-geometry, or missing resources, retain their existing fallback reasons.
+geometry, or missing resources, retain their existing diagnostic reason fields.
+Native-required RGB32 operations are logged and skipped rather than retried on
+the CPU when those conditions reject a draw.
 
 Startup's separate **Color Rules** checklist reports capability with profiling
 disabled as well. The counters establish actual native-path use during sampled
@@ -373,9 +394,9 @@ drivers such as llvmpipe can execute that native path on the CPU, so neither
 signal alone establishes physical GPU utilization or a frame-rate gain.
 
 Color rules alone do not require destination copies or readbacks. Existing
-blending, self-drawing, or software fallback can still require them. Compare
-matching draw workloads and transfer counts before attributing a change to
-chroma or Substitute.
+blending and self-drawing can require GPU snapshots, while explicit CPU image
+access can require readbacks. Compare matching draw workloads and transfer
+counts before attributing a change to chroma or Substitute.
 
 ### Cached graphics-state accounting
 
@@ -426,7 +447,7 @@ The startup graphics-state cache section reports its tracked texture-unit count
 and the CPU cache structure's byte size for the current build. This state cache
 does not allocate additional GPU image storage.
 
-### Transfers and fallback work
+### Transfers and rejected or retained CPU work
 
 Image, palette, and blend-table uploads have separate counts and byte totals.
 Readbacks count actual GPU-to-CPU image synchronization. Destination copies
@@ -434,11 +455,19 @@ count GPU snapshots used by blending or self-drawing; self-copies are also
 identified separately. Byte values are logical payload sizes, not measured
 bus traffic or GPU memory-bandwidth consumption.
 
-`software_ms` and the software draw/clear/copy counters cover the instrumented
-high-level rendering fallbacks. They do not claim to count every low-level CPU
-pixel routine in the engine. When a fallback first synchronizes a GPU-authored
-screen, its inclusive software span includes that readback; `readback_ms`
-also records the transfer itself. Adding both would count that time twice.
+`software_ms` and the software draw/clear/copy counters cover instrumented
+high-level operations in explicitly retained CPU modes and non-RGB32 targets.
+They do not claim to count every low-level CPU pixel routine in the engine.
+When a retained CPU operation first synchronizes a GPU-authored screen, its
+inclusive software span includes that readback; `readback_ms` also records the
+transfer itself. Adding both would count that time twice.
+
+`fallback_totals` retains its existing field name and reason codes for declined
+native operations. In native-required RGB32 modes, rejection returns before
+CPU synchronization, software-state initialization, and software profiling.
+Such a rejection can increment a reason count while software draws and
+readbacks remain zero. Check the ordinary bounded warning to identify the
+skipped operation; zero software work alone does not prove a successful draw.
 
 ### Resident palette-cache accounting
 
@@ -492,8 +521,9 @@ shutdown or context recreation discards the old residency, and successful
 initialization begins with an empty atlas. An upload error also invalidates
 residency rather than reusing uncertain GPU contents. `OPENBOR_PROFILE=0`
 disables measurement while leaving the cache active; `OPENBOR_GPU=0` disables
-the entire native renderer. No cache-only runtime switch is provided. The first
-measured gameplay window is therefore not necessarily a cold-cache window.
+the entire native renderer and fails required native modes. No cache-only
+runtime switch is provided. The first measured gameplay window is therefore
+not necessarily a cold-cache window.
 
 ### Optional GPU timestamps
 
@@ -544,17 +574,17 @@ comparing GPU means. Incomplete coverage can bias an apparently fast result.
 4. Compare phase means first, then inspect the nested spans and counters within
    the phase that changed. Use p95/max to distinguish a general slowdown from
    intermittent stalls. Save both complete logs.
-5. Repeat with `OPENBOR_GPU=0` only when testing the native/software boundary,
-   retaining the same presenter and pacing. Repeat with
-   `OPENBOR_PROFILE_GPU=0` to estimate timestamp instrumentation overhead without
-   switching renderers, and with `OPENBOR_PROFILE_SCRIPT=0` to check detailed
-   script-profiling overhead separately. Finally compare `OPENBOR_PROFILE=0`
-   when assessing the total diagnostic overhead.
+5. Repeat with `OPENBOR_PROFILE_GPU=0` to estimate timestamp instrumentation
+   overhead without switching renderers, and with `OPENBOR_PROFILE_SCRIPT=0`
+   to check detailed script-profiling overhead separately. Finally compare
+   `OPENBOR_PROFILE=0` when assessing the total diagnostic overhead.
+   `OPENBOR_GPU=0` is now a required-renderer failure check, not a software
+   performance baseline.
 
 No expected speedup is encoded in this procedure. Heavy captures may remain
 GPU-resident while CPU setup, command count, destination snapshots, pacing, or
-software fallbacks dominate another part of the frame. The combined timing
-and work counters are intended to distinguish those cases.
+explicitly retained CPU work dominate another part of the frame. The combined
+timing and work counters are intended to distinguish those cases.
 
 ### Comparing the resident-palette change
 
@@ -612,7 +642,7 @@ and collect repeated full windows after warmup.
    to the optimization; the cache does not intentionally reduce draw count.
 3. Compare image/palette uploads, destination copies, readbacks, and fallback
    totals independently. State reuse must not hide an unexpected transfer or
-   software fallback. Native sprites already reuse resident index textures;
+   skipped native operation. Native sprites already reuse resident index textures;
    repeated draws should not require repeated source-image uploads.
 4. Verify exact output around target changes, captures, palette/mask changes,
    clipping, self-drawing, presentation, movie transitions, and context changes.

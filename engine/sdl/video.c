@@ -65,7 +65,7 @@ void initSDL()
 #ifdef LOADGL
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
-		gpu_log("WARNING: OpenGL library loading failed: %s. GPU rendering may be unavailable; video initialization will report the selected fallback.", SDL_GetError());
+		gpu_log("WARNING: OpenGL library loading failed: %s. Required native RGB32 modes cannot initialize without GPU rendering.", SDL_GetError());
 	}
 #endif
 
@@ -294,14 +294,17 @@ static void video_log_values(const s_videomodes *mode)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Report readable starting/reinitialized settings without profiling.
+ * 2026-11-15 - Require native RGB32 scenes without selecting CPU rendering on failure.
  * Select presentation for a normal game screen. Preserve the original mode
- * for restoration, prepare any CPU conversion/filter surfaces, and choose
- * OpenGL or the SDL streaming-texture path using the existing user settings.
+ * for restoration and retain CPU conversion only for formats and output
+ * filters that have not yet migrated to native drawing.
  */
 int video_set_mode(s_videomodes videomodes)
 {
 	int requested_gl = savedata.usegl;
 	int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
+	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
+	int native_scene = videomodes.pixel == 4 && !filter_active;
 
 	/* Publish the previous measurement window before starting a new graphics
 	 * section. Zero-sized shutdown modes have no new starting settings. */
@@ -320,7 +323,12 @@ int video_set_mode(s_videomodes videomodes)
 			        "\tConverting the finished image for presentation does not accelerate scene drawing.\n"
 			        "\tSignificant slowdown is possible.", videomodes.pixel * 8);
 		}
-		if(!requested_gl)
+		if(native_scene && !requested_gl)
+		{
+			gpu_log("RGB32 scene drawing requires the native OpenGL renderer.\n"
+			        "\tThe stored SDL preference does not select CPU scene rendering.");
+		}
+		else if(!requested_gl)
 		{
 			gpu_log("WARNING: SDL presentation is selected in settings.\n"
 			        "\tScene drawing will use the CPU. Significant slowdown is possible.\n"
@@ -330,8 +338,8 @@ int video_set_mode(s_videomodes videomodes)
 		else
 		{
 			gpu_log("WARNING: This build has no native OpenGL backend.\n"
-			        "\tRequested OpenGL presentation will use the SDL path with CPU scene drawing.\n"
-			        "\tSignificant slowdown is possible.");
+			        "\tUnfiltered RGB32 scene initialization will fail; there is no software retry.\n"
+			        "\tUnmigrated formats and output filters retain their existing presentation path.");
 		}
 #endif
 	}
@@ -347,17 +355,37 @@ int video_set_mode(s_videomodes videomodes)
 		return 0;
 	}
 
+	/* Decide ownership before creating a context. Failed native initialization
+	 * and teardown must not silently re-enable the retired RGB32 retry path. */
+	gpu_set_native_required(native_scene);
+	if(native_scene)
+	{
+		savedata.usegl = 1;
+	}
+
 	videomodes = setupPreBlitProcessing(videomodes);
 
 	// 8-bit color should be transparently converted to 32-bit
 	assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
 	/*
-	 * OpenGL initializes both presentation and any supported native drawing.
-	 * If it cannot initialize, continue through the SDL streaming-image path.
+	 * Native RGB32 drawing requires both a presenter and a scene backend.
+	 * Only explicitly unmigrated formats/filters may select CPU composition.
 	 */
 	if(savedata.usegl && video_gl_set_mode(videomodes))
 	{
+		if(native_scene && !gpu_is_active())
+		{
+			gpu_log("ERROR: Required native RGB32 scene rendering could not initialize.\n"
+			        "\tVideo mode rejected; CPU scene rendering will not be selected.");
+			video_gl_shutdown();
+			if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
+			return 0;
+		}
+		/* Backend registration requires RGB32 by default. Restore the authored
+		 * scene policy for explicit indexed/16-bit modes, whose mixed-format
+		 * screens may still depend on CPU blend tables and composition. */
+		gpu_set_native_required(native_scene);
 		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 		return 1;
 	}
@@ -365,6 +393,19 @@ int video_set_mode(s_videomodes videomodes)
 	{
 		opengl = 0;
 	}
+	if(native_scene)
+	{
+		gpu_log("ERROR: Required native RGB32 presentation could not initialize.\n"
+		        "\tVideo mode rejected; CPU scene rendering will not be selected.");
+		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
+		return 0;
+	}
+
+	/* Indexed/16-bit scenes and active output filters still need their CPU
+	 * implementation. This explicit mode choice is separate from GPU failure
+	 * while rendering a migrated RGB32 scene. */
+	gpu_set_native_required(0);
+	savedata.usegl = 0;
 
 	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
 	                 videomodes.vRes * videomodes.vScale,
@@ -521,6 +562,7 @@ void FramerateDelay()
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Do not download a rejected native RGB32 frame for CPU presentation.
  * Present the completed game image. Try a resident GPU texture first, then
  * obtain synchronized CPU pixels only when a legacy upload or output filter
  * is required. Each successful path retains its normal frame pacing.
@@ -537,6 +579,10 @@ int video_copy_screen(s_screen* src)
 	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src))
 	{
 		return 1;
+	}
+	if(!gpu_allow_cpu_operation(src, GPU_OPERATION_PRESENT))
+	{
+		return 0;
 	}
 
 	/*

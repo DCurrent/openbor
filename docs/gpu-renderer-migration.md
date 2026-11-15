@@ -2,20 +2,30 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 ## Scope
 
-This branch introduces native scene rendering into the existing desktop
-OpenGL backend. The software renderer remains available for unsupported
-operations. The branch also adds opt-in, general-purpose affine transforms
-for sprites and screens, plus drawmethod chroma keys and final-color Substitute.
+This branch moves scene rendering into the GPU while preserving drawing
+functionality. Supported platform work targets 64-bit Windows, Linux, macOS,
+and Android; compatibility with retired ports is outside this migration's
+scope. The branch also adds opt-in, general-purpose affine transforms for
+sprites and screens, plus drawmethod chroma keys and final-color Substitute.
 
-Existing OpenGL selection automatically enables native drawing when the
-required shaders, render targets and geometry buffers initialize successfully.
-Existing drawing calls select it automatically. `OPENBOR_GPU=0` disables native
-scene drawing for comparison with the existing software renderer and OpenGL
-presenter.
+Normal desktop RGB32 scene modes require the native OpenGL renderer, including
+when an older configuration saved SDL presentation as its preference. Failure
+to initialize the required renderer fails that video mode. `OPENBOR_GPU=0`
+disables native initialization and therefore fails a required native mode; it
+no longer selects a software comparison renderer.
+
+Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
+warning and returns without a CPU rendering retry, readback, or software-state
+setup. Warnings are bounded to one per operation type for that mode selection.
+Losing or unregistering the native backend does not restore CPU eligibility.
+Explicitly selected modes that still require CPU work retain their existing
+implementation: Android until native GLES integration, indexed/16-bit targets,
+active CPU output filters, and the existing fullscreen-video path. Their
+migration remains separate work; this change does not remove all CPU image code.
 
 The first native target format is `PIXEL_32`. Indexed sprite artwork remains
 indexed in GPU textures and uses a separate palette texture. This is distinct
@@ -28,16 +38,17 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
 | Existing scale, flip, rotation, water and plane transforms | GPU pixel sampling with existing transform parameters |
 | Legacy shear | One bounded quad and exact shader row sampling; existing native row geometry retained when shader setup is unavailable |
-| Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
+| Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling and existing material operations; unsupported native RGB32 draws are logged and skipped |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
 | Native geometry submission | Contiguous vertex uploads and cached triangle indices; draw order and material boundaries retained |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
-| Screen clear/copy | Native operations for supported targets |
+| Screen clear/copy | Native operations; full RGB32 replacement copies skip obsolete destination uploads |
 | Script pixel reads and screenshots | Lazy synchronization of the relevant CPU shadow |
-| Direct CPU image edits and unsupported raster operations | Synchronized software operation followed by upload when next used by GPU |
+| Explicit CPU image edits | Synchronized image access followed by upload when next used by GPU |
+| Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
 | 8-bit and 16-bit destination rendering | Existing software implementation |
 | Active CPU output filters | Existing software renderer/presentation path |
 | Android | Existing renderer retained; no native GLES migration claimed |
@@ -99,9 +110,9 @@ Unavailable display refresh information is labeled `Unavailable`, rather than
 presented as a zero-Hz display.
 
 New native rendering features should extend this checklist with their required
-capabilities, initialization result, enabled execution path and any CPU
-fallback consequence. Successful activation should be explicit alongside
-warnings for missing capabilities.
+capabilities, initialization result, enabled execution path and rejection
+behavior. Successful activation should be explicit alongside warnings for
+missing capabilities and any explicitly retained CPU work.
 
 The native OpenGL capability check reports:
 
@@ -118,14 +129,16 @@ The native OpenGL capability check reports:
   `Buffered submission: NATIVE - indexed triangles` execution row.
 - Optional legacy shear sampling, including its extra uniform allowance and
   explicit shader-versus-CPU row-setup status.
+- Affine repeat preparation caching, its 8,192-instance limit, and the maximum
+  CPU storage payload computed from the current entry layout.
 
 Each native capability report ends with one of these results:
 
 | Result | Meaning |
 | --- | --- |
 | `NATIVE` | Native scene rendering and affine transforms are available within the backend's supported formats and draw methods. |
-| `LIMITED NATIVE` | The material renderer is available, while affine transforms use CPU software rendering. |
-| `SOFTWARE` | Native scene rendering is unavailable or explicitly disabled; scene draws use CPU software rendering. |
+| `LIMITED NATIVE` | The material renderer is available; unavailable affine draws are rejected without CPU rendering retry. |
+| `UNAVAILABLE` | Native initialization failed or was explicitly disabled; required RGB32 scene drawing is unavailable. |
 
 The separate **Color Rules** checklist reports chroma and Substitute execution,
 five slots for each, RGB32 destination scope, and matching order. The general
@@ -147,42 +160,47 @@ uniforms contain 14 scalar components; initialization reserves 32 additional
 components to allow conservative vector packing. Existing shader thresholds
 and affine/color preference remain unchanged.
 
-Missing capabilities that require software fallback produce `WARNING` records
-with the cause, the work that moves to the CPU, and the statement
-`Significant slowdown is possible.` For example, insufficient affine capacity
-produces these records during initialization:
+Missing native capabilities produce `WARNING` records with the cause and the
+affected operation. For example, insufficient affine capacity produces these
+records during initialization:
 
 ```text
 [GPU] WARNING: Insufficient fragment uniform components for native affine transforms.
     Available:                         64
     Required:                          256
-    Affine draws will use CPU software rendering.
-[GPU] RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.
-[GPU] WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.
+    Affine draws are rejected; no software retry is available.
+[GPU] RESULT: LIMITED NATIVE - native scene rendering available; affine transforms unavailable.
+[GPU] WARNING: Affine draws are rejected; RGB32 drawing has no software retry.
 ```
 
-Intentional settings are identified as configuration choices. Selecting SDL
-presentation, enabling a CPU output filter, or setting `OPENBOR_GPU=0` is not
-reported as a GPU capability defect. If a setting prevents native
-initialization, the log explicitly says the native capabilities were not
-tested. Accelerated SDL presentation only displays the completed image and
-does not establish native scene rendering. Recognized software OpenGL driver
-names also trigger a warning: a usable shader backend on such a driver still
-executes on the CPU.
+Intentional settings are identified as configuration choices. Active CPU
+output filters retain their explicitly unmigrated renderer. Older SDL
+preferences do not bypass required desktop RGB32 native rendering, and
+`OPENBOR_GPU=0` does not enable a fallback. If a setting prevents native
+initialization, the log says the native capabilities were not tested.
+Accelerated SDL presentation only displays the completed image and does not
+establish native scene rendering. Recognized software OpenGL driver names also
+trigger a warning: a usable shader backend on such a driver still executes on
+the CPU.
 
 Successful initialization cannot predict every future image or operation.
-The startup report lists potential CPU fallback for 8/16-bit destinations,
-unsupported draw methods, numerically extreme transforms, images exceeding
-the reported texture-size limit, and resource allocation failures. Existing
-coherent fallback remains available; its potential performance cost is visible
-at startup rather than waiting for an affected draw.
+The **Native Drawing Limits** section distinguishes explicitly retained
+8/16-bit and other CPU modes from rejected RGB32 operations. Unsupported draw
+methods, numerically extreme transforms, images exceeding the reported
+texture-size limit, and resource allocation failures do not select CPU
+rendering in a native-required mode. Root drawing entry points log the
+rejected operation without changing
+its destination. Failure after partial native submission remains fatal rather
+than retrying over a partially rendered result.
 
 ## Where the boundary moved
 
 `gpu.c`/`gpu.h` provide window-system-independent dispatch and synchronization.
-The public gamelib drawing entry points attempt native drawing first. A native
-backend returns unsupported before changing the destination, allowing the
-existing implementation to run without applying the effect twice.
+The public gamelib drawing entry points attempt native drawing first. Native
+RGB32 rejection returns before CPU pixel synchronization or raster setup.
+The retained CPU branches run only when the selected mode or destination still
+requires them, rather than serving as automatic RGB32 retries. Backend
+registration selects the native requirement; backend removal preserves it.
 
 `engine/sdl/gpu_renderer.c` owns the desktop resources, shaders, native draws,
 and GPU/CPU transfer boundaries. `gpu_transform.c` prepares transform geometry;
@@ -228,18 +246,47 @@ geometry; buffering removes the individual driver call for each vertex and
 texture coordinate.
 
 Required buffer entry points and real storage allocations are checked at
-startup. Missing functions or storage produce the existing prominent software
-fallback warning. Runtime allocation/upload errors reject the draw before
-destination writes, allowing coherent fallback; a later native attempt
-rebuilds the buffer stores. Shutdown releases both buffers while their context
-exists, and presentation clears vertex-array enables and buffer bindings.
-Context recreation initializes fresh storage.
+startup. Missing functions or storage produce a prominent unavailable-renderer
+warning and fail a required native video mode. Runtime allocation/upload errors
+reject the draw before destination writes, with no CPU retry; a later native
+attempt rebuilds the buffer stores. Shutdown releases both buffers while their
+context exists, and presentation clears vertex-array enables and buffer
+bindings. Context recreation initializes fresh storage.
 
 This uses the existing desktop OpenGL baseline without requiring vertex array
 objects, persistent mapping or a new context type. The explicit attributes
 and triangle representation are also suitable for a future GLES backend;
 Android retains its existing renderer in this change. Hardware profiling is
 still needed to establish the frame-time benefit.
+
+## Stage 4: avoid redundant preparation and uploads
+
+Successful native screen, sprite, box, line, and pixel dispatch no longer
+initializes software opacity, tint, or clipping globals. Explicitly retained
+CPU operations still establish their own state before rasterization. Rejected
+native-required RGB32 operations return before that setup as well.
+
+Repeated affine draws validate every placement before the first destination
+write. The renderer retains each validated quad and its exact shader sampling
+data in reusable CPU storage, then submits those prepared results in the
+original repeat order. This removes the second transform preparation while
+preserving clipping, empty-instance behavior, whole-grid rejection, blending,
+and destination snapshots. It does not combine repeats into a single draw.
+The cache holds up to 8,192 instances and is released at native shutdown.
+Larger grids or unavailable cache storage use the existing preflight and
+recompute sequence while retaining GPU pixel rendering.
+
+Plain copies between distinct RGB32 screens skip the destination's old CPU
+image upload when the source covers its entire width and height. Equal-sized
+sources and larger sources qualify. The source still uploads when dirty;
+partial copies preserve and upload the untouched destination border. Self-copy
+remains a no-op. Successful replacement publishes normal GPU ownership, while
+rejection before rendering preserves the previous authoritative image.
+
+Use `gpu_geometry_ms` and image-upload counters to measure these changes.
+The internal `affine_preparation_reuses` statistic is available to tests and
+debuggers; it is not a new periodic profiler field. Fewer preparation passes
+and avoided uploads establish removed work, not a promised FPS improvement.
 
 ## Exact legacy shear on the GPU
 
@@ -296,7 +343,7 @@ Separate resident palettes preserve cheap color swaps, and opacity masks use
 their own cached index textures.
 
 The GPU copy lasts until sprite release, re-encoding, or native context
-shutdown. The CPU source supports existing software fallback and rebuilding
+shutdown. The CPU source supports explicitly retained CPU modes and rebuilding
 resources after context changes. Eager upload would move first-use work into
 loading, not eliminate a transfer currently repeated on every draw. Discarding
 the CPU source would require a separate lifetime/restoration design and is not
@@ -323,9 +370,9 @@ existing native-code paths have been audited and instrumented, including
 scripts, menu pixels, GIFs, movies, screenshots and low-level rasterizers.
 
 Readback failure is explicit and fatal rather than silently returning stale
-pixels. Allocation/capability failure before drawing can select software.
-Unexpected failure after partially submitting an effect is not retried on top
-of its partial result.
+pixels. Allocation/capability failure before native RGB32 drawing is logged
+without a CPU retry. Unexpected failure after partially submitting an effect
+is not retried on top of its partial result.
 
 This retains synchronous script pixel access, but does not promise that
 reading GPU-produced pixels is as inexpensive as reading an original CPU asset.
@@ -383,9 +430,10 @@ the native context remains alive. Renderer shutdown or context recreation
 discards residency and reconstructs an empty atlas on successful initialization.
 Palette uploads are independent of source-image uploads, and disabling the
 profiler with `OPENBOR_PROFILE=0` does not disable this renderer cache.
-`OPENBOR_GPU=0` disables the entire native renderer; no cache-only runtime
-switch is added. An upload error invalidates residency before fallback so a
-later lookup cannot trust uncertain GPU row contents.
+`OPENBOR_GPU=0` disables the entire native renderer and fails required native
+modes; no cache-only runtime switch is added. An upload error invalidates
+residency before rejecting the draw so a later lookup cannot trust uncertain
+GPU row contents.
 
 `palette_lookup_ms`, `palette_cache_hits`, `palette_cache_misses`, and
 `palette_cache_evictions` expose lookup work and reuse. The lookup span ends
@@ -422,7 +470,7 @@ This changes setup frequency, not the sequence or meaning of rendering:
 - Destination snapshots and self-draw handling remain unchanged.
 - Palette contents and residency keep their existing validation rules.
 - No new CPU/GPU synchronization wait or flush is introduced.
-- Unsupported operations retain the coherent software fallback path.
+- Rejected native RGB32 operations do not retry through CPU rendering.
 
 `gpu_state_changes` and `gpu_state_reuses` report emitted and avoided cached
 setter calls as aggregate deltas for successful native draw/clear operations.
@@ -483,20 +531,20 @@ target axis, plus the larger source extent including its absolute pivot, plus
 two, must total at most 65535. Draw position and pivot remain separate from the
 source numerator origin so exact pivot samples do not suffer cancellation.
 Values requiring more than 56 fractional
-bits after homogeneous scaling also select coherent software fallback instead
-of being quantized. These bounds keep all byte products and carries exact in
+bits after homogeneous scaling are also rejected instead of being quantized.
+These bounds keep all byte products and carries exact in
 ordinary 32-bit shader floats. The CPU's per-draw setup still uses double
 precision; this does not claim arbitrary-precision matrix arithmetic.
 
 Native affine requires at least 256 fragment-uniform components, allowing
 conservative array padding. Contexts with less capacity retain the earlier
-native renderer and use software for affine draws. If an older compiler rejects
-the optional affine shader, initialization retries the earlier material shader.
-The ordinary startup capability report warns about the reason and the CPU
-performance consequence before any affine draw. Its labeled limit and result
-rows report the fragment-uniform capacity and native affine availability.
-Repeated affine draws
-validate every instance first and retain their original blending order.
+native material renderer and reject unsupported affine draws. If an older
+compiler rejects the optional affine shader, initialization retries the earlier
+material shader. The ordinary startup capability report explains the missing
+capability and absence of a CPU retry before any affine draw. Its labeled limit
+and result rows report fragment-uniform capacity and native affine availability.
+Repeated affine draws validate every instance first, reuse prepared results
+within the bounded cache, and retain their original blending order.
 
 ## Validation
 
@@ -508,13 +556,14 @@ The suites cover:
 - Existing stable queue sorting.
 - All byte pairs for the six blend equations.
 - Transform parameter validation and emitted geometry.
-- Startup capability reports with profiling disabled, limited native and full
-  software fallback warnings, real shader compile/link failures, framebuffer
-  rejection, clean GL error handling, and no repeated draw-time log output.
+- Startup capability reports with profiling disabled, limited and unavailable
+  native warnings, real shader compile/link failures, framebuffer rejection,
+  clean GL error handling, and bounded draw-time rejection warnings.
 - Production GPU logging routed to the ordinary engine log independently of
   profiling, including bounded and literal driver diagnostics.
-- Production rasterizers with a separate-image mock backend to check ownership,
-  fallback, indexed operations, replay semantics and resource eviction.
+- Production dispatch with a separate-image mock backend to check ownership,
+  rejected RGB32 operations without CPU retry, explicitly retained CPU/indexed
+  operations, replay semantics and resource eviction.
 - Actual OpenGL capture/reuse, no-readback assertions, dirty uploads, palettes,
   masks, blend tables, overlapping self-draws and context recreation.
 - Resident palette reuse, in-place edits, unaligned input, equal contents at
@@ -525,27 +574,31 @@ The suites cover:
 - Chroma/Substitute native complete-image checks, all five slots, palette/fill
   ordering, blend-created matches, zero-opacity exclusions, primitive source
   colors, queue snapshots, repeats, affine draws, and overlapping self-draws;
-  ignored-rule checks preserve ordinary software output and native availability.
+  ignored-rule checks preserve retained CPU-mode output and native availability.
 - Native transform output compared with production CPU rendering.
 - Affine geometry and pixels checked against independent mappings, including
   adjacent fractional translations, clipped pivots/flips, material effects,
   repeated blend order, queue copies, capture/replay and invalid-input atomicity.
+- Reuse of validated affine repeat data, full-copy upload elision, and partial
+  copies preserving the destination border.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
 - Deliberately colliding texture-cache identities during shutdown.
 
 The development environment uses Mesa llvmpipe for real OpenGL execution.
 This validates shader execution and resource behavior, not hardware performance.
 Actual GPU timings, DC3D gameplay, representative conventional games, and
-platform build results remain release gates before replacing the software
-backend outright.
+platform build results remain release gates for further renderer migration.
 
 ## Follow-on migration work
 
-This branch retains software as an explicit fallback/reference path. It does
-not claim full retirement of that code. Remaining work includes native indexed
-and 16-bit destinations, Android/GLES integration, additional batching, and
-GPU equivalents for selected CPU output filters. These are separate from new
-rendering features: retaining the existing drawing capabilities is the goal.
+Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
+The retained CPU implementations still support unmigrated modes, explicit image
+operations, and reference tests. Remaining work includes native indexed and
+16-bit destinations, Android/GLES integration, movie composition, launcher
+text, additional batching, and GPU equivalents for CPU output filters. Remove
+CPU rendering implementations as their required functionality moves to the GPU;
+retired-port compatibility is not a reason to keep them. Preserving drawing
+capabilities on the supported platforms remains the migration goal.
 
 Future programmable materials should apply after source color decoding so
 indexed palettes and direct RGB assets can share geometry and material effects.

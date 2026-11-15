@@ -1,18 +1,18 @@
 # Affine transforms
 
 The drawmethod supports an opt-in, six-coefficient affine transform for sprites
-and screens. The hardware renderer draws supported affine operations directly
-on the GPU; the software renderer supplies the same public geometry contract
-when hardware drawing is unavailable or a material needs the existing fallback.
-No intermediate screen is required just to apply an affine transform.
+and screens. The native renderer draws supported affine operations directly
+on the GPU. Normal desktop RGB32 modes require this renderer; unsupported
+affine draws are logged and skipped without a CPU rendering retry. Explicitly
+unmigrated modes retain their existing CPU implementation. No intermediate
+screen is required just to apply an affine transform.
 
-Hardware capability and fallback warnings appear in the ordinary engine log
-during video initialization, even when profiling is disabled. If native
-affine support is unavailable, the startup report identifies the cause and
-states that affine draws will use CPU software rendering with a possible
-significant slowdown. See the
+Hardware capability warnings appear in the ordinary engine log during video
+initialization, even when profiling is disabled. If native affine support is
+unavailable, the startup report identifies the cause and states that affected
+draws are rejected without a software retry. See the
 [startup capability report](gpu-renderer-migration.md#startup-capability-report)
-for the general renderer checks and other potential fallback conditions.
+for the general renderer checks and drawing limits.
 
 This is a reusable engine capability. Perspective projections, nonlinear curves,
 public programmable materials and 24-bit asset loading remain separate work.
@@ -91,7 +91,7 @@ coefficient enables affine rendering. `affineenabled` controls that flag;
 - The drawmethod's general `enabled` flag still controls whether any of its
   settings apply. Toggling `affineenabled` preserves all six coefficients.
 
-## Hardware and software work
+## GPU execution and retained CPU work
 
 Hardware drawing keeps source pixels resident through the existing renderer.
 The CPU prepares one clipped bounding quad and a small amount of sampling state;
@@ -101,23 +101,32 @@ image into another image for every native draw.
 
 Affine sampling has no blanket near-integer snapping tolerance. Integer byte
 comparisons of source numerators and the determinant preserve exact scale
-boundaries and authored fractional positions. Numerically extreme mappings use the software
-fallback; see [the renderer guide](gpu-renderer-migration.md#color-and-intended-behavior-corrections)
+boundaries and authored fractional positions. Numerically extreme mappings are
+rejected without a CPU retry in native-required RGB32 modes; see
+[the renderer guide](gpu-renderer-migration.md#color-and-intended-behavior-corrections)
 for the native arithmetic and uniform-capacity bounds.
 
-The software fallback inverse-maps destination pixel centers into the source.
-It clips transformed bounds before scanning and evaluates each source sample
-in double precision from the destination pixel center. Direct evaluation avoids
-accumulated coordinate drift at exact texel boundaries. It does not snap nearby
-authored translations onto those boundaries; half-pixel translations and their
-adjacent representable values remain distinct.
-The existing pixel writers retain palette, transparency, mask, tint and blend
-behavior. Existing CPU/GPU synchronization preserves screen contents whenever
-drawing crosses between hardware and software.
+Repeated affine draws validate every instance before any destination write.
+Reusable storage retains up to 8,192 prepared quads and their exact sampling
+parameters, removing the second preparation pass for those grids. Submission
+still follows the original repeat order, including individual destination
+snapshots for overlapping blends and self-drawing. Larger grids or unavailable
+cache storage retain preflight and recomputation while rendering pixels on the
+GPU. The cache changes preparation work, not the affine API or sampling rules.
+
+The retained CPU implementation serves unmigrated modes and independent
+reference checks. It inverse-maps destination pixel centers into the source,
+clips transformed bounds before scanning, and evaluates each source sample
+directly in double precision. Direct evaluation avoids accumulated coordinate
+drift at exact texel boundaries without snapping nearby authored translations.
+Half-pixel translations and their adjacent representable values remain distinct.
+Its pixel writers retain palette, transparency, mask, tint and blend behavior.
+Explicit CPU image access still uses the existing synchronization contract;
+native rejection does not request a readback to run this implementation.
 
 Hardware transforms still consume draw submission, rasterization and fill
 resources. Their cost depends on drawn area, overlap, effects, batching and
-fallback frequency; affine support does not imply that all drawing becomes
+preparation; affine support does not imply that all drawing becomes
 free or that CPU world simulation moves onto the GPU.
 
 ## Separate future capabilities
@@ -150,7 +159,7 @@ Run the renderer suite from the repository root:
 bash tests/run_gpu_tests.sh
 ```
 
-For only the standalone software raster checks:
+For only the standalone retained CPU raster/reference checks:
 
 ```sh
 cc -std=c99 -O2 -Wall -Werror -D_DEFAULT_SOURCE -DPP_TEST \
@@ -166,6 +175,7 @@ The tests cover identity, source pivot and translation, flips, right-angle
 rotation, non-uniform scale, shear with clipping, indexed RLE transparency,
 fractional sampling, exact texel boundaries, adjacent half-pixel translations,
 threefold scale with pivots, collapsed matrices, offscreen transforms and
-invalid floating-point input. The renderer suite also checks native transform and
-software-fallback behavior. Measure performance using representative sprites,
-screens and effects on the target hardware.
+invalid floating-point input. The renderer suite also checks native transforms,
+repeat preparation reuse, and rejected RGB32 draws without CPU retry. Retained
+CPU modes are tested separately. Measure performance using representative
+sprites, screens and effects on the target hardware.

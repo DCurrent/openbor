@@ -355,9 +355,16 @@ void circle(int x, int y, int rad, int col, s_screen *screen, int alpha)
 
 
 
-static int draw_init( s_drawmethod *drawmethod)
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Prepare primitive alpha and shared raster state only after root dispatch
+ * selects an explicitly required CPU operation.
+ */
+static int draw_init(s_drawmethod *drawmethod)
 {
     int alpha = 0;
+    /* Primitive CPU loops use globals for tint, channel opacity and clipping. */
     drawmethod_global_init(drawmethod);
 
     if (drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
@@ -373,20 +380,28 @@ static int draw_init( s_drawmethod *drawmethod)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Draw a filled rectangle through the native or format-specific CPU path.
- * Time software fallback from synchronization through completed rasterization.
+ * 2026-11-15 - Prepare software state only for explicitly required CPU work.
+ * Draw a filled rectangle through the selected renderer. Native RGB32
+ * failures stop before CPU state preparation or destination synchronization.
  */
 void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    int alpha = draw_init(drawmethod);
+    int alpha;
     ep_scope software;
 
     if(gpu_draw_box(screen, x, y, width, height, (unsigned)colour, drawmethod))
     {
         return;
     }
+    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_BOX))
+    {
+        return;
+    }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    /* The native material reads drawmethod directly; only CPU rasterizers
+     * need shared tint, channel, clipping and alpha state. */
+    alpha = draw_init(drawmethod);
     gpu_prepare_cpu_write(screen);
 
     switch(screen->pixelformat)
@@ -407,20 +422,27 @@ void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Draw a line while exposing the complete CPU fallback cost. The lower-level
- * pixel loops remain inside this one timed software dispatch.
+ * 2026-11-15 - Keep native line dispatch independent of software globals.
+ * Draw a line through the selected renderer. Unmigrated CPU pixel loops and
+ * their state preparation stay inside one measured software dispatch.
  */
 void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    int alpha = draw_init(drawmethod);
+    int alpha;
     ep_scope software;
 
     if(gpu_draw_line(screen, sx, sy, ex, ey, (unsigned)colour, drawmethod))
     {
         return;
     }
+    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_LINE))
+    {
+        return;
+    }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    /* Initialize CPU globals only after this mode selects CPU drawing. */
+    alpha = draw_init(drawmethod);
     gpu_prepare_cpu_write(screen);
 
     switch(screen->pixelformat)
@@ -441,12 +463,13 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Draw one in-bounds pixel and measure any software fallback. Clipped pixels
- * leave both renderers untouched and do not count as software dispatches.
+ * 2026-11-15 - Avoid software state setup for native or clipped pixels.
+ * Draw one in-bounds pixel with no CPU retry in the native RGB32 mode.
+ * Clipped pixels leave both renderers and their drawing state untouched.
  */
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    int alpha = draw_init(drawmethod);
+    int alpha;
     ep_scope software;
 
     /* Reject unsigned off-screen coordinates before the rectangle API's
@@ -459,8 +482,14 @@ void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod
     {
         return;
     }
+    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_PIXEL))
+    {
+        return;
+    }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    /* Keep state initialization beside the CPU operation that consumes it. */
+    alpha = draw_init(drawmethod);
     gpu_prepare_cpu_write(screen);
     switch(screen->pixelformat)
     {

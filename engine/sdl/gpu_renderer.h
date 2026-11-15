@@ -41,6 +41,8 @@ typedef struct gpu_renderer_stats
     /* High-frequency setup totals need 64 bits on Windows LLP64 as well. */
     uint64_t state_changes;
     uint64_t state_reuses;
+    /* Repeated affine instances emitted from their validated cached data. */
+    uint64_t affine_preparation_reuses;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
 

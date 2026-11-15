@@ -32,12 +32,17 @@ void writeToLogFile(const char *format, ...)
 /*
  * Damon V. Caskey
  * 2026-11-13
+ * 2026-11-15 - Prove native-rejection warnings remain bounded without profiling.
  * Exercise gpu_log without PP_TEST so a profiler-only implementation fails.
  */
 int main(void)
 {
     char driver_diagnostic[8192];
     size_t length, index;
+    s_screen native_screen = {.pixelformat = PIXEL_32};
+    s_screen indexed_screen = {.pixelformat = PIXEL_x8};
+    unsigned before;
+    int operation, repeat;
 
     assert(setenv("OPENBOR_PROFILE", "0", 1) == 0);
     assert(!engine_profile_enabled());
@@ -62,6 +67,30 @@ int main(void)
     for(index = 6; index + 1 < length; ++index) assert(ordinary_log[index] == 'x');
     gpu_log(NULL);
     assert(ordinary_log_calls == 2 && strlen(ordinary_log) == length);
+
+    /* Native selection precedes backend initialization. Failures log once
+     * per operation even when every attempted draw has no active backend. */
+    gpu_set_native_required(1);
+    before = ordinary_log_calls;
+    for(operation = 0; operation < GPU_OPERATION_COUNT; operation++)
+    {
+        for(repeat = 0; repeat < 3; repeat++)
+        {
+            assert(!gpu_allow_cpu_operation(&native_screen, (gpu_operation)operation));
+        }
+        assert(ordinary_log_calls == before + (unsigned)operation + 1);
+        assert(strstr(ordinary_log, "CPU rendering retry is disabled"));
+    }
+    gpu_unregister_backend();
+    assert(!gpu_allow_cpu_operation(&native_screen, GPU_OPERATION_SCREEN));
+    assert(ordinary_log_calls == before + GPU_OPERATION_COUNT);
+
+    /* Indexed data and explicitly selected unmigrated CPU rendering do not
+     * generate rejection logs or inherit the RGB32 native requirement. */
+    assert(gpu_allow_cpu_operation(&indexed_screen, GPU_OPERATION_CLEAR));
+    gpu_set_native_required(0);
+    assert(gpu_allow_cpu_operation(&native_screen, GPU_OPERATION_SCREEN));
+    assert(ordinary_log_calls == before + GPU_OPERATION_COUNT);
 
     puts("GPU ordinary log tests passed with profiling disabled.");
     return 0;

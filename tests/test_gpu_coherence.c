@@ -222,11 +222,19 @@ static int mock_box(s_screen *screen, int x, int y, int width, int height,
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Permit deterministic native rejection before any ownership change.
  * Simulate native clear without reading the prior GPU image to the CPU.
  */
 static int mock_clear(s_screen *screen)
 {
-    mock_image *image = mock_find(screen, 1);
+    mock_image *image;
+
+    /* The rejection fixture must leave both versions untouched. */
+    if(reject_draws)
+    {
+        return 0;
+    }
+    image = mock_find(screen, 1);
 
     /* Full replacement needs no upload of the pixels being discarded. */
     if(!image)
@@ -367,6 +375,133 @@ static s_screen *test_screen(int width, int height, unsigned color)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Snapshot the externally visible CPU raster state so native dispatch cannot
+ * accidentally retain software drawmethod setup on either success or failure.
+ */
+static void test_draw_globals(unsigned values[11])
+{
+    /* Include clipping boundaries even when clipping is disabled. */
+    values[0] = channelr;
+    values[1] = channelg;
+    values[2] = channelb;
+    values[3] = tintcolor;
+    values[4] = tintmode;
+    values[5] = (unsigned)usechannel;
+    values[6] = (unsigned)useclip;
+    values[7] = (unsigned)clipx1;
+    values[8] = (unsigned)clipy1;
+    values[9] = (unsigned)clipx2;
+    values[10] = (unsigned)clipy2;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reject native work without CPU retry, including missing callbacks and a
+ * lost backend. Explicit CPU mode and indexed data remain usable elsewhere
+ * in this fixture as independent software reference implementations.
+ */
+static void test_native_required_dispatch(s_screen *source, s_sprite *sprite,
+                                          s_screen *dest, s_screen *indexed)
+{
+    gpu_backend missing_callbacks = backend;
+    s_drawmethod sentinel = plainmethod;
+    s_drawmethod requested = plainmethod;
+    mock_image *native;
+    unsigned cpu_before[MOCK_PIXEL_CAPACITY], native_before[MOCK_PIXEL_CAPACITY];
+    unsigned globals_before[11], globals_after[11];
+    int previous_downloads, previous_uploads, mode, repeat;
+    size_t bytes = (size_t)dest->width * dest->height * sizeof(unsigned);
+
+    /* Deliberately leave unrelated software state selected. Successful GPU
+     * draws must consume their supplied method without replacing this state. */
+    sentinel.channelr = 13;
+    sentinel.channelg = 27;
+    sentinel.channelb = 41;
+    sentinel.tintmode = 1;
+    sentinel.tintcolor = 0x123456;
+    sentinel.clipx = 1;
+    sentinel.clipy = 2;
+    sentinel.clipw = 3;
+    sentinel.cliph = 4;
+    gpu_set_native_required(1);
+    drawmethod_global_init(&sentinel);
+    test_draw_globals(globals_before);
+    putbox(0, 0, dest->width, dest->height, 0x556677, dest, &requested);
+    putpixel(0, 0, 0xAABBCC, dest, &requested);
+    putscreen(dest, source, 0, 0, NULL);
+    test_draw_globals(globals_after);
+    assert(!memcmp(globals_before, globals_after, sizeof(globals_before)));
+
+    /* Hold distinct CPU and GPU versions. Any hidden raster retry, readback,
+     * upload, or global initialization will violate at least one snapshot. */
+    native = mock_find(dest, 0);
+    assert(native && native->gpu_dirty);
+    memcpy(cpu_before, dest->data, bytes);
+    memcpy(native_before, native->pixels, bytes);
+    previous_downloads = downloads;
+    previous_uploads = uploads;
+    missing_callbacks.draw_screen = NULL;
+    missing_callbacks.draw_sprite = NULL;
+    missing_callbacks.draw_box = NULL;
+    missing_callbacks.draw_line = NULL;
+    missing_callbacks.clear_screen = NULL;
+    missing_callbacks.copy_screen = NULL;
+    reject_draws = 1;
+
+    for(mode = 0; mode < 3; mode++)
+    {
+        if(mode == 1)
+        {
+            gpu_register_backend(&missing_callbacks);
+        }
+        else if(mode == 2)
+        {
+            /* Backend loss cannot clear the previously selected policy. */
+            gpu_unregister_backend();
+            assert(!gpu_is_active());
+        }
+        for(repeat = 0; repeat < 2; repeat++)
+        {
+            /* Public try APIs must still report native failure truthfully. */
+            assert(!gpu_draw_box(dest, 0, 0, 1, 1, 0xFFFFFF, &requested));
+            putscreen(dest, source, 0, 0, &requested);
+            putsprite(0, 0, sprite, dest, &requested);
+            putbox(0, 0, 2, 2, 0xFFFFFF, dest, &requested);
+            putline(0, 0, 3, 3, 0xFFFFFF, dest, &requested);
+            putpixel(1, 1, 0xFFFFFF, dest, &requested);
+            putpixel(UINT_MAX, UINT_MAX, 0xFFFFFF, dest, &requested);
+            clearscreen(dest);
+            copyscreen(dest, source);
+        }
+        test_draw_globals(globals_after);
+        assert(!memcmp(globals_before, globals_after, sizeof(globals_before)));
+        assert(!memcmp(cpu_before, dest->data, bytes));
+        assert(!memcmp(native_before, native->pixels, bytes));
+        assert(downloads == previous_downloads && uploads == previous_uploads);
+        assert(native->gpu_dirty && !native->cpu_dirty);
+    }
+
+    /* Indexed image storage still needs CPU clear support even while native
+     * RGB32 rendering is selected and its backend is unavailable. */
+    memset(indexed->data, 7, (size_t)indexed->width * indexed->height);
+    clearscreen(indexed);
+    for(mode = 0; mode < indexed->width * indexed->height; mode++)
+    {
+        assert(indexed->data[mode] == 0);
+    }
+
+    /* The remaining fixture intentionally exercises CPU raster references.
+     * Select that mode explicitly; registration itself always requires GPU. */
+    reject_draws = 0;
+    gpu_register_backend(&backend);
+    gpu_set_native_required(0);
+    drawmethod_global_init(NULL);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  * Check representable repeat instances and visible affine cancellation of
  * extreme integer draw positions in both screen and sprite fallbacks.
@@ -465,6 +600,7 @@ static void test_affine_repeat_limits(s_screen *source, s_sprite *sprite, s_scre
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Include affine fallback repeat boundaries under sanitizers.
+ * 2026-11-15 - Verify native-only dispatch independently of CPU references.
  * Cover native dispatch, synchronous CPU access, software fallback, direct
  * low-level calls, queue capture/replay, and resource lifetime together.
  */
@@ -517,6 +653,9 @@ int main(void)
     }
 
     /* Unsupported transform reads GPU source and preserves target borders. */
+    /* This fixture explicitly selects the still-required CPU reference mode;
+     * production native RGB32 rejection is checked independently below. */
+    gpu_set_native_required(0);
     putbox(0, 0, 4, 4, 0x765432, small, NULL);
     putbox(0, 0, 8, 8, 0x101010, large, NULL);
     method.scalex = 128;
@@ -551,6 +690,7 @@ int main(void)
     previous_sprites = released_sprites;
     encodesprite(0, 0, bitmap, sprite);
     assert(released_sprites == previous_sprites + 1);
+    test_native_required_dispatch(small, sprite, large, indexed);
     putbox(0, 0, 8, 8, 0x212121, large, NULL);
     putsprite(0, 0, sprite, large, NULL);
     assert(((unsigned *)large->data)[0] == 0x456789);
@@ -612,7 +752,8 @@ int main(void)
     gpu_unregister_backend();
     assert(!gpu_is_active());
 
-    /* No backend remains a valid, fully functional software configuration. */
+    /* Explicit unmigrated CPU mode remains functional without a backend. */
+    gpu_set_native_required(0);
     small = test_screen(4, 4, 0);
     putbox(0, 0, 4, 4, 0x654321, small, NULL);
     assert(((unsigned *)small->data)[15] == 0x654321);

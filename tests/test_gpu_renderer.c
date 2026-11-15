@@ -301,6 +301,199 @@ static void test_coherence_and_feedback(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Full RGB32 copies discard obsolete destination pixels without uploading
+ * them. Smaller sources still require the destination's untouched border.
+ */
+static void test_full_copy_upload_elision(void)
+{
+    s_screen *source = test_screen(4, 4, PIXEL_32);
+    s_screen *target = test_screen(4, 4, PIXEL_32);
+    s_screen *larger = test_screen(6, 6, PIXEL_32);
+    const unsigned color = 0x001abcde;
+    const unsigned border = 0x00563412;
+    unsigned long uploads;
+    int pixel;
+
+    for(pixel = 0; pixel < 16; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = color;
+        ((unsigned *)target->data)[pixel] = 0x00ff0000;
+    }
+    ((unsigned *)source->data)[0] = 0;
+    for(pixel = 0; pixel < 36; ++pixel)
+    {
+        ((unsigned *)larger->data)[pixel] = border;
+    }
+
+    /* A fresh source uploads once. The fresh destination would also upload
+     * without the complete-replacement exemption. */
+    uploads = gpu_gl_get_stats()->uploads;
+    assert(gpu_copy_screen(target, source));
+    assert(gpu_gl_get_stats()->uploads == uploads + 1);
+    gpu_sync_cpu(target);
+    for(pixel = 0; pixel < 16; ++pixel)
+    {
+        assert(test_pixel(target, pixel % 4, pixel / 4) == (pixel ? color : 0));
+    }
+
+    /* Even a known, newly CPU-edited destination is discarded by another
+     * full copy; no upload is needed for either resident image this time. */
+    gpu_prepare_cpu_write(target);
+    ((unsigned *)target->data)[0] = 0x00ffffff;
+    uploads = gpu_gl_get_stats()->uploads;
+    assert(gpu_copy_screen(target, source));
+    assert(gpu_gl_get_stats()->uploads == uploads);
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 0, 0) == 0);
+
+    /* Partial replacement must still upload its old border and preserve it
+     * when the smaller source covers only the upper-left 4x4 rectangle. */
+    uploads = gpu_gl_get_stats()->uploads;
+    assert(gpu_copy_screen(larger, source));
+    assert(gpu_gl_get_stats()->uploads == uploads + 1);
+    gpu_sync_cpu(larger);
+    assert(test_pixel(larger, 3, 3) == color);
+    assert(test_pixel(larger, 4, 3) == border);
+    assert(test_pixel(larger, 0, 5) == border);
+
+    /* Complete replacement also applies when the source extends beyond the
+     * target. The source's black pixel must overwrite dirty target contents. */
+    gpu_prepare_cpu_write(target);
+    ((unsigned *)target->data)[0] = 0x00ffffff;
+    uploads = gpu_gl_get_stats()->uploads;
+    assert(gpu_copy_screen(target, larger));
+    assert(gpu_gl_get_stats()->uploads == uploads);
+    gpu_sync_cpu(target);
+    for(pixel = 0; pixel < 16; ++pixel)
+    {
+        assert(test_pixel(target, pixel % 4, pixel / 4) == (pixel ? color : 0));
+    }
+
+    /* Self-copy is still a true no-op, even with a pending CPU edit. It must
+     * neither upload nor overwrite the authoritative CPU storage. */
+    gpu_prepare_cpu_write(target);
+    ((unsigned *)target->data)[0] = border;
+    uploads = gpu_gl_get_stats()->uploads;
+    assert(gpu_copy_screen(target, target));
+    assert(gpu_gl_get_stats()->uploads == uploads);
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 0, 0) == border);
+
+    release_test_screen(larger);
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Repeated affine instances must submit the preflighted quad and sampling
+ * without recomputing their matrix, preserving geometry and painter order.
+ */
+static void test_reused_affine_preparation(void)
+{
+    s_screen *source = test_screen(2, 2, PIXEL_32);
+    s_screen *target = test_screen(8, 6, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    uint64_t reused = gpu_gl_get_stats()->affine_preparation_reuses;
+    int pixel;
+
+    for(pixel = 0; pixel < 4; ++pixel)
+    {
+        ((unsigned *)source->data)[pixel] = 0x0022bb66;
+    }
+    method.config |= DRAWMETHOD_CONFIG_AFFINE;
+    method.xrepeat = 3;
+    method.yrepeat = 2;
+    method.xspan = method.yspan = 2;
+    assert(gpu_draw_screen(target, source, 0, 0, &method));
+    assert(gpu_gl_get_stats()->affine_preparation_reuses == reused + 6);
+    gpu_sync_cpu(target);
+    for(pixel = 0; pixel < 48; ++pixel)
+    {
+        unsigned expected = pixel / 8 < 4 && pixel % 8 < 6 ? 0x0022bb66 : 0;
+        assert(test_pixel(target, pixel % 8, pixel / 8) == expected);
+    }
+
+    /* The cache bounds memory, not accepted repeat counts. Larger grids
+     * retain native drawing through validated recomputation of each instance. */
+    reused = gpu_gl_get_stats()->affine_preparation_reuses;
+    method.xrepeat = 9000;
+    method.yrepeat = 1;
+    assert(gpu_clear_screen(target));
+    assert(gpu_draw_screen(target, source, 0, 0, &method));
+    assert(gpu_gl_get_stats()->affine_preparation_reuses == reused);
+    gpu_sync_cpu(target);
+    for(pixel = 0; pixel < 48; ++pixel)
+    {
+        assert(test_pixel(target, pixel % 8, pixel / 8) == (pixel / 8 < 2 ? 0x0022bb66 : 0));
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Cached affine geometry must not cache source or destination pixels. Every
+ * self-draw repeat samples a fresh snapshot after the previous repeat.
+ */
+static void test_reused_affine_feedback(void)
+{
+    s_screen *target = test_screen(8, 4, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    unsigned expected[32], previous[32];
+    uint64_t reused = gpu_gl_get_stats()->affine_preparation_reuses;
+    unsigned long copies = gpu_gl_get_stats()->destination_copies;
+    unsigned long readbacks = gpu_gl_get_stats()->readbacks;
+    int pixel, repeat, x, y, shift;
+
+    /* Encode position so taking one source snapshot for the entire repeated
+     * draw yields a different result from the required sequential snapshots. */
+    for(pixel = 0; pixel < 32; ++pixel)
+    {
+        expected[pixel] = 0x00192735u + (unsigned)pixel * 0x00030709u;
+        ((unsigned *)target->data)[pixel] = expected[pixel];
+    }
+    method.config |= DRAWMETHOD_CONFIG_AFFINE;
+    method.alpha = 6;
+    method.xrepeat = 3;
+    method.xspan = 1;
+
+    /* Identity affine with offsets 1, 2 and 3 samples exact integer texels.
+     * The independent RGB oracle blends each repeat against its own snapshot. */
+    for(repeat = 1; repeat <= 3; ++repeat)
+    {
+        memcpy(previous, expected, sizeof(previous));
+        for(y = 0; y < 4; ++y)
+        {
+            for(x = repeat; x < 8; ++x)
+            {
+                unsigned color = 0;
+                for(shift = 0; shift < 24; shift += 8)
+                {
+                    color |= gpu_shader_blend_reference(6, previous[y * 8 + x - repeat] >> shift,
+                                                        previous[y * 8 + x] >> shift) << shift;
+                }
+                expected[y * 8 + x] = color;
+            }
+        }
+    }
+    assert(gpu_draw_screen(target, target, 1, 0, &method));
+    assert(gpu_gl_get_stats()->affine_preparation_reuses == reused + 3);
+    assert(gpu_gl_get_stats()->destination_copies == copies + 3);
+    assert(gpu_gl_get_stats()->readbacks == readbacks);
+    gpu_sync_cpu(target);
+    for(pixel = 0; pixel < 32; ++pixel)
+    {
+        assert(test_pixel(target, pixel % 8, pixel / 8) == expected[pixel]);
+    }
+    release_test_screen(target);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Keep palette selection mutable without re-encoding or expanding indexed
  * source images, and preserve zero-index transparency before lookup.
@@ -857,6 +1050,7 @@ static void test_affine_queue_replay(void)
     {
         unsigned once = 0, twice = 0;
         unsigned long readbacks;
+        uint64_t reused = gpu_gl_get_stats()->affine_preparation_reuses;
         gpu_prepare_cpu_write(source);
         for(pixel = 0; pixel < 4; ++pixel) ((unsigned *)source->data)[pixel] = colors[replay];
         for(shift = 0; shift < 24; shift += 8)
@@ -868,6 +1062,7 @@ static void test_affine_queue_replay(void)
         readbacks = gpu_gl_get_stats()->readbacks;
         assert(gpu_draw_box(capture, 0, 0, 10, 5, background, &plainmethod));
         spriteq_draw(capture, 0, 7, 7, 1, 0);
+        assert(gpu_gl_get_stats()->affine_preparation_reuses == reused + 2);
         assert(gpu_draw_screen(output, capture, 0, 0, &plainmethod));
         assert(gpu_gl_get_stats()->readbacks == readbacks);
         gpu_sync_cpu(output);
@@ -890,8 +1085,8 @@ static void test_affine_queue_replay(void)
  * Damon V. Caskey
  * 2026-11-13
  *
- * Unsupported affine inputs must leave the entire destination available for
- * software fallback. Valid collapsed or offscreen maps are successful no-ops.
+ * Unsupported affine inputs must leave the entire destination unchanged.
+ * Valid collapsed or offscreen maps are successful no-ops.
  */
 static void test_affine_rejection_atomicity(void)
 {
@@ -913,6 +1108,7 @@ static void test_affine_rejection_atomicity(void)
                                  &method.affine.m10, &method.affine.m11,
                                  &method.affine.tx, &method.affine.ty};
         unsigned long draws, fallbacks;
+        uint64_t reused;
         int handled = scenario == 13 || scenario == 14;
         method.config |= DRAWMETHOD_CONFIG_AFFINE;
         method.affine = (affine_transform){1, 0, 0, 1, 0, 0};
@@ -966,9 +1162,11 @@ static void test_affine_rejection_atomicity(void)
         assert(gpu_draw_box(target, 0, 0, 8, 8, background, &plainmethod));
         draws = gpu_gl_get_stats()->draws;
         fallbacks = gpu_gl_get_stats()->fallback_draws;
+        reused = gpu_gl_get_stats()->affine_preparation_reuses;
         assert(gpu_draw_screen(target, source, 0, 0, &method) == handled);
         assert(gpu_gl_get_stats()->draws == draws);
         assert(gpu_gl_get_stats()->fallback_draws == fallbacks + !handled);
+        assert(gpu_gl_get_stats()->affine_preparation_reuses == reused + (handled ? 2 : 0));
         gpu_sync_cpu(target);
         for(pixel = 0; pixel < 64; ++pixel)
             assert(test_pixel(target, pixel % 8, pixel / 8) == background);
@@ -1091,6 +1289,9 @@ int main(void)
     test_queue_capture();
     test_queue_newonly();
     test_coherence_and_feedback();
+    test_full_copy_upload_elision();
+    test_reused_affine_preparation();
+    test_reused_affine_feedback();
     test_indexed_palette();
     test_blend_modes();
     test_sprite_mask();

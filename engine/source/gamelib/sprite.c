@@ -680,8 +680,9 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
+ * 2026-11-15 - Initialize CPU state only when the selected mode requires it.
  * Dispatch a sprite and its repetitions through the selected renderer.
- * Profile one software fallback around destination coherence and all repeats.
+ * Native RGB32 failures stop without CPU retry, state changes or readbacks.
  */
 void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
@@ -689,15 +690,20 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
 
-    drawmethod_global_init(drawmethod);
-
     /* The native backend handles repeats as part of this draw operation. */
     if(gpu_draw_sprite(screen, sprite, x, y, drawmethod))
     {
         return;
     }
+    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SPRITE))
+    {
+        return;
+    }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    /* Native materials read the supplied method; shared globals belong only
+     * to low-level CPU blitters in configurations not yet migrated. */
+    drawmethod_global_init(drawmethod);
     gpu_prepare_cpu_write(screen);
 
     if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)

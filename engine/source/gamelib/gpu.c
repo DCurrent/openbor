@@ -13,6 +13,8 @@
 #endif
 
 static const gpu_backend *active_backend;
+static int native_required;
+static unsigned declined_operation_warnings;
 
 /*
  * Damon V. Caskey
@@ -45,6 +47,7 @@ void gpu_log(const char *format, ...)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Select native-only RGB32 dispatch with the registered renderer.
  * Install a fully initialized renderer. The backend owns its callback table
  * and must preserve it until it has drained and unregistered its resources.
  */
@@ -52,18 +55,80 @@ void gpu_register_backend(const gpu_backend *backend)
 {
     /* Publish callbacks only after their context, shaders and resources are ready. */
     active_backend = backend;
+    if(backend)
+    {
+        gpu_set_native_required(1);
+    }
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Return drawing to the software path after the backend has synchronized
- * live screens. Context teardown can then finish without accepting new draws.
+ * 2026-11-15 - Retain native-only policy across context loss and teardown.
+ * Retire callbacks after the backend has synchronized live screens. Losing
+ * their context must not silently enable CPU rasterization for RGB32 draws.
  */
 void gpu_unregister_backend(void)
 {
-    /* Subsequent drawing entry points will select their existing CPU paths. */
+    /* Mode selection, rather than backend lifetime, controls CPU eligibility. */
     active_backend = NULL;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Select the scene-rendering policy before attempting native initialization.
+ * Only an explicitly unmigrated configuration may select CPU dispatch; failed
+ * initialization and unregistering a backend never clear this requirement.
+ */
+void gpu_set_native_required(int required)
+{
+    /* Preserve one warning per operation throughout an unchanged selection. */
+    if(native_required != (required != 0))
+    {
+        declined_operation_warnings = 0;
+    }
+    native_required = required != 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Decide whether a declined native root operation still requires CPU work.
+ * Migrated RGB32 scene targets log once per operation and remain unchanged;
+ * indexed image work and explicitly unmigrated modes keep their CPU paths.
+ */
+int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
+{
+    static const char *const names[GPU_OPERATION_COUNT] = {
+        "screen draw", "sprite draw", "rectangle draw", "line draw",
+        "pixel draw", "screen clear", "screen copy", "scene presentation"
+    };
+    unsigned warning;
+
+    /* Invalid destinations cannot be rasterized by either implementation. */
+    if(!screen)
+    {
+        return 0;
+    }
+    if(!native_required || screen->pixelformat != PIXEL_32)
+    {
+        return 1;
+    }
+
+    /* A fixed bit check is the only repeated failure-path work. Keep the
+     * ordinary log usable even when optional profiling is disabled. */
+    if(operation >= 0 && operation < GPU_OPERATION_COUNT)
+    {
+        warning = 1u << operation;
+        if(!(declined_operation_warnings & warning))
+        {
+            declined_operation_warnings |= warning;
+            gpu_log("WARNING: Native %s unavailable or rejected; RGB32 operation skipped. CPU rendering retry is disabled.",
+                    names[operation]);
+        }
+    }
+    return 0;
 }
 
 /*
@@ -81,7 +146,7 @@ int gpu_is_active(void)
  * Damon V. Caskey
  * 2026-11-12
  * Try a screen draw without synchronizing CPU pixels. Unsupported draws
- * return zero and are completed by the caller's existing software path.
+ * return zero; root dispatch applies the selected no-retry rendering policy.
  */
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method)
 {
@@ -94,8 +159,8 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
 
     /*
      * Give the backend the original screen identities so resident targets can
-     * be sampled directly. Zero means the destination remains safe for the
-     * caller's synchronized software fallback; any nonzero result is success.
+     * be sampled directly. Zero preserves the failure result so root dispatch
+     * can log it without falsely reporting a completed native draw.
      */
     return active_backend->draw_screen(dest, src, x, y, method) != 0;
 }

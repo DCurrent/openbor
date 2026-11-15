@@ -1,5 +1,5 @@
 /*
- * Startup capability and fallback warnings through the ordinary GPU log.
+ * Startup capability and unavailable-feature warnings through the ordinary GPU log.
  * Real GL compilation/drawing is retained; the loader wrappers only restrict
  * the capability or shader under test. No production test hooks are needed.
  */
@@ -417,6 +417,7 @@ static void capability_check_shear(int shear_expected)
  * 2026-11-14 - Verify unavailable color rules leave ordinary native draws intact.
  * 2026-11-14 - Require buffered startup success or explicit coherent fallback.
  * 2026-11-14 - Retain independent features and native pixels without shear.
+ * 2026-11-15 - Require truthful rejection diagnostics without CPU retry promises.
  * Check startup reporting before drawing and prohibit repeated frame warnings.
  */
 static void capability_run(SDL_Window *window, capability_case mode)
@@ -599,8 +600,8 @@ static void capability_run(SDL_Window *window, capability_case mode)
     capability_expect(log, affine_expected ?
         "RESULT: NATIVE - native scene rendering and affine transforms available." :
         native_expected ?
-        "RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering." :
-        "RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
+        "RESULT: LIMITED NATIVE - native scene rendering available; affine transforms unavailable." :
+        "RESULT: UNAVAILABLE - native scene rendering unavailable; RGB32 drawing is disabled.");
     assert(!strstr(strstr(log, "RESULT:") + 1, "RESULT:"));
     if(native_expected)
     {
@@ -618,7 +619,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
     else
     {
         capability_expect(log, "Legacy shear setup:");
-        capability_expect(log, "UNAVAILABLE - software renderer");
+        capability_expect(log, "UNAVAILABLE - RGB32 drawing disabled");
     }
     capability_expect(log, color_expected ?
         "Chroma key execution:              NATIVE - available" :
@@ -629,7 +630,7 @@ static void capability_run(SDL_Window *window, capability_case mode)
     capability_expect(log, "5 chroma keys; 5 substitutes");
     capability_expect(log, "RGB32 native targets");
     capability_expect(log, "Software implementation:           None; rules ignored");
-    capability_expect(log, "Other drawing paths:               Rules ignored; ordinary drawing continues");
+    capability_expect(log, "Other image formats:               Rules ignored");
     assert(!strstr(log, "Chroma and Substitute draws will use CPU software rendering"));
     assert(!strstr(log, "Unavailable effects will use CPU software rendering"));
     if(!color_expected)
@@ -639,11 +640,10 @@ static void capability_run(SDL_Window *window, capability_case mode)
     {
         capability_expect(log, "WARNING:");
         capability_expect(log, "CPU");
-        capability_expect(log, "Significant slowdown is possible.");
     }
     if(capability_injected_compiles || capability_injected_links)
     {
-        capability_expect(log, "If native affine is unavailable:   CPU software rendering");
+        capability_expect(log, "If native affine is unavailable:   Draw rejected; no software retry");
         capability_expect(log, "If color rules are unavailable:    Ignored; no software implementation.");
         capability_expect(log, "Legacy shear requested by retry:");
     }

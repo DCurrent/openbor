@@ -67,8 +67,9 @@ void freescreen(s_screen **screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Copy a screen with destination clipping. Profile a declined native copy
- * through synchronization and CPU copying as one inclusive software span.
+ * 2026-11-15 - Stop native RGB32 failures without a software retry.
+ * Copy a screen with destination clipping. Unmigrated CPU copies include
+ * synchronization and copying in one inclusive software span.
  */
 void copyscreen(s_screen *dest, s_screen *src)
 {
@@ -85,6 +86,10 @@ void copyscreen(s_screen *dest, s_screen *src)
 
     /* Keep copies between render targets on the GPU when supported. */
     if(gpu_copy_screen(dest, src))
+    {
+        return;
+    }
+    if(!gpu_allow_cpu_operation(dest, GPU_OPERATION_COPY))
     {
         return;
     }
@@ -128,6 +133,7 @@ void copyscreen(s_screen *dest, s_screen *src)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Prevent failed native clears from writing CPU pixels.
  * Clear either resident GPU storage or its CPU shadow. Count and time the
  * software path separately so mixed-renderer costs remain visible.
  */
@@ -139,6 +145,10 @@ void clearscreen(s_screen *s)
         return;
     }
     if(gpu_clear_screen(s))
+    {
+        return;
+    }
+    if(!gpu_allow_cpu_operation(s, GPU_OPERATION_CLEAR))
     {
         return;
     }
@@ -633,8 +643,9 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
- * Dispatch a screen draw with its repeats and effects. A software fallback
- * is measured once around the complete operation, including coherence work.
+ * 2026-11-15 - Prepare CPU globals only in modes that still require software.
+ * Dispatch a screen draw with its repeats and effects. Selected native RGB32
+ * draws never retry on the CPU; unmigrated CPU work includes coherence time.
  */
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
@@ -642,16 +653,19 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     int xrepeat, yrepeat, xspan, yspan, i, j;
     s64 dx, dy;
 
-    drawmethod_global_init(drawmethod);
-
-    /* One dispatch includes all repeats; unsupported effects retain their
-     * original software path with current source and destination shadows. */
+    /* One native dispatch includes all repeats and reads drawmethod directly. */
     if(gpu_draw_screen(dest, src, x, y, drawmethod))
+    {
+        return;
+    }
+    if(!gpu_allow_cpu_operation(dest, GPU_OPERATION_SCREEN))
     {
         return;
     }
     software = engine_profile_span_begin();
     engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
+    /* Low-level CPU blitters consume these shared globals; native draws do not. */
+    drawmethod_global_init(drawmethod);
     gpu_sync_cpu(src);
     gpu_prepare_cpu_write(dest);
 
