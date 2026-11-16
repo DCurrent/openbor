@@ -9,7 +9,6 @@
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include "gfxtypes.h"
 #include "types.h"
 #include "gpu.h"
 #include "yuv.h"
@@ -17,13 +16,12 @@
 #include "SDL.h"
 #endif
 
-extern u8 pDeltaBuffer[480 * 2592];
 extern int opengl;
 
-int SetVideoMode(int, int, int, bool);
+int SetVideoMode(int, int);
 void FramerateDelay();
 
-// Frees all VESA shit when returning to textmode
+// Initialize or release the supported RGB32 presentation mode.
 int video_set_mode(s_videomodes);
 int video_restore_mode(void);
 int video_copy_screen(s_screen*);

@@ -12,13 +12,11 @@
 #include "types.h"
 #include "gpu.h"
 #include "yuv.h"
-#include "videocommon.h"
 
 #ifdef OPENGL
 
 // OpenGL video functions
 int video_gl_set_mode(s_videomodes);
-int video_gl_copy_screen(s_videosurface*);
 int video_gl_copy_gpu_screen(s_screen*);
 void video_gl_shutdown(void);
 void video_gl_clearscreen();
@@ -34,7 +32,6 @@ int video_gl_display_yuv_frame(void);
 
 // define dummy macros for OpenGL video functions if OpenGL is not supported
 #define video_gl_set_mode(X)					0
-#define video_gl_copy_screen(X)					0
 #define video_gl_copy_gpu_screen(X)                 0
 #define video_gl_shutdown()
 #define video_gl_clearscreen()

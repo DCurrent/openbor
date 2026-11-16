@@ -70,6 +70,14 @@ extern const char *gpu_vertex_shader_source;
 extern const char *gpu_fragment_shader_source;
 /* Shared direct YUV reconstruction for screen targets and window output. */
 extern const char *gpu_movie_fragment_shader_source;
+/* Output filters share exact RGB8 equations across desktop GL and GLES2.
+ * The body omits version/precision; complete variants supply GLSL 1.20 or
+ * GLSL ES 1.00 with high precision. Uniforms: sourceTexture, sourceSize and
+ * filterMode (1..6). sourcePosition carries original source pixel edges;
+ * source row zero and output row zero both use texture coordinate v=0. */
+extern const char *gpu_output_filter_fragment_shader_body;
+extern const char *gpu_output_filter_fragment_shader_source;
+extern const char *gpu_output_filter_fragment_shader_es_source;
 
 /* Standalone reference helpers used by regression tests and shader diagnostics. */
 unsigned gpu_shader_blend_reference(int mode, unsigned source, unsigned destination);

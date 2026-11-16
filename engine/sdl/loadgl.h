@@ -27,22 +27,27 @@
 #endif
 
 #ifdef LOADGL
-// call this immediately after setting an OpenGL video mode in Linux or Windows
+// Resolve required entry points immediately after creating an OpenGL context.
 int LoadGLFunctions();
 
-extern PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
-extern PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
-extern PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
-extern PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
-extern PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
-extern PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
-extern PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
-extern PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
-extern PFNGLUNIFORM1IARBPROC glUniform1iARB;
-extern PFNGLUNIFORM2IARBPROC glUniform2iARB;
-extern PFNGLUNIFORM1FARBPROC glUniform1fARB;
-extern PFNGLUNIFORM2FARBPROC glUniform2fARB;
-extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
+/* Core GL shader handles are GLuint on every supported platform. Keeping
+ * their function signatures separate from ARB handles is required on macOS. */
+extern PFNGLCREATESHADERPROC ptr_glCreateShader;
+extern PFNGLSHADERSOURCEPROC ptr_glShaderSource;
+extern PFNGLCOMPILESHADERPROC ptr_glCompileShader;
+extern PFNGLGETSHADERIVPROC ptr_glGetShaderiv;
+extern PFNGLGETSHADERINFOLOGPROC ptr_glGetShaderInfoLog;
+extern PFNGLDELETESHADERPROC ptr_glDeleteShader;
+extern PFNGLCREATEPROGRAMPROC ptr_glCreateProgram;
+extern PFNGLATTACHSHADERPROC ptr_glAttachShader;
+extern PFNGLLINKPROGRAMPROC ptr_glLinkProgram;
+extern PFNGLGETPROGRAMIVPROC ptr_glGetProgramiv;
+extern PFNGLGETPROGRAMINFOLOGPROC ptr_glGetProgramInfoLog;
+extern PFNGLUSEPROGRAMPROC ptr_glUseProgram;
+extern PFNGLGETUNIFORMLOCATIONPROC ptr_glGetUniformLocation;
+extern PFNGLUNIFORM1IPROC ptr_glUniform1i;
+extern PFNGLUNIFORM2FPROC ptr_glUniform2f;
+extern PFNGLUNIFORM1FPROC ptr_glUniform1f;
 
 #if WIN
 // <GL/gl.h> in Windows only defines prototypes available in OpenGL 1.1, which
@@ -52,6 +57,25 @@ extern PFNGLUNIFORM4FARBPROC glUniform4fARB;
 void APIENTRY glActiveTexture(GLenum texture);
 void APIENTRY glMultiTexCoord2f(GLenum texture, GLfloat s, GLfloat t);
 #endif // WIN
+
+#else
+
+#define ptr_glCreateShader glCreateShader
+#define ptr_glShaderSource glShaderSource
+#define ptr_glCompileShader glCompileShader
+#define ptr_glGetShaderiv glGetShaderiv
+#define ptr_glGetShaderInfoLog glGetShaderInfoLog
+#define ptr_glDeleteShader glDeleteShader
+#define ptr_glCreateProgram glCreateProgram
+#define ptr_glAttachShader glAttachShader
+#define ptr_glLinkProgram glLinkProgram
+#define ptr_glGetProgramiv glGetProgramiv
+#define ptr_glGetProgramInfoLog glGetProgramInfoLog
+#define ptr_glUseProgram glUseProgram
+#define ptr_glGetUniformLocation glGetUniformLocation
+#define ptr_glUniform1i glUniform1i
+#define ptr_glUniform2f glUniform2f
+#define ptr_glUniform1f glUniform1f
 
 #endif // LOADGL
 

@@ -56237,7 +56237,7 @@ void menu_options_video()
             _menutext((selector == 6), col2, 3, Tr(filterName));
         }
 
-        _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
+        _menutext((selector == 7), col1, 4, Tr("Output Filter:"));
         _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
         char fpslimit_text[32];
@@ -56432,7 +56432,6 @@ void menu_options_video()
                     videomodes.filter = BLITTER_MAX - 1;
                 }
                 savedata.swfilter = videomodes.filter;
-                memset(pDeltaBuffer, 0x00, 1244160);
 				video_set_mode(videomodes);
                 break;
             case 8:

@@ -11,16 +11,17 @@
  */
 
 #include <math.h>
+#include <limits.h>
 #include "types.h"
 #include "video.h"
 #include "vga.h"
 #include "screen.h"
 #include "sdlport.h"
 #include "openbor.h"
-#include "gfxtypes.h"
 #include "gfx.h"
 #include "videocommon.h"
 #include "gpu.h"
+#include "gpu_output_filter_android.h"
 
 #include "pngdec.h"
 
@@ -36,6 +37,7 @@ static SDL_Texture *movie_texture;
 static e_drawmethod_resample movie_resample = DC_RESAMPLE_MOVIE;
 static const void *movie_owner;
 static uint64_t movie_generation;
+static gpu_output_filter_android *output_filter;
 
 //For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
@@ -354,10 +356,10 @@ code.
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Initialize Android presentation for RGB32 scenes only. Reject unsupported
- * input before changing live resources; CPU filters may produce a private
- * BGR565 presentation image after the scene format has been validated.
+ * 2026-11-16
+ * Initialize Android presentation for RGB32 scenes only. Optional output
+ * filters use a GLES2 target before the normal SDL brightness/touch pass.
+ * Failed filter initialization stops the mode without a CPU filter retry.
  */
 int video_set_mode(s_videomodes videomodes)
 {
@@ -365,15 +367,27 @@ int video_set_mode(s_videomodes videomodes)
     int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
 
     /* Zero dimensions request shutdown and carry no scene format. */
-    if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
+    if(videomodes.hRes != 0 || videomodes.vRes != 0)
     {
-        gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
-        return 0;
+        if(videomodes.pixel != 4)
+        {
+            gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
+            return 0;
+        }
+        if(videomodes.hRes <= 0 || videomodes.vRes <= 0 ||
+           videomodes.hRes > INT_MAX / 4 || savedata.swfilter < BLITTER_NONE ||
+           savedata.swfilter >= BLITTER_MAX || (savedata.swfilter && videomodes.vRes > INT_MAX / 2))
+        {
+            gpu_log("ERROR: Android video mode rejected invalid dimensions or output-filter selection.");
+            return 0;
+        }
     }
     stored_videomodes = videomodes;
     savedata.fullscreen = 1;
 
     //destroy all
+    gpu_output_filter_android_destroy(output_filter);
+    output_filter = NULL;
     SDL_DestroyTexture(movie_texture);
     movie_texture = NULL;
     movie_owner = NULL;
@@ -404,8 +418,11 @@ int video_set_mode(s_videomodes videomodes)
     {
         return 0;
     }
-    /* The two-byte image exists only inside an explicitly selected filter. */
-    assert(videomodes.pixel == (savedata.swfilter ? 2 : 4));
+    assert(videomodes.pixel == 4);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
     if(!window && !(window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, nativeWidth, nativeHeight, flags)))
     {
@@ -413,10 +430,25 @@ int video_set_mode(s_videomodes videomodes)
         return 0;
     }
 
-    if(!renderer && !(renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED)))
+    if(!renderer)
     {
-        printf("error: %s\n", SDL_GetError());
-        return 0;
+        int index, selected = -1;
+        SDL_RendererInfo candidate;
+        for(index = 0; index < SDL_GetNumRenderDrivers(); ++index)
+        {
+            if(SDL_GetRenderDriverInfo(index, &candidate) == 0 &&
+               candidate.name && !strcmp(candidate.name, "opengles2"))
+            {
+                selected = index;
+                break;
+            }
+        }
+        if(selected < 0 || !(renderer = SDL_CreateRenderer(window, selected,
+            SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE)))
+        {
+            gpu_log("ERROR: Android requires SDL's opengles2 presenter: %s.", SDL_GetError());
+            return 0;
+        }
     }
 
     //For status
@@ -451,12 +483,19 @@ int video_set_mode(s_videomodes videomodes)
         tmp_surface = NULL;
     }
 
-    if(!(texture = SDL_CreateTexture(renderer,
-        savedata.swfilter ? SDL_PIXELFORMAT_BGR565 : SDL_PIXELFORMAT_ABGR8888,
+    if(!(texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
         SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
     {
         printf("error: %s\n", SDL_GetError());
         return 0;
+    }
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
+    if(savedata.swfilter)
+    {
+        output_filter = gpu_output_filter_android_create(renderer,
+            textureWidth, textureHeight, savedata.swfilter);
+        if(!output_filter) return 0;
+        gpu_log("Android RGB32 GPU output filter %d enabled.", savedata.swfilter);
     }
 
     setup_touch();
@@ -565,19 +604,39 @@ void blit()
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Present a validated RGB32 scene or its configured CPU filter output.
- * Invalid scene storage must not reach SDL texture uploads.
+ * 2026-11-16
+ * Upload the current RGB32 scene, run its selected output filter on GLES2,
+ * then retain the existing brightness, aspect and touch presentation. Movie
+ * textures remain independent and restore this game texture after playback.
  */
 int video_copy_screen(s_screen *src)
 {
+    SDL_Texture *game_texture = texture;
+    SDL_Texture *filtered;
+    int game_width = textureWidth, game_height = textureHeight;
     s_videosurface *surface = getVideoSurface(src);
     if(!surface)
     {
         return 0;
     }
-   	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
+    if(surface->width != textureWidth || surface->height != textureHeight ||
+       SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch) < 0)
+    {
+        gpu_log("ERROR: Android RGB32 scene upload failed: %s.", SDL_GetError());
+        return 0;
+    }
+    if(savedata.swfilter)
+    {
+        filtered = gpu_output_filter_android_apply(output_filter, texture);
+        if(!filtered) return 0;
+        texture = filtered;
+        textureWidth *= 2;
+        textureHeight *= 2;
+    }
     blit();
+    texture = game_texture;
+    textureWidth = game_width;
+    textureHeight = game_height;
 
     SDL_Delay(1);
     return 1;

@@ -631,6 +631,7 @@ static void movie_test_rejection(void)
 /*
  * Damon V. Caskey
  * 2026-11-15
+ * 2026-11-16 - Use core shader handles consistently on macOS and other targets.
  * Retain an independent copy of the old hardware shader for same-driver
  * comparisons. This reference has no production movie sampling code, source
  * cache, shared vertex buffer, clipping helper or RGB conversion intermediate.
@@ -663,10 +664,9 @@ static void movie_legacy_reference(const gpu_yuv_source *source, const gpu_movie
         "  rgb.z = dot(yuv,vec3(1.164,2.018,0));\n"
         "  gl_FragColor = vec4(applyCorrection(rgb),1.0);\n"
         "}\n";
-    PFNGLGETOBJECTPARAMETERIVARBPROC get_parameter = SDL_GL_GetProcAddress("glGetObjectParameterivARB");
-    PFNGLDELETEOBJECTARBPROC delete_object = SDL_GL_GetProcAddress("glDeleteObjectARB");
+    PFNGLDELETEPROGRAMPROC delete_program = SDL_GL_GetProcAddress("glDeleteProgram");
     void (APIENTRY *read_buffer)(GLenum) = SDL_GL_GetProcAddress("glReadBuffer");
-    GLhandleARB fragment, program;
+    GLuint fragment, program;
     GLuint textures[3];
     const unsigned char *planes[] = {source->y, source->u, source->v};
     GLint ready;
@@ -675,25 +675,25 @@ static void movie_legacy_reference(const gpu_yuv_source *source, const gpu_movie
     float bottom_uv = 1.0f-top_uv;
     int right = draw->x+draw->width-(window_geometry && width > 1 ? 1 : 0);
     int top = draw->y+draw->height-(window_geometry && height > 1 ? 1 : 0);
-    assert(get_parameter && delete_object && read_buffer);
+    assert(delete_program && read_buffer);
     gpu_gl_prepare_present();
     gpu_gl_invalidate_state();
-    fragment = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-    glShaderSourceARB(fragment, 1, &fragment_source, NULL);
-    glCompileShaderARB(fragment);
-    get_parameter(fragment, GL_OBJECT_COMPILE_STATUS_ARB, &ready);
+    fragment = ptr_glCreateShader(GL_FRAGMENT_SHADER);
+    ptr_glShaderSource(fragment, 1, &fragment_source, NULL);
+    ptr_glCompileShader(fragment);
+    ptr_glGetShaderiv(fragment, GL_COMPILE_STATUS, &ready);
     assert(ready);
-    program = glCreateProgramObjectARB();
-    glAttachObjectARB(program, fragment);
-    glLinkProgramARB(program);
-    get_parameter(program, GL_OBJECT_LINK_STATUS_ARB, &ready);
+    program = ptr_glCreateProgram();
+    ptr_glAttachShader(program, fragment);
+    ptr_glLinkProgram(program);
+    ptr_glGetProgramiv(program, GL_LINK_STATUS, &ready);
     assert(ready);
-    glUseProgramObjectARB(program);
-    glUniform1iARB(glGetUniformLocationARB(program, "tex"), 0);
-    glUniform1iARB(glGetUniformLocationARB(program, "utex"), 1);
-    glUniform1iARB(glGetUniformLocationARB(program, "vtex"), 2);
-    glUniform1fARB(glGetUniformLocationARB(program, "gamma"), draw->gamma);
-    glUniform1fARB(glGetUniformLocationARB(program, "brightness"), draw->brightness);
+    ptr_glUseProgram(program);
+    ptr_glUniform1i(ptr_glGetUniformLocation(program, "tex"), 0);
+    ptr_glUniform1i(ptr_glGetUniformLocation(program, "utex"), 1);
+    ptr_glUniform1i(ptr_glGetUniformLocation(program, "vtex"), 2);
+    ptr_glUniform1f(ptr_glGetUniformLocation(program, "gamma"), draw->gamma);
+    ptr_glUniform1f(ptr_glGetUniformLocation(program, "brightness"), draw->brightness);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
@@ -738,10 +738,10 @@ static void movie_legacy_reference(const gpu_yuv_source *source, const gpu_movie
     glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     assert(glGetError() == GL_NO_ERROR);
-    glUseProgramObjectARB(0);
+    ptr_glUseProgram(0);
     glDeleteTextures(3, textures);
-    delete_object(program);
-    delete_object(fragment);
+    delete_program(program);
+    ptr_glDeleteShader(fragment);
     gpu_gl_invalidate_state();
 }
 

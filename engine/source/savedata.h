@@ -58,7 +58,7 @@ typedef struct
     int joyrumble[MAX_PLAYERS];
     int showtitles;
     int videoNTSC;
-    int swfilter; // Software scaling filter
+    int swfilter; // GPU output-filter selector; persisted field name/order retained.
     int logo;
     int uselog;
     e_debug_display debuginfo; // FPS, Memory, etc...

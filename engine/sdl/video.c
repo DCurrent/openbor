@@ -13,25 +13,18 @@
 #else
 
 #include "sdlport.h"
-#include <math.h>
 #include "types.h"
 #include "video.h"
 #include "vga.h"
-#include "screen.h"
 #include "opengl.h"
 #include "savedata.h"
-#include "gfxtypes.h"
 #include "gfx.h"
-#include "pngdec.h"
 #include "videocommon.h"
 #include "timer.h"
 #include "gpu.h"
 #include "engine_profile.h"
-#include "../resources/OpenBOR_Icon_32x32_png.h"
 
 SDL_Window *window = NULL;
-static SDL_Renderer *renderer = NULL;
-static SDL_Texture *texture = NULL;
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 int yuv_mode = 0;
@@ -39,7 +32,6 @@ char windowTitle[MAX_LABEL_LEN] = {"OpenBOR"};
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
-int brightness = 0;
 
 /*
  * Damon V. Caskey
@@ -97,131 +89,69 @@ void video_set_window_title(const char* title)
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-13 - Keep window/presenter creation failures in startup diagnostics.
- * Prepare the SDL window for the selected presentation backend. Keep resource
- * destruction in ownership order, preserving GPU-backed screen contents before
- * replacing a window whose graphics context owns those screens.
+ * 2026-11-16
+ * Prepare the desktop OpenGL window and retain its windowed position across
+ * fullscreen changes. The caller owns context preservation and recreation.
  */
-int SetVideoMode(int w, int h, int bpp, bool gl)
+int SetVideoMode(int w, int h)
 {
-	int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS;
-	static bool last_gl = false;
-	static int last_x = SDL_WINDOWPOS_UNDEFINED;
-	static int last_y = SDL_WINDOWPOS_UNDEFINED;
+    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS |
+                SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+    static int last_x = SDL_WINDOWPOS_UNDEFINED;
+    static int last_y = SDL_WINDOWPOS_UNDEFINED;
 
-	/* Retain the windowed position so leaving fullscreen restores its location. */
-	if(savedata.fullscreen)
-	{
-		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-	}
+    /* Retain the location before entering fullscreen or resizing the window. */
+    if(savedata.fullscreen)
+    {
+        flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
+    if(window && !(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
+    {
+        SDL_GetWindowPosition(window, &last_x, &last_y);
+    }
 
-	if(window && !(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
-	{
-		SDL_GetWindowPosition(window, &last_x, &last_y);
-	}
-
-	if (gl)
-	{
-		// The SDL video backend doesn't support high-quality (sharp bilinear) scaling,
-		// so it will produce bad results if it tries to scale by a fractional factor.
-		// The results are worse than what we get from upscaling with nearest-neighbor
-		// and letting the windowing system upscale the result. So only use the high-DPI
-		// flag with the OpenGL backend. Unfortunately, we're stuck with it on Windows,
-		// where high-DPI support is controlled by a global hint and the ALLOW_HIGHDPI
-		// flag is ignored.
-		flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
-	}
-
-	/*
-	 * Release texture storage before its renderer, then release the renderer
-	 * while its window still exists. Both resources are recreated for the new
-	 * mode, even when the window itself can be reused.
-	 */
-	if(texture)
-	{
-		SDL_DestroyTexture(texture);
-	}
-	if(renderer)
-	{
-		SDL_DestroyRenderer(renderer);
-	}
-	texture = NULL;
-	renderer = NULL;
-
-	if(window && gl != last_gl)
-	{
-		/*
-		 * Changing presentation families requires a new window. Synchronize
-		 * live native targets before destroying their old context and window.
-		 */
-		if(last_gl)
-		{
-			video_gl_shutdown();
-		}
-		SDL_DestroyWindow(window);
-		window = NULL;
-	}
-	last_gl = gl;
-
-	/* Reuse compatible windows; otherwise create one with the required flags. */
-	if(window)
-	{
-		if(savedata.fullscreen)
-		{
-			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		}
-		else
-		{
-#ifndef WIN // hiding and showing the window is problematic on Windows
-			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
-			{
-				SDL_HideWindow(window);
-			}
+    /* Every supported desktop mode uses the same OpenGL window family. */
+    if(window)
+    {
+        if(savedata.fullscreen)
+        {
+            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        }
+        else
+        {
+#ifndef WIN
+            if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+            {
+                SDL_HideWindow(window);
+            }
 #endif
-			SDL_SetWindowFullscreen(window, 0);
-			SDL_SetWindowSize(window, w, h);
-			SDL_SetWindowPosition(window, last_x, last_y);
-			SDL_ShowWindow(window);
-		}
-	}
-	else
-	{
-		window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
-		if(!window)
-		{
-			gpu_log("ERROR: Failed to create the %s presentation window: %s.", gl ? "OpenGL" : "SDL", SDL_GetError());
-			return 0;
-		}
-		
-		// Kratus (11-2022) Disabled the native OpenBOR icon
-		// SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
-		// SDL_SetWindowIcon(window, icon);
-		// SDL_FreeSurface(icon);
-		if(!savedata.fullscreen)
-		{
-			SDL_GetWindowPosition(window, &last_x, &last_y);
-		}
-	}
-
-	/* The SDL presenter owns an SDL renderer; the GL path creates its context later. */
-	if(!gl)
-	{
-		renderer = SDL_CreateRenderer(window, -1, savedata.fpslimit == 1 ? SDL_RENDERER_PRESENTVSYNC : 0);
-		if(!renderer)
-		{
-			gpu_log("ERROR: Failed to create the SDL presenter: %s.", SDL_GetError());
-			return 0;
-		}
-	}
-
-	return 1;
+            SDL_SetWindowFullscreen(window, 0);
+            SDL_SetWindowSize(window, w, h);
+            SDL_SetWindowPosition(window, last_x, last_y);
+            SDL_ShowWindow(window);
+        }
+    }
+    else
+    {
+        window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
+        if(!window)
+        {
+            gpu_log("ERROR: Failed to create the OpenGL presentation window: %s.", SDL_GetError());
+            return 0;
+        }
+        if(!savedata.fullscreen)
+        {
+            SDL_GetWindowPosition(window, &last_x, &last_y);
+        }
+    }
+    return 1;
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-13
  * 2026-11-15 - Report the sole supported RGB32 scene format.
+ * 2026-11-16 - Identify final-scene output filters as GPU work.
  * Describe the menu settings selected for this initialization. The first
  * snapshot records Starting Values; later snapshots describe reinitialization
  * without implying that settings remained fixed throughout the session.
@@ -253,11 +183,10 @@ static void video_log_values(const s_videomodes *mode)
 	}
 	if(savedata.swfilter)
 	{
-		filter = savedata.swfilter > 0 && savedata.swfilter < BLITTER_MAX * 2 &&
+		filter = savedata.swfilter > 0 && savedata.swfilter < BLITTER_MAX &&
 		         GfxBlitterNames[savedata.swfilter] ? GfxBlitterNames[savedata.swfilter] : "Unknown";
 	}
-	/* Keep authored scene dimensions separate from the converted/filtered
-	 * presentation image reported after the selected backend is ready. */
+	/* Keep authored scene dimensions separate from the GPU filter target. */
 	gpu_log("%s\n"
 	        "\tMenu options can change these values during play.\n"
 	        "\t%-26s\t%s\n"
@@ -273,8 +202,8 @@ static void video_log_values(const s_videomodes *mode)
 	        "FPS limit:", fps_limit,
 	        "Display mode:", savedata.fullscreen ? "Fullscreen" : "Windowed",
 	        "Display scale:", scale,
-	        "Software filter selected:", filter,
-	        "CPU output filter:", filter_active ? "Active" : "Inactive",
+	        "Output filter selected:", filter,
+	        "GPU output filter:", filter_active ? "Active" : "Inactive",
 	        "Scene resolution:", mode->hRes, mode->vRes,
 	        "Scene color format:", "RGB32", mode->pixel);
 	starting_values_reported = 1;
@@ -282,198 +211,71 @@ static void video_log_values(const s_videomodes *mode)
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-13 - Report readable starting/reinitialized settings without profiling.
- * 2026-11-15 - Require native RGB32 scenes without selecting CPU rendering on failure.
- * 2026-11-15 - Reject unsupported scene formats before changing live video state.
- * Select presentation for a normal game screen. Preserve the original mode
- * for restoration and retain CPU conversion only for output filters that
- * have not yet migrated to native drawing.
+ * 2026-11-16
+ * Require native RGB32 rendering for every desktop presentation mode. GPU
+ * output filters run after scene composition and never select CPU drawing.
+ * Invalid format requests leave the existing window and context intact.
  */
 int video_set_mode(s_videomodes videomodes)
 {
-	int requested_gl = savedata.usegl;
-	int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
-	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
-	int native_scene = !filter_active;
+    int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
 
-	/* Only RGB32 scenes may initialize video. Shutdown has no image format;
-	 * invalid requests must leave the current window, context and policy intact. */
-	if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
-	{
-		gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
-		return 0;
-	}
+    /* Shutdown has no image format; all nonempty scenes must be RGB32. */
+    if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
+    {
+        gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
+        return 0;
+    }
+    if(videomodes.hRes < 0 || videomodes.vRes < 0 ||
+       ((videomodes.hRes == 0) != (videomodes.vRes == 0)))
+    {
+        gpu_log("ERROR: Video mode rejected: invalid scene dimensions %d x %d.", videomodes.hRes, videomodes.vRes);
+        return 0;
+    }
+    if(report_mode && (savedata.swfilter < BLITTER_NONE || savedata.swfilter >= BLITTER_MAX))
+    {
+        gpu_log("ERROR: Video mode rejected: unknown GPU output filter %d.", savedata.swfilter);
+        return 0;
+    }
 
-	/* Publish the previous measurement window before starting a new graphics
-	 * section. Zero-sized shutdown modes have no new starting settings. */
-	engine_profile_reset("video_mode");
+    /* Publish the previous timing window before starting new diagnostics. */
+    engine_profile_reset("video_mode");
+    if(report_mode)
+    {
+        gpu_log("========== GRAPHICS INITIALIZATION ==========");
+        video_log_values(&videomodes);
+        if(!savedata.usegl)
+        {
+            gpu_log("RGB32 scene drawing requires the native OpenGL renderer.\n"
+                    "\tThe stored SDL preference does not select CPU scene rendering.");
+        }
+    }
+    stored_videomodes = videomodes;
+    yuv_mode = 0;
 
-	/* Report the authored scene format before conversion or filtering changes
-	 * the presentation image. These diagnostics run only at mode initialization. */
-	if(report_mode)
-	{
-		gpu_log("========== GRAPHICS INITIALIZATION ==========");
-		video_log_values(&videomodes);
-		if(native_scene && !requested_gl)
-		{
-			gpu_log("RGB32 scene drawing requires the native OpenGL renderer.\n"
-			        "\tThe stored SDL preference does not select CPU scene rendering.");
-		}
-		else if(!requested_gl)
-		{
-			gpu_log("WARNING: SDL presentation is selected in settings.\n"
-			        "\tScene drawing will use the CPU. Significant slowdown is possible.\n"
-			        "\tNative OpenGL capabilities are not tested in this mode.");
-		}
-#ifndef OPENGL
-		else
-		{
-			gpu_log("WARNING: This build has no native OpenGL backend.\n"
-			        "\tUnfiltered RGB32 scene initialization will fail; there is no software retry.\n"
-			        "\tUnmigrated output filters retain their existing presentation path.");
-		}
-#endif
-	}
+    /* Context teardown preserves genuine scene owners, never filter scratch. */
+    if(videomodes.hRes == 0 && videomodes.vRes == 0)
+    {
+        video_gl_shutdown();
+        return 0;
+    }
+    gpu_set_native_required(1);
+    savedata.usegl = 1;
+    videomodes = setupPreBlitProcessing(videomodes);
 
-	/* Store game dimensions before preprocessing can expand the output image. */
-	stored_videomodes = videomodes;
-	yuv_mode = 0;
-
-	/* Zero-sized modes end video use and must drain live native screen storage. */
-	if(videomodes.hRes==0 && videomodes.vRes==0)
-	{
-		video_gl_shutdown();
-		return 0;
-	}
-
-	/* Decide ownership before creating a context. Failed native initialization
-	 * and teardown must not silently re-enable the retired RGB32 retry path. */
-	gpu_set_native_required(native_scene);
-	if(native_scene)
-	{
-		savedata.usegl = 1;
-	}
-
-	videomodes = setupPreBlitProcessing(videomodes);
-	if(!videomodes.pixel)
-	{
-		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-		return 0;
-	}
-
-	/* CPU filters produce a private BGR565 output image from the RGB32 scene.
-	 * That processed image is not a selectable engine color mode. */
-	assert(videomodes.pixel == (filter_active ? 2 : 4));
-
-	/*
-	 * Native RGB32 drawing requires both a presenter and a scene backend.
-	 * Only explicitly selected CPU output filters may use CPU composition.
-	 */
-	if(savedata.usegl && video_gl_set_mode(videomodes))
-	{
-		if(native_scene && !gpu_is_active())
-		{
-			gpu_log("ERROR: Required native RGB32 scene rendering could not initialize.\n"
-			        "\tVideo mode rejected; CPU scene rendering will not be selected.");
-			video_gl_shutdown();
-			if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-			return 0;
-		}
-		/* CPU output filters still require a readable RGB32 scene image. */
-		gpu_set_native_required(native_scene);
-		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-		return 1;
-	}
-	else
-	{
-		opengl = 0;
-	}
-	if(native_scene)
-	{
-		gpu_log("ERROR: Required native RGB32 presentation could not initialize.\n"
-		        "\tVideo mode rejected; CPU scene rendering will not be selected.");
-		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-		return 0;
-	}
-
-	/* Selected output filters still need their CPU implementation. This
-	 * explicit mode choice is separate from native scene initialization failure. */
-	gpu_set_native_required(0);
-	savedata.usegl = 0;
-
-	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
-	                 videomodes.vRes * videomodes.vScale,
-	                 videomodes.pixel * 8, false))
-	{
-		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-		return 0;
-	}
-
-	if(savedata.hwfilter ||
-	   (videomodes.hScale == 1 && videomodes.vScale == 1 && !savedata.fullscreen))
-	{
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
-	}
-	else
-	{
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	}
-
-	/* Uploads use the preprocessed format and dimensions selected above. */
-	texture = SDL_CreateTexture(renderer,
-	                            SDL_PIXELFORMAT_BGR565,
-	                            SDL_TEXTUREACCESS_STREAMING,
-	                            videomodes.hRes, videomodes.vRes);
-	if(!texture)
-	{
-		gpu_log("ERROR: SDL presentation texture creation failed: %s.", SDL_GetError());
-	}
-
-	SDL_ShowCursor(SDL_DISABLE);
-	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-	video_stretch(savedata.stretch);
-
-	/* SDL can select a driver independently of the requested engine backend.
-	 * Record its actual capabilities rather than inferring them from defaults. */
-	{
-		SDL_RendererInfo information;
-		int information_valid = SDL_GetRendererInfo(renderer, &information) == 0;
-		int refresh_rate = video_current_refresh_rate();
-		char refresh_label[32];
-		if(refresh_rate > 0)
-		{
-			snprintf(refresh_label, sizeof(refresh_label), "%d Hz", refresh_rate);
-		}
-		else
-		{
-			snprintf(refresh_label, sizeof(refresh_label), "Unavailable");
-		}
-		gpu_log("Active Presentation\n"
-		        "\t%-26s\tSDL\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\tInactive (CPU scene drawing)\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\t%s\n"
-		        "\t%-26s\t%d-bit (%d bytes per pixel)\n"
-		        "\tSDL acceleration displays completed images; scene drawing stays on the CPU.\n",
-		        "Backend:", "Status:", texture ? "Ready" : "Unavailable",
-		        "Driver:", information_valid && information.name ? information.name : "Unknown",
-		        "Presentation acceleration:", information_valid ?
-		            ((information.flags & SDL_RENDERER_ACCELERATED) ? "Yes" : "No") : "Unknown",
-		        "Native drawing backend:",
-		        "VSync requested:", savedata.fpslimit == 1 ? "Enabled" : "Disabled",
-		        "VSync selected:", information_valid ?
-		            ((information.flags & SDL_RENDERER_PRESENTVSYNC) ? "Enabled" : "Disabled") : "Unknown",
-		        "Display refresh rate:", refresh_label,
-		        "Output color depth:", videomodes.pixel * 8, videomodes.pixel);
-	}
-
-	if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
-	return 1;
+    /* Both native composition and its presenter are required. Failure rejects
+     * this mode and retains the strict drawing policy without a CPU retry. */
+    if(videomodes.pixel && video_gl_set_mode(videomodes) && gpu_is_active())
+    {
+        video_stretch(savedata.stretch);
+        if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
+        return 1;
+    }
+    gpu_log("ERROR: Required native RGB32 presentation could not initialize.\n"
+            "\tVideo mode rejected; CPU scene rendering will not be selected.");
+    video_gl_shutdown();
+    if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
+    return 0;
 }
 
 /*
@@ -498,40 +300,6 @@ void video_fullscreen_flip()
 	savedata.fullscreen ^= 1;
 	if(window) video_set_mode(stored_videomodes);
 	if(restore_yuv) video_setup_yuv_overlay(&stored_yuv_mode);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- * Submit the SDL presentation quad and brightness overlay, measuring window
- * preparation separately from SDL's potentially blocking presentation call.
- */
-void blit()
-{
-	ep_scope setup_scope = engine_profile_span_begin();
-	ep_scope swap_scope;
-
-	/* Preserve the existing composition order before handing the frame to SDL. */
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, texture, NULL, NULL);
-
-	if (brightness > 0)
-	{
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
-	}
-	else if (brightness < 0)
-	{
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
-	}
-	SDL_RenderFillRect(renderer, NULL);
-	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
-
-	/* Present may wait for vertical synchronization or outstanding GPU work.
-	 * Keep that wait visible instead of charging it to the preceding draw calls. */
-	swap_scope = engine_profile_span_begin();
-	SDL_RenderPresent(renderer);
-	engine_profile_span_end(swap_scope, EP_SPAN_SWAP);
 }
 
 /*
@@ -567,91 +335,49 @@ void FramerateDelay()
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Do not download a rejected native RGB32 frame for CPU presentation.
- * 2026-11-15 - Reject invalid presentation images before texture uploads.
- * Present the completed game image. Try a resident GPU texture first, then
- * obtain synchronized CPU pixels for selected output filters. Each successful
- * path retains its normal frame pacing.
+ * 2026-11-16
+ * Present the resident RGB32 scene through optional GPU output filtering.
+ * Rejected frames stop before any CPU readback, conversion, or retry.
  */
-int video_copy_screen(s_screen* src)
+int video_copy_screen(s_screen *src)
 {
-	ep_scope setup_scope;
-	s_videosurface *surface;
-	if(!src || src->pixelformat != PIXEL_32)
-	{
-		return 0;
-	}
+    if(!src || src->pixelformat != PIXEL_32)
+    {
+        return 0;
+    }
+    if(opengl && video_gl_copy_gpu_screen(src))
+    {
+        yuv_mode = 0;
+        return 1;
+    }
 
-	/*
-	 * Native GPU screens already contain the composed frame. Present their
-	 * texture before requesting CPU pixels or applying output filtering.
-	 */
-	if(opengl && video_gl_copy_gpu_screen(src))
-	{
-		yuv_mode = 0;
-		return 1;
-	}
-	if(!gpu_allow_cpu_operation(src, GPU_OPERATION_PRESENT))
-	{
-		return 0;
-	}
-
-	/*
-	 * The native path declined this image or presentation mode. Synchronize
-	 * its CPU shadow and apply the configured output filter.
-	 */
-	setup_scope = engine_profile_span_begin();
-	surface = getVideoSurface(src);
-	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
-	if(!surface)
-	{
-		return 0;
-	}
-
-	if(opengl)
-	{
-		return video_gl_copy_screen(surface);
-	}
-
-	/* SDL presentation uploads the completed CPU image to its streaming texture. */
-	setup_scope = engine_profile_span_begin();
-	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
-	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
-	blit();
-
-	if(savedata.fpslimit >= 2)
-	{
-		FramerateDelay();
-	}
-
-	return 1;
+    /* The existing once-per-operation diagnostic reports a rejected frame. */
+    gpu_allow_cpu_operation(src, GPU_OPERATION_PRESENT);
+    return 0;
 }
 
-void video_clearscreen()
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Clear the active GPU presenter without creating a separate SDL renderer.
+ */
+void video_clearscreen(void)
 {
-	if(opengl) { video_gl_clearscreen(); return; }
-
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
+    if(opengl) video_gl_clearscreen();
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Store aspect handling for the next GPU presentation quad.
+ */
 void video_stretch(int enable)
 {
-	stretch = enable;
-	if(window && !opengl)
-	{
-		if(stretch)
-			SDL_RenderSetLogicalSize(renderer, 0, 0);
-		else
-			SDL_RenderSetLogicalSize(renderer, stored_videomodes.hRes, stored_videomodes.vRes);
-	}
+    stretch = enable;
 }
 
 void video_set_color_correction(int gm, int br)
 {
-	brightness = br;
 	if(opengl) video_gl_set_color_correction(gm, br);
 }
 

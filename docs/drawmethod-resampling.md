@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 ## One filter per draw
 
@@ -167,10 +167,12 @@ No new software resampler is provided.
 
 Explicit filtered draws that cannot execute natively are logged and skipped.
 They do not silently become nearest or fall back to CPU pixel processing.
-This includes the unmigrated Android scene renderer and configurations still
-using CPU output filters. Their existing nearest behavior remains available
-until those rendering paths are migrated separately. Startup capability
-logging reports native resampling availability.
+This includes the unmigrated Android scene renderer, whose existing nearest
+behavior remains available until scene drawing moves to GLES. Startup capability
+logging reports native resampling availability. Video
+[output filters](gpu-output-filters.md) already run on the GPU on desktop and
+Android; they operate after scene composition and do not change this per-draw
+availability or select a CPU desktop renderer.
 
 These are fixed-support reconstruction filters. Strong reduction can still
 alias; footprint-aware area filtering, mipmaps and anisotropic sampling are

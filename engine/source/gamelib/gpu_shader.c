@@ -922,6 +922,134 @@ const char *gpu_movie_fragment_shader_source =
 
 /*
  * Damon V. Caskey
+ * 2026-11-16
+ * Keep desktop and GLES output filters on one RGB8 implementation. Version
+ * and precision declarations belong to the consuming context; the equations
+ * use only GLSL 1.20 / ES 1.00 operations and bounded integer-valued floats.
+ */
+#define GPU_OUTPUT_FILTER_SHADER_BODY \
+    "uniform sampler2D sourceTexture;\n" \
+    "uniform vec2 sourceSize;\n" \
+    "uniform int filterMode;\n" \
+    "varying vec2 sourcePosition;\n" \
+    "/*\n" \
+    " * Damon V. Caskey\n" \
+    " * 2026-11-16\n" \
+    " * Recover RGB bytes at exact texel centers. Explicit black borders keep\n" \
+    " * neighbor taps independent of the texture object's clamp policy.\n" \
+    " */\n" \
+    "vec3 outputSample(vec2 pixel)\n" \
+    "{\n" \
+    "    if(any(lessThan(pixel, vec2(0.0))) ||\n" \
+    "       any(greaterThanEqual(pixel, sourceSize))) return vec3(0.0);\n" \
+    "    vec3 sampleColor = texture2D(sourceTexture, (pixel + 0.5) / sourceSize).rgb;\n" \
+    "    return floor(clamp(sampleColor, 0.0, 1.0) * 255.0 + 0.5);\n" \
+    "}\n" \
+    "/*\n" \
+    " * Damon V. Caskey\n" \
+    " * 2026-11-16\n" \
+    " * Retain separate truncated halves, including each nested bilinear step.\n" \
+    " */\n" \
+    "vec3 outputHalf(vec3 first, vec3 second)\n" \
+    "{\n" \
+    "    return floor(first * 0.5) + floor(second * 0.5);\n" \
+    "}\n" \
+    "/*\n" \
+    " * Damon V. Caskey\n" \
+    " * 2026-11-16\n" \
+    " * Expand the established four-by-four dot pattern into component masks.\n" \
+    " * Pattern coordinates belong to the 2x image before final window scaling.\n" \
+    " */\n" \
+    "vec3 outputDotMask(vec2 outputPixel)\n" \
+    "{\n" \
+    "    vec2 cell = mod(outputPixel, 4.0);\n" \
+    "    if(mod(cell.y, 2.0) > 0.5)\n" \
+    "        return mod(cell.x, 2.0) < 0.5 ? vec3(1.0) : vec3(0.0);\n" \
+    "    if(cell.y < 0.5)\n" \
+    "    {\n" \
+    "        if(cell.x < 0.5) return vec3(0.0, 1.0, 0.0);\n" \
+    "        if(cell.x < 1.5) return vec3(1.0, 0.0, 0.0);\n" \
+    "        if(cell.x < 2.5) return vec3(0.0, 0.0, 1.0);\n" \
+    "    }\n" \
+    "    else\n" \
+    "    {\n" \
+    "        if(cell.x < 0.5) return vec3(0.0, 0.0, 1.0);\n" \
+    "        if(cell.x > 1.5 && cell.x < 2.5) return vec3(0.0, 1.0, 0.0);\n" \
+    "        if(cell.x > 2.5) return vec3(1.0, 0.0, 0.0);\n" \
+    "    }\n" \
+    "    return vec3(0.0);\n" \
+    "}\n" \
+    "/*\n" \
+    " * Damon V. Caskey\n" \
+    " * 2026-11-16\n" \
+    " * Preserve filter IDs and integer channel formulas without packing RGB\n" \
+    " * into reduced-color words. Output is always opaque RGBA8 at exact 2x.\n" \
+    " */\n" \
+    "void main()\n" \
+    "{\n" \
+    "    vec2 outputPixel = floor(sourcePosition * 2.0);\n" \
+    "    vec2 pixel = floor(outputPixel * 0.5);\n" \
+    "    vec2 phase = mod(outputPixel, 2.0);\n" \
+    "    vec3 center = outputSample(pixel);\n" \
+    "    vec3 color = center;\n" \
+    "    if(filterMode == 1)\n" \
+    "    {\n" \
+    "        vec3 upper = phase.x < 0.5 ? center :\n" \
+    "                     outputHalf(center, outputSample(pixel + vec2(1.0, 0.0)));\n" \
+    "        color = upper;\n" \
+    "        if(phase.y > 0.5)\n" \
+    "        {\n" \
+    "            vec3 lower = outputSample(pixel + vec2(0.0, 1.0));\n" \
+    "            if(phase.x > 0.5)\n" \
+    "                lower = outputHalf(lower, outputSample(pixel + vec2(1.0, 1.0)));\n" \
+    "            color = outputHalf(upper, lower);\n" \
+    "        }\n" \
+    "    }\n" \
+    "    else if(filterMode == 2)\n" \
+    "    {\n" \
+    "        /* Scale2x clamps rows while its padded left/right neighbors are\n" \
+    "         * black. The lower neighbor is the actual next source row. */\n" \
+    "        vec3 above = outputSample(vec2(pixel.x, max(pixel.y - 1.0, 0.0)));\n" \
+    "        vec3 below = outputSample(vec2(pixel.x, min(pixel.y + 1.0, sourceSize.y - 1.0)));\n" \
+    "        vec3 left = outputSample(pixel - vec2(1.0, 0.0));\n" \
+    "        vec3 right = outputSample(pixel + vec2(1.0, 0.0));\n" \
+    "        if(any(notEqual(above, below)) && any(notEqual(left, right)))\n" \
+    "        {\n" \
+    "            vec3 horizontal = phase.x < 0.5 ? left : right;\n" \
+    "            vec3 vertical = phase.y < 0.5 ? above : below;\n" \
+    "            if(all(equal(horizontal, vertical))) color = horizontal;\n" \
+    "        }\n" \
+    "    }\n" \
+    "    else if(filterMode == 3)\n" \
+    "    {\n" \
+    "        if(phase.y > 0.5) color = vec3(0.0);\n" \
+    "    }\n" \
+    "    else if(filterMode == 4)\n" \
+    "    {\n" \
+    "        if(phase.x > 0.5) color = outputHalf(center, outputSample(pixel + vec2(1.0, 0.0)));\n" \
+    "        if(phase.y > 0.5) color = 3.0 * floor(color * 0.25);\n" \
+    "    }\n" \
+    "    else if(filterMode == 5)\n" \
+    "    {\n" \
+    "        if(phase.y > 0.5) color = floor(center * 7.0 / 8.0);\n" \
+    "    }\n" \
+    "    else if(filterMode == 6)\n" \
+    "    {\n" \
+    "        color = center - floor(center * 0.25) * outputDotMask(outputPixel);\n" \
+    "    }\n" \
+    "    gl_FragColor = vec4(color / 255.0, 1.0);\n" \
+    "}\n"
+
+const char *gpu_output_filter_fragment_shader_body = GPU_OUTPUT_FILTER_SHADER_BODY;
+const char *gpu_output_filter_fragment_shader_source =
+    "#version 120\n" GPU_OUTPUT_FILTER_SHADER_BODY;
+const char *gpu_output_filter_fragment_shader_es_source =
+    "#version 100\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n"
+    GPU_OUTPUT_FILTER_SHADER_BODY;
+#undef GPU_OUTPUT_FILTER_SHADER_BODY
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Expose the canonical byte equations without SDL/OpenGL for regression tests.

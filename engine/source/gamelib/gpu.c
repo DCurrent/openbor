@@ -103,9 +103,10 @@ void gpu_set_native_required(int required)
 /*
  * Damon V. Caskey
  * 2026-11-15
+ * 2026-11-16 - Keep GPU output-filter selection independent of CPU eligibility.
  * Decide whether a declined native root operation still requires CPU work.
  * Migrated RGB32 scene targets log once per operation and remain unchanged;
- * indexed asset work, Android and selected CPU output filters retain theirs.
+ * indexed asset work and the unmigrated Android scene renderer retain theirs.
  */
 int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
 {
@@ -140,8 +141,9 @@ int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
 /*
  * Damon V. Caskey
  * 2026-11-15
- * Explicit non-nearest image sampling is GPU-only, including unmigrated CPU
- * output configurations and indexed destinations. Declined native draws must
+ * 2026-11-16 - Output filters no longer select a CPU scene-rendering path.
+ * Explicit non-nearest image sampling is GPU-only, including the unmigrated
+ * Android scene renderer and indexed destinations. Declined native draws must
  * stop before synchronization, CPU globals or writes can approximate the request
  * with nearest sampling. Disabled methods retain the ordinary default policy.
  */

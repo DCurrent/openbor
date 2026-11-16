@@ -1,7 +1,7 @@
 /*
  * Exercise the production SDL/OpenGL presenter and context lifecycle.
  * Run through tests/run_gpu_tests.sh, or compile with the native renderer test
- * flags plus video.c, opengl.c, videocommon.c, timer.c and simple2x.c. The native
+ * flags plus video.c, opengl.c, videocommon.c, timer.c and gfx.c. The native
  * test fixtures are reused with their independent
  * entry point renamed; --gc-sections discards the unused test suite.
  */
@@ -15,14 +15,10 @@
 #include "gfx.h"
 
 s_savedata savedata;
-GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2];
-char *GfxBlitterNames[(BLITTER_MAX * 2) + 1] = { "Disabled", "Simple 2x fixture" };
 extern SDL_Window *window;
 extern int nativeWidth, nativeHeight;
 extern s_videomodes stored_videomodes;
-extern void Simple2x(u8 *src, u32 src_pitch, u8 *delta, u8 *dest, u32 dest_pitch, int width, int height);
 extern void video_gl_setup_screen(void);
-extern void video_gl_init_texture(int index, int width, int height, int bytes_per_pixel);
 
 /*
  * Damon V. Caskey
@@ -69,7 +65,7 @@ static void test_presenter_state_boundaries(s_screen *screen)
 {
     void (APIENTRY *get_texture_parameter)(GLenum, GLenum, GLint *) = SDL_GL_GetProcAddress("glGetTexParameteriv");
     s_screen *target = test_screen(16, 16, PIXEL_32);
-    unsigned texture;
+    unsigned texture, external_texture;
     int width, height;
     GLint minimum_filter, maximum_filter;
 
@@ -89,14 +85,19 @@ static void test_presenter_state_boundaries(s_screen *screen)
     gpu_sync_cpu(target);
     assert(test_pixel(target, 11, 11) == 0x0013579b);
 
-    /* Recreating the legacy upload texture changes unit-zero ownership.
-     * Native sampling must recover even though its source handle is stable. */
+    /* Another context owner can change unit-zero ownership. Native sampling
+     * must recover even though its cached source handle remains stable. */
     assert(gpu_draw_screen(target, screen, 0, 0, &plainmethod));
-    video_gl_init_texture(0, 8, 8, 4);
+    gpu_gl_invalidate_state();
+    glGenTextures(1, &external_texture);
+    assert(external_texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, external_texture);
     assert(gpu_draw_screen(target, screen, 8, 0, &plainmethod));
     gpu_sync_cpu(target);
     assert(test_pixel(target, 10, 0) == 0x000000ff);
     assert(test_pixel(target, 10, 7) == 0x0000ff00);
+    glDeleteTextures(1, &external_texture);
 
     /* The presenter temporarily requests linear display filtering. Its
      * borrowed native texture must be returned with pixel-art sampling. */
@@ -119,34 +120,64 @@ static void test_presenter_state_boundaries(s_screen *screen)
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Verify a selected output filter consumes RGB32 scene data and produces its
- * private packed intermediate without changing the authored scene format.
+ * 2026-11-16
+ * Keep selected display filters on the native scene path through consecutive
+ * presentations. Exact kernel pixels are covered by the independent suite.
  */
-static void test_cpu_output_filter(s_screen *source)
+static void test_native_output_filters(s_screen *source)
 {
-    s_videosurface *output = getVideoSurface(source);
-    int x, y;
-
-    /* The production nearest-neighbor filter doubles both dimensions. Its
-     * packed BGR565 output is private presentation storage, not a scene mode. */
+    void (APIENTRY *read_buffer)(GLenum) = SDL_GL_GetProcAddress("glReadBuffer");
+    gpu_renderer_stats before;
+    unsigned stale_pixel = test_pixel(source, 2, 2), texture;
+    int filter, width, height;
     assert(source->pixelformat == PIXEL_32);
     assert(stored_videomodes.pixel == 4);
-    assert(output && output->width == 16 && output->height == 16);
-    assert(output->pitch == output->width * 2);
-    assert(output->data != source->data);
-    for(y = 0; y < output->height; ++y)
+    assert(stored_videomodes.hRes == 8 && stored_videomodes.vRes == 8);
+    assert(gpu_draw_box(source, 0, 0, 8, 8, 0x00345678, &plainmethod));
+    assert(gpu_gl_get_screen_texture(source, &texture, &width, &height));
+    for(filter = 1; filter < BLITTER_MAX; ++filter)
     {
-        const unsigned short *row = (const unsigned short *)((const unsigned char *)output->data + y * output->pitch);
-        for(x = 0; x < output->width; ++x)
+        savedata.swfilter = filter;
+        before = *gpu_gl_get_stats();
+        assert(video_copy_screen(source));
+        assert(gpu_is_active());
+        assert(!gpu_allow_cpu_operation(source, GPU_OPERATION_SCREEN));
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->uploads == before.uploads);
+        assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws + 1);
+        assert(test_pixel(source, 2, 2) == stale_pixel);
+        if(filter == BLITTER_SCANLINES)
         {
-            /* RGB32 0x00abcdef contains R=ef, G=cd, B=ab. Quantizing these
-             * channels to 5/6/5 bits produces the packed value 0xae7d. */
-            assert(row[x] == 0xae7d);
+            unsigned pixels[8 * 8];
+            int drawable_width, drawable_height;
+            SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
+            assert(read_buffer && drawable_width == 16 && drawable_height == 16);
+            memset(pixels, 0xa5, sizeof(pixels));
+            read_buffer(GL_FRONT);
+            /* The offscreen SDL driver can retain its original pbuffer size
+             * after a logical window resize. Sample the shared lower 8x8 area
+             * so the same assertions also exercise ordinary resizable windows. */
+            glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+            read_buffer(GL_BACK);
+            /* The window must consume the filtered texture itself. These
+             * alternating rows also retain colors below 565 precision. */
+            if((pixels[8 + 4] & 0x00ffffffu) != 0x00345678u ||
+               (pixels[4] & 0x00ffffffu) != 0)
+                fprintf(stderr, "Displayed scanlines: upper=%06x lower=%06x, expected 345678/000000\n",
+                        pixels[8 + 4] & 0x00ffffffu, pixels[4] & 0x00ffffffu);
+            assert((pixels[8 + 4] & 0x00ffffffu) == 0x00345678u);
+            assert((pixels[4] & 0x00ffffffu) == 0);
         }
+        assert(gpu_draw_box(source, 0, 0, 1, 1, (unsigned)filter, &plainmethod));
     }
-    assert(test_pixel(source, 2, 2) == 0x00abcdef);
+    /* Display scale controls activation without suspending native rendering. */
+    savedata.swfilter = BLITTER_BILINEAR;
+    savedata.hwscale = 1.0f;
+    before = *gpu_gl_get_stats();
     assert(video_copy_screen(source));
+    assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    savedata.hwscale = 2.0f;
 }
 
 /*
@@ -294,7 +325,8 @@ static void test_native_movie_presentation(s_screen *screen)
  * 2026-11-12
  * 2026-11-15 - Require native RGB32 through mode failures and context teardown.
  * 2026-11-15 - Reject removed scene formats and exercise real filter storage.
- * Exercise production presentation, mode switching, unported CPU filters and
+ * 2026-11-16 - Keep output filters and movie composition on native RGB32.
+ * Exercise production presentation, mode switching, GPU output filters and
  * YUV transitions without linking unrelated game/audio subsystems.
  */
 int main(void)
@@ -341,18 +373,17 @@ int main(void)
     assert(opengl && gpu_is_active());
     assert(test_pixel(screen, 2, 2) == 0x00123456);
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00abcdef, &plainmethod));
-    /* Use the actual filter implementation at the fixture's selected index. */
-    GfxBlitters[1] = Simple2x;
     savedata.swfilter = 1;
     savedata.hwscale = 2.0f;
     assert(video_set_mode(mode));
-    assert(opengl && !gpu_is_active());
-    assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+    assert(opengl && gpu_is_active());
+    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
-    test_cpu_output_filter(screen);
+    test_native_output_filters(screen);
 
-    /* Returning from a CPU filter restores native drawing. Movie output and
-     * capture now share that renderer while preserving ordinary scene work. */
+    /* Fullscreen movie color remains independent of scene output filtering.
+     * Capture and normal scene presentation share the still-active renderer. */
+    test_native_movie_presentation(screen);
     savedata.swfilter = 0;
     savedata.hwscale = 1.0f;
     assert(video_set_mode(mode));
@@ -403,6 +434,6 @@ int main(void)
     SDL_DestroyWindow(window);
     window = NULL;
     SDL_Quit();
-    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filter intermediates, native movie color/capture/coexistence, required RGB32 failures, RGB32-only scene modes.");
+    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, native RGB8 output filters, movie color/capture/coexistence with filters, required RGB32 failures, RGB32-only scene modes.");
     return 0;
 }

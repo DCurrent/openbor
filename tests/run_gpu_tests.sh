@@ -268,6 +268,13 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_gpu_resample_tests.sh
 
+# Compare every display-filter pixel with independent RGB8 kernels, including
+# source ownership, tiny edges, allocation rejection and context replacement.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_output_filter_tests.sh
+
 # Preserve movie color conversion, per-plane reconstruction, opaque clipping,
 # resident source caching and native ownership across real context replacement.
 OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
@@ -288,11 +295,27 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_android_movie_tests.sh
 
+# Verify the Android GLES2 filter bridge against the shared independent RGB8
+# oracle, including SDL composition and native resource/error recovery.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_android_output_filter_tests.sh
+
+test_presentation_sources=("${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c
+    engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/gfx.c)
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
-    "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \
-    engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/simple2x.c \
+    "${test_presentation_sources[@]}" \
     "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
     -o "$test_build_dir/test_gpu_presentation"
 run_test "$test_build_dir/test_gpu_presentation"
+
+# Initialization must reject a failed final-display program before reporting
+# an active native mode. Only the status queries are deliberately intercepted.
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation_failures.c \
+    "${test_presentation_sources[@]}" \
+    "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -Wl,--wrap=SDL_GL_GetProcAddress -o "$test_build_dir/test_gpu_presentation_failures"
+run_test "$test_build_dir/test_gpu_presentation_failures"
 
 printf 'Renderer regression tests completed. Test binaries: %s\n' "$test_build_dir"

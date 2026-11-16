@@ -22,6 +22,11 @@ void gpu_gl_shutdown(void);
 /* Borrowed textures remain renderer-owned. External consumers must restore
  * their NEAREST/CLAMP sampling policy before native drawing resumes. */
 int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, int *height);
+/* Filter 0 borrows the original screen; filters 1..6 render into one reusable
+ * exact 2x RGBA8 texture. The next filtered call may overwrite that texture.
+ * Failure leaves caller outputs unchanged and never selects a CPU path. */
+int gpu_gl_get_filtered_screen_texture(s_screen *screen, int filter,
+                                       unsigned *texture, int *width, int *height);
 void gpu_gl_prepare_present(void);
 /* Movie presentation retains the native scene backend and source planes. */
 int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,
@@ -54,6 +59,8 @@ typedef struct gpu_renderer_stats
     uint64_t plane_map_uploads, plane_map_upload_bytes, plane_rows_prepared;
     /* One upload counts a complete three-plane frame, not each GL transfer. */
     uint64_t movie_uploads, movie_draws, movie_cache_hits, movie_resources;
+    /* Filter targets are private GPU-only storage; resources is 0 or 1. */
+    uint64_t output_filter_draws, output_filter_allocations, output_filter_resources;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
 

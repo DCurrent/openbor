@@ -40,7 +40,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install build-essential git cmake zstd \
-          libsdl2-dev libvorbis-dev libpng-dev libvpx-dev libgl1-mesa-dri
+          libsdl2-dev libvorbis-dev libpng-dev libvpx-dev libgl1-mesa-dri libegl1 libgles2
     - name: Setup Macos dependencies
       if: runner.os == 'macOS'
       run: |

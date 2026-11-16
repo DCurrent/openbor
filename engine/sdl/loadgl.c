@@ -7,15 +7,14 @@
  */
 
 /*
- * Dynamic OpenGL function loader.  Allows the program to run using SDL software
- * blitting when there is no OpenGL implementation available.  This is the case
- * by default in some Linux distributions and on some very old Windows computers.
+ * Dynamic OpenGL function loader. Required entry-point failures reject native
+ * presentation and are reported through the video initialization diagnostics.
  *
  * Date: August 3, 2010
  * Update, September 17, 2010
  */
 
-#ifdef OPENGL
+#if defined(OPENGL) && defined(LOADGL)
 
 #include "sdlport.h"
 #include "loadgl.h"
@@ -65,19 +64,22 @@ void (APIENTRY *ptr_glTexCoord2f)(GLfloat s, GLfloat t);
 void (APIENTRY *ptr_glActiveTexture)(GLenum texture);
 void (APIENTRY *ptr_glMultiTexCoord2f)(GLenum texture, GLfloat s, GLfloat t);
 
-PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
-PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
-PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
-PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
-PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
-PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
-PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
-PFNGLGETUNIFORMLOCATIONARBPROC glGetUniformLocationARB;
-PFNGLUNIFORM1IARBPROC glUniform1iARB;
-PFNGLUNIFORM2IARBPROC glUniform2iARB;
-PFNGLUNIFORM1FARBPROC glUniform1fARB;
-PFNGLUNIFORM2FARBPROC glUniform2fARB;
-PFNGLUNIFORM4FARBPROC glUniform4fARB;
+PFNGLCREATESHADERPROC ptr_glCreateShader;
+PFNGLSHADERSOURCEPROC ptr_glShaderSource;
+PFNGLCOMPILESHADERPROC ptr_glCompileShader;
+PFNGLGETSHADERIVPROC ptr_glGetShaderiv;
+PFNGLGETSHADERINFOLOGPROC ptr_glGetShaderInfoLog;
+PFNGLDELETESHADERPROC ptr_glDeleteShader;
+PFNGLCREATEPROGRAMPROC ptr_glCreateProgram;
+PFNGLATTACHSHADERPROC ptr_glAttachShader;
+PFNGLLINKPROGRAMPROC ptr_glLinkProgram;
+PFNGLGETPROGRAMIVPROC ptr_glGetProgramiv;
+PFNGLGETPROGRAMINFOLOGPROC ptr_glGetProgramInfoLog;
+PFNGLUSEPROGRAMPROC ptr_glUseProgram;
+PFNGLGETUNIFORMLOCATIONPROC ptr_glGetUniformLocation;
+PFNGLUNIFORM1IPROC ptr_glUniform1i;
+PFNGLUNIFORM2FPROC ptr_glUniform2f;
+PFNGLUNIFORM1FPROC ptr_glUniform1f;
 
 #define LOADFUNC(X,Y) \
 { \
@@ -92,6 +94,7 @@ PFNGLUNIFORM4FARBPROC glUniform4fARB;
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-16 - Require correctly typed core shader APIs and compile/link diagnostics.
  * Resolve graphics entry points from the current SDL context. Required core
  * functions gate presentation availability; optional shader capabilities are
  * checked by the presentation and native-renderer initialization paths.
@@ -152,20 +155,24 @@ int LoadGLFunctions()
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
 	}
 
-	/* Preserve the presenter's shader bindings independently of scene shaders. */
-	glCreateShaderObjectARB = SDL_GL_GetProcAddress("glCreateShader");
-	glShaderSourceARB = SDL_GL_GetProcAddress("glShaderSource");
-	glCompileShaderARB = SDL_GL_GetProcAddress("glCompileShader");
-	glCreateProgramObjectARB = SDL_GL_GetProcAddress("glCreateProgram");
-	glAttachObjectARB = SDL_GL_GetProcAddress("glAttachShader");
-	glLinkProgramARB = SDL_GL_GetProcAddress("glLinkProgram");
-	glUseProgramObjectARB = SDL_GL_GetProcAddress("glUseProgram");
-	glGetUniformLocationARB = SDL_GL_GetProcAddress("glGetUniformLocation");
-	glUniform1iARB = SDL_GL_GetProcAddress("glUniform1iARB");
-	glUniform2iARB = SDL_GL_GetProcAddress("glUniform2iARB");
-	glUniform1fARB = SDL_GL_GetProcAddress("glUniform1fARB");
-	glUniform2fARB = SDL_GL_GetProcAddress("glUniform2fARB");
-	glUniform4fARB = SDL_GL_GetProcAddress("glUniform4fARB");
+	/* Use core shader signatures consistently: Apple ARB handles have a
+	 * different type from the GLuint names returned by core creation calls. */
+	LOADFUNC("glCreateShader", ptr_glCreateShader);
+	LOADFUNC("glShaderSource", ptr_glShaderSource);
+	LOADFUNC("glCompileShader", ptr_glCompileShader);
+	LOADFUNC("glGetShaderiv", ptr_glGetShaderiv);
+	LOADFUNC("glGetShaderInfoLog", ptr_glGetShaderInfoLog);
+	LOADFUNC("glDeleteShader", ptr_glDeleteShader);
+	LOADFUNC("glCreateProgram", ptr_glCreateProgram);
+	LOADFUNC("glAttachShader", ptr_glAttachShader);
+	LOADFUNC("glLinkProgram", ptr_glLinkProgram);
+	LOADFUNC("glGetProgramiv", ptr_glGetProgramiv);
+	LOADFUNC("glGetProgramInfoLog", ptr_glGetProgramInfoLog);
+	LOADFUNC("glUseProgram", ptr_glUseProgram);
+	LOADFUNC("glGetUniformLocation", ptr_glGetUniformLocation);
+	LOADFUNC("glUniform1i", ptr_glUniform1i);
+	LOADFUNC("glUniform2f", ptr_glUniform2f);
+	LOADFUNC("glUniform1f", ptr_glUniform1f);
 
 	return 1;
 }

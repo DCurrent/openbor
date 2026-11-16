@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 ## Shared playback and rendering
 
@@ -185,8 +185,12 @@ movie-to-screen composition requires the pending native scene renderer port and
 is rejected instead of executing the removed CPU converter. No Android native
 scene-rendering migration is claimed by this change.
 
-Configured CPU output filters likewise do not acquire a software movie converter.
-The native backend must be available for movie-to-screen composition.
+GPU output filters keep the desktop native backend available for movie-to-screen
+composition. Movies drawn into scene screens receive the selected final-scene
+filter during normal presentation. Direct fullscreen movie output preserves its
+independent YUV color and resampling path. See
+[GPU output filters](gpu-output-filters.md) for the presentation order and
+Android scene-upload boundary.
 
 The existing decoder contract remains even-sized, tightly packed, 8-bit YUV420
 VP8 frames. Dynamic resolution and additional codec/color-metadata policies are

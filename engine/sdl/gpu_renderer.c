@@ -128,6 +128,11 @@ typedef struct gpu_movie_uniforms
     GLint resample, black_filter, gamma, brightness;
 } gpu_movie_uniforms;
 
+typedef struct gpu_output_filter_uniforms
+{
+    GLint target_size, source_size, source, mode;
+} gpu_output_filter_uniforms;
+
 typedef struct gpu_uniforms
 {
     GLint target_size, source_size;
@@ -254,6 +259,12 @@ static gpu_movie_source *movie_sources;
 static GLuint movie_program;
 static gpu_movie_uniforms movie_uniforms;
 static int movie_program_attempted, movie_present_warning;
+/* Presentation filters never acquire a CPU-backed screen identity. Their
+ * single reusable intermediate remains private to this graphics context. */
+static GLuint output_filter_program, output_filter_texture, output_filter_framebuffer;
+static gpu_output_filter_uniforms output_filter_uniforms;
+static int output_filter_width, output_filter_height;
+static int output_filter_program_attempted, output_filter_warning;
 
 /* Private declarations keep optional timer entry points independent from the
  * GL 2.1 presentation loader and from newer typedefs in platform GL headers. */
@@ -3404,6 +3415,125 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
 
 /*
  * Damon V. Caskey
+ * 2026-11-16
+ * Compile the common output-filter equations only when an active filter is
+ * presented. Failure disables this pass without retiring scene resources.
+ */
+static int gpu_output_filter_program_ready(void)
+{
+    GLuint vertex = 0, fragment = 0;
+    GLint linked = 0;
+    char message[4096];
+    if(output_filter_program) return 1;
+    if(output_filter_program_attempted) return 0;
+    output_filter_program_attempted = 1;
+    vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
+    fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_output_filter_fragment_shader_source);
+    if(!vertex || !fragment) goto failed;
+    output_filter_program = gpu_CreateProgram();
+    if(!output_filter_program) goto failed;
+    gpu_AttachShader(output_filter_program, vertex);
+    gpu_AttachShader(output_filter_program, fragment);
+    gpu_BindAttribLocation(output_filter_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
+    gpu_BindAttribLocation(output_filter_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_LinkProgram(output_filter_program);
+    gpu_GetProgramiv(output_filter_program, GL_LINK_STATUS, &linked);
+    if(!linked)
+    {
+        message[0] = '\0';
+        gpu_GetProgramInfoLog(output_filter_program, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = '\0';
+        gpu_log("WARNING: Native output-filter shader link failed.\n\tDriver diagnostic:\n%s",
+                message[0] ? message : "not provided");
+        goto failed;
+    }
+#define GPU_OUTPUT_FILTER_UNIFORM(member, name) \
+    do { output_filter_uniforms.member = gpu_GetUniformLocation(output_filter_program, name); \
+         if(output_filter_uniforms.member < 0) goto failed; } while(0)
+    GPU_OUTPUT_FILTER_UNIFORM(target_size, "targetSize");
+    GPU_OUTPUT_FILTER_UNIFORM(source_size, "sourceSize");
+    GPU_OUTPUT_FILTER_UNIFORM(source, "sourceTexture");
+    GPU_OUTPUT_FILTER_UNIFORM(mode, "filterMode");
+#undef GPU_OUTPUT_FILTER_UNIFORM
+    if(glGetError() != GL_NO_ERROR) goto failed;
+    gpu_DeleteShader(vertex);
+    gpu_DeleteShader(fragment);
+    gpu_log("Native output filters enabled: six RGB8 filters, one reusable 2x RGBA8 target, no scene readback.");
+    return 1;
+failed:
+    if(vertex) gpu_DeleteShader(vertex);
+    if(fragment) gpu_DeleteShader(fragment);
+    if(output_filter_program) gpu_DeleteProgram(output_filter_program);
+    output_filter_program = 0;
+    native_failure = EP_FALLBACK_RESOURCE;
+    gpu_log("WARNING: Native output-filter shader unavailable; filtered presentation is disabled without CPU retry.");
+    gpu_gl_invalidate_state();
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Reuse one exact-size intermediate across frames and filter choices. Build
+ * replacements completely before retiring the previous usable allocation.
+ */
+static int gpu_output_filter_target_ready(int width, int height)
+{
+    GLuint texture = 0, framebuffer = 0;
+    GLenum status, error;
+    if(output_filter_texture && output_filter_framebuffer &&
+       output_filter_width == width && output_filter_height == height) return 1;
+    texture = gpu_new_texture(width, height, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    if(!texture) goto failed;
+    gpu_GenFramebuffers(1, &framebuffer);
+    if(!framebuffer) goto failed;
+    gpu_bind_framebuffer(framebuffer);
+    gpu_FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    status = gpu_CheckFramebufferStatus(GL_FRAMEBUFFER);
+    error = glGetError();
+    if(status != GL_FRAMEBUFFER_COMPLETE || error != GL_NO_ERROR) goto failed;
+
+    /* Deleting old names invalidates binding assumptions even if the driver
+     * immediately reuses those names for another scene or presentation owner. */
+    gpu_gl_invalidate_state();
+    if(output_filter_framebuffer) gpu_DeleteFramebuffers(1, &output_filter_framebuffer);
+    if(output_filter_texture) glDeleteTextures(1, &output_filter_texture);
+    output_filter_texture = texture;
+    output_filter_framebuffer = framebuffer;
+    output_filter_width = width;
+    output_filter_height = height;
+    ++stats.output_filter_allocations;
+    stats.output_filter_resources = 1;
+    return 1;
+failed:
+    gpu_gl_invalidate_state();
+    if(framebuffer) gpu_DeleteFramebuffers(1, &framebuffer);
+    if(texture) glDeleteTextures(1, &texture);
+    native_failure = EP_FALLBACK_RESOURCE;
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Retire the recreatable presentation target without downloading its pixels.
+ * Context replacement recreates both the program and target on first use.
+ */
+static void gpu_output_filter_shutdown(void)
+{
+    gpu_gl_invalidate_state();
+    if(output_filter_framebuffer) gpu_DeleteFramebuffers(1, &output_filter_framebuffer);
+    if(output_filter_texture) glDeleteTextures(1, &output_filter_texture);
+    if(output_filter_program) gpu_DeleteProgram(output_filter_program);
+    output_filter_framebuffer = output_filter_texture = output_filter_program = 0;
+    output_filter_width = output_filter_height = 0;
+    output_filter_program_attempted = output_filter_warning = 0;
+    stats.output_filter_resources = 0;
+    memset(&output_filter_uniforms, 0, sizeof(output_filter_uniforms));
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-15
  * Compile the shared movie program on first use. A rejected movie shader
  * leaves scene rendering available and remains rejected for this context.
@@ -3896,6 +4026,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-15 - Identify RGB32 as the sole scene format.
  * 2026-11-15 - Report water sampling and compact plane recurrence support.
  * 2026-11-15 - Report shared movie reconstruction and lazy shader validation.
+ * 2026-11-16 - Report shared RGB8 output filters and their GPU-only intermediate.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3977,6 +4108,17 @@ static void gpu_log_capability_result(int native_available)
             "\tReduction:                         Fixed support; no mipmap/area prefilter\n"
             "\tSoftware implementation:           None; unavailable filtered draws logged and skipped\n",
             native_available ? "NATIVE - available" : "UNAVAILABLE");
+    gpu_log("Output Filters\n"
+            "\tRendering path:                    %s\n"
+            "\tShader validation:                 Compiled and linked on first filtered presentation\n"
+            "\tAvailable filters:                 Bilinear, Advance Mame2x, Scanlines, ScanlinesTV, TV2x, DotMatrix\n"
+            "\tColor precision:                   Full RGB8 channels; no reduced-color conversion\n"
+            "\tIntermediate:                      One reusable exact 2x RGBA8 texture\n"
+            "\tScene rendering:                   Remains native when filters change\n"
+            "\tCPU pixel processing/readback:     None\n"
+            "\tSoftware implementation:           None; unavailable filtered presentation logged and skipped\n",
+            native_available ? "NATIVE - shared desktop/GLES equations; shader pending first use" :
+                               "UNAVAILABLE - native scene backend required");
     gpu_log("Movie Rendering\n"
             "\tRendering path:                    %s\n"
             "\tShader validation:                 Compiled and linked on first movie draw\n"
@@ -4048,6 +4190,7 @@ int gpu_gl_init(void)
     affine_supported = color_rules_supported = shear_supported = 0;
     water_supported = plane_supported = 0;
     plane_cache_warning = plane_upload_warning = 0;
+    output_filter_warning = 0;
     maximum_texture_size = 0;
     gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
@@ -4448,6 +4591,7 @@ failed:
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Retire context-owned plane maps with the other native resources.
+ * 2026-11-16 - Discard private output-filter storage without a screen readback.
  * Preserve live screen contents before destroying a graphics context. This
  * infrequent readback keeps pause buffers, scripted targets and mode changes
  * functional without maintaining a CPU copy after every rendered frame.
@@ -4493,6 +4637,7 @@ void gpu_gl_shutdown(void)
     gpu_unregister_backend();
     gpu_gl_prepare_present();
     gpu_movie_shutdown();
+    gpu_output_filter_shutdown();
     gpu_DeleteProgram(program);
     glDeleteTextures(1, &white_texture);
     glDeleteTextures(1, &palette_texture);
@@ -4534,6 +4679,144 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
     *width = image->width;
     *height = image->height;
     return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Filter the completed native scene without downloading or repacking pixels.
+ * Borrowed results retain source row orientation and are ready for the normal
+ * window scaling/color-correction pass. Failed work never publishes a texture.
+ */
+int gpu_gl_get_filtered_screen_texture(s_screen *screen, int filter,
+                                       unsigned *texture, int *width, int *height)
+{
+    gpu_image *source;
+    gpu_vertex vertices[4];
+    int target_width, target_height;
+    size_t stream_first = 0;
+    ep_scope state_scope, submit_scope;
+    const char *failure = "output-filter resources unavailable";
+    uint64_t previous_state_changes = stats.state_changes;
+    uint64_t previous_state_reuses = stats.state_reuses;
+    native_failure = EP_FALLBACK_OTHER;
+    if(!initialized || !texture || !width || !height)
+    {
+        failure = !initialized ? "native renderer unavailable" : "invalid result pointers";
+        goto failed;
+    }
+    if(filter < 0 || filter > 6)
+    {
+        failure = "unsupported filter selection";
+        goto failed;
+    }
+    if(!screen || screen->pixelformat != PIXEL_32)
+    {
+        failure = "RGB32 source required";
+        native_failure = EP_FALLBACK_SOURCE_FORMAT;
+        goto failed;
+    }
+    if(!filter)
+    {
+        /* Disabled filtering borrows the original image with no intermediate
+         * allocation, shader compilation, or extra submission. */
+        if(gpu_gl_get_screen_texture(screen, texture, width, height)) return 1;
+        failure = "source screen texture unavailable";
+        goto failed;
+    }
+    if(screen->width <= 0 || screen->height <= 0 ||
+       screen->width > maximum_texture_size / 2 || screen->height > maximum_texture_size / 2)
+    {
+        failure = "2x output exceeds texture limits or has invalid dimensions";
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
+        goto failed;
+    }
+
+    /* Validate both doubled dimensions before multiplication or source upload.
+     * Each pass samples only the original screen, never its attached output. */
+    target_width = screen->width * 2;
+    target_height = screen->height * 2;
+    if(!gpu_output_filter_program_ready()) goto failed;
+    source = gpu_screen_image(screen, 1);
+    if(!source || !gpu_output_filter_target_ready(target_width, target_height)) goto failed;
+    vertices[0] = (gpu_vertex){0.0f, 0.0f, 0.0f, 0.0f};
+    vertices[1] = (gpu_vertex){(float)target_width, 0.0f, (float)source->width, 0.0f};
+    vertices[2] = (gpu_vertex){(float)target_width, (float)target_height,
+                                (float)source->width, (float)source->height};
+    vertices[3] = (gpu_vertex){0.0f, (float)target_height, 0.0f, (float)source->height};
+    quad_count = 0;
+    if(!gpu_collect_quad(vertices, 0, NULL)) goto failed;
+    submit_scope = engine_profile_span_begin();
+    if(!gpu_upload_geometry(&stream_first))
+    {
+        engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+        goto failed;
+    }
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+
+    /* Preparation is complete before the first output write. Scene and movie
+     * programs retain their own uniforms; selecting this program changes only
+     * the shared binding tracked by the context-local state cache. */
+    state_scope = engine_profile_span_begin();
+    gpu_bind_framebuffer(output_filter_framebuffer);
+    gpu_set_viewport(target_width, target_height);
+    gpu_set_scissor_enabled(0);
+    gpu_set_draw_raster();
+    gpu_set_color_mask();
+    gpu_UseProgram(output_filter_program);
+    gl_state.program = output_filter_program;
+    gl_state.program_valid = 1;
+    ++stats.state_changes;
+    gpu_bind_texture(0, source->texture);
+    gpu_select_texture_unit(0);
+    gpu_bind_geometry();
+    gpu_Uniform2f(output_filter_uniforms.target_size, (float)target_width, (float)target_height);
+    gpu_Uniform2f(output_filter_uniforms.source_size, (float)source->width, (float)source->height);
+    gpu_Uniform1i(output_filter_uniforms.source, 0);
+    gpu_Uniform1i(output_filter_uniforms.mode, filter);
+    stats.state_changes += 4;
+    if(glGetError() != GL_NO_ERROR)
+    {
+        engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+        native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
+        goto failed;
+    }
+    engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+
+    submit_scope = engine_profile_span_begin();
+    gpu_DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
+                     (const void *)(uintptr_t)(stream_first * 6 * sizeof(GLuint)));
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    if(glGetError() != GL_NO_ERROR)
+    {
+        /* Only private output storage may have changed. Rejecting this frame
+         * leaves the scene coherent and permits a subsequent native draw. */
+        failure = "output-filter submission failed";
+        native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
+        goto failed;
+    }
+    ++stats.output_filter_draws;
+    ++stats.draws;
+    engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    engine_profile_count(EP_COUNT_NATIVE_QUADS, 1);
+    engine_profile_count(EP_COUNT_NATIVE_BATCHES, 1);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, stats.state_changes - previous_state_changes);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, stats.state_reuses - previous_state_reuses);
+    *texture = output_filter_texture;
+    *width = target_width;
+    *height = target_height;
+    return 1;
+failed:
+    if(!output_filter_warning)
+    {
+        gpu_log("WARNING: Filtered presentation rejected (filter %d): %s; no CPU retry.", filter, failure);
+        output_filter_warning = 1;
+    }
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
 }
 
 /*

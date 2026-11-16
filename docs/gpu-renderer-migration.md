@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 ## Scope
 
@@ -23,10 +23,11 @@ Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
 warning and returns without a CPU rendering retry, readback, or software-state
 setup. Warnings are bounded to one per operation type for that mode selection.
 Losing or unregistering the native backend does not restore CPU eligibility.
-CPU work still required by Android until native GLES integration and active
-CPU output filters retains its existing implementation. Their migration remains
-separate work; this change does not remove all CPU image code. Desktop movie
-composition and fullscreen output share the native GPU YUV renderer.
+Android still composes its scene on the CPU until the native scene backend is
+ported to GLES. Its completed RGB32 scene is uploaded once and output filters
+run on GLES2. Desktop output filters consume the resident scene texture without
+readback. Filter selection never makes desktop scene rendering select the CPU.
+Desktop movie composition and fullscreen output share the native GPU YUV renderer.
 
 `PIXEL_32` is the scene target format. Indexed artwork remains supported as
 `PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
@@ -43,10 +44,11 @@ The obsolete `PIXEL_16` engine format, script constant, scene rasterizers,
 palette conversions, GIF output, and screenshot branch have been removed.
 Existing indexed format values remain `PIXEL_8 = 0` and `PIXEL_x8 = 1`, with
 `PIXEL_32 = 4`; the removed value `2` is invalid for engine image allocation.
-Some CPU output filters still require a private 16-bit intermediate and
-16-bit arithmetic. Those filter implementations remain until equivalent GPU
-effects replace them. External image sample depths and GIF metadata widths
-are file-format details, not additional engine scene formats.
+The old output-filter 16-bit intermediate, reduced-color arithmetic, CPU
+callbacks and conversion surfaces have also been removed. Output filters use
+full RGB8 channel values in an RGBA8 GPU target. External image sample depths
+and GIF metadata widths are file-format details, not additional engine scene
+formats.
 
 | Operation | Migration behavior |
 | --- | --- |
@@ -70,8 +72,8 @@ are file-format details, not additional engine scene formats.
 | Explicit CPU image edits | Synchronized image access followed by upload when next used by GPU |
 | Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
 | Indexed asset processing | Existing image operations; scene composition uses RGB32 |
-| Active CPU output filters | Existing software renderer/presentation path |
-| Android | Existing renderer retained; no native GLES migration claimed |
+| Output filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
+| Android | Existing CPU scene composition retained; completed RGB32 image uploaded once and output filters executed on GLES2 |
 | Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
 
 The affine contract from the separate transform experiment is available through
@@ -89,8 +91,15 @@ formulas, script examples, coverage rules and fixed-support reduction limits.
 `DC_RESAMPLE_MOVIE` aliases bilinear and is the default movie filter. See
 [GPU movie playback](gpu-movie-playback.md) for shared rendering and
 `MOVIE_PROPERTY_RESAMPLE`. Explicit filtered draws have no software implementation and
-are logged/skipped when native execution is unavailable, including unmigrated
-Android/CPU-output configurations. Default nearest behavior is unchanged.
+are logged/skipped when native execution is unavailable, including the
+unmigrated Android scene renderer. Default nearest behavior is unchanged.
+
+Output filters are a separate final-scene selection. See
+[GPU output filters](gpu-output-filters.md) for stable menu IDs, integer channel
+formulas, edge handling and platform transfer boundaries. They apply after
+scene composition and before final window scaling/color correction. Movies
+composed into scene screens receive that final filter; direct fullscreen movie
+output retains its independent YUV presentation path.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
 palette reuse and subsequent context-local state caching. Palette-only commit
@@ -122,8 +131,8 @@ For example, the starting settings from a windowed RGB32 game might read:
     FPS limit:                  200 FPS
     Display mode:               Windowed
     Display scale:              3.00x
-    Software filter selected:   Disabled
-    CPU output filter:          Inactive
+    Output filter selected:     Disabled
+    GPU output filter:          Inactive
     Scene resolution:           480 x 272
     Scene color format:         RGB32 (4 bytes per pixel)
 ```
@@ -163,6 +172,8 @@ The native OpenGL capability check reports:
 - Affine repeat preparation caching, its 8,192-instance limit, and the maximum
   CPU storage payload computed from the current entry layout.
 - Plane-map cache capacity, maximum row count, payload limits, and reuse policy.
+- Output-filter execution, full RGB8 precision, a reusable 2x RGBA8 target,
+  lazy shader validation and rejection without CPU retry.
 
 Each native capability report ends with one of these results:
 
@@ -220,9 +231,9 @@ records during initialization:
 [GPU] WARNING: Affine draws are rejected; RGB32 drawing has no software retry.
 ```
 
-Intentional settings are identified as configuration choices. Active CPU
-output filters retain their explicitly unmigrated renderer. Older SDL
-preferences do not bypass required desktop RGB32 native rendering, and
+Intentional settings are identified as configuration choices. Output filters
+retain native desktop scene rendering. Older SDL preferences do not bypass
+required desktop RGB32 native rendering, and
 `OPENBOR_GPU=0` does not enable a fallback. If a setting prevents native
 initialization, the log says the native capabilities were not tested.
 Accelerated SDL presentation only displays the completed image and does not
@@ -257,9 +268,20 @@ sequential row recurrence into a reusable map, then perform horizontal sampling
 and wrapping in the shader. Expanded row geometry remains only where optional
 sampling is unavailable or a particular input exceeds its numerical bounds.
 
-`video_copy_screen()` tries native texture presentation before requesting the
-CPU frame through `getVideoSurface()`. Merely uploading a completed CPU frame
-would not constitute native scene rendering; the new path avoids that step.
+Desktop `video_copy_screen()` presents the native scene texture directly or
+passes it through the selected GPU output filter. Failed presentation returns
+without requesting a CPU frame. Android's existing CPU scene composition still
+requires a tightly packed RGB32 upload, followed by the same filter equations
+on GLES2. Its upload boundary remains explicit and is separate from native
+desktop scene rendering.
+
+Enabled output filters preserve their original IDs and 2x output patterns.
+They now retain all eight bits of each color channel, and Advance Mame2x uses
+the actual next source row for its lower neighbor. That corrects the old
+interior-row pointer error. Bilinear/Scanlines TV borders use explicit black
+neighbors; Advance Mame2x clamps top/bottom rows and keeps black side borders.
+The private filter target has no CPU shadow and is discarded without readback
+at context shutdown.
 
 Horizontal and vertical native lines retain the existing endpoint clipping,
 then submit one inclusive rectangle instead of constructing a quad for each
@@ -306,7 +328,8 @@ bindings. Context recreation initializes fresh storage.
 This uses the existing desktop OpenGL baseline without requiring vertex array
 objects, persistent mapping or a new context type. The explicit attributes
 and triangle representation are also suitable for a future GLES backend;
-Android retains its existing renderer in this change. Hardware profiling is
+Android retains its existing scene renderer and uses GLES2 for the output
+filter pass. Hardware profiling is
 still needed to establish the frame-time benefit.
 
 ## Stage 4: avoid redundant preparation and uploads
@@ -749,6 +772,12 @@ The suites cover:
 - Reuse of validated affine repeat data, full-copy upload elision, and partial
   copies preserving the destination border.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
+- Exact RGB8 output-filter images against an independent scalar oracle,
+  including every byte value, tiny/odd dimensions, explicit borders and all
+  Scale2x equality branches; no scene readback during filtering.
+- Output-target reuse across filter changes and source edits, unchanged caller
+  outputs on rejection, incomplete-framebuffer recovery, texture-size/overflow
+  rejection and actual context replacement.
 - Deliberately colliding texture-cache identities during shutdown.
 
 The development environment uses Mesa llvmpipe for real OpenGL execution.
@@ -761,8 +790,8 @@ platform build results remain release gates for further renderer migration.
 Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
 The retained CPU implementations still support required renderer paths,
 explicit image operations, and reference tests. Remaining work includes
-Android/GLES integration, launcher text, additional batching,
-and GPU equivalents for CPU output filters. Remove
+Android native scene/GLES integration, launcher text and additional batching.
+Output filtering has moved to the GPU on desktop and Android. Remove
 CPU rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing
 capabilities on the supported platforms remains the migration goal.

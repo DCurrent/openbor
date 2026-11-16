@@ -71,7 +71,7 @@ extern int pixelbytes[(int)5];
 
 #define PAL_BYTES ((pixelbytes[(int)PIXEL_32]*256))
 
-// Define fixed-size integer types - these used to be in gfxtypes.h
+// Define the fixed-size integer types used by engine image storage.
 // TODO: use these for throughout the engine where fixed-length types are needed
 #if ((__STDC_VERSION__ >= 199901L) || (defined(__GNUC__) && (__GNUC__ >= 3))) && (!defined(DC))
 #include <stdint.h>

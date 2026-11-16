@@ -21,29 +21,22 @@
 #include "loadgl.h"
 #include "gpu_renderer.h"
 #include "gpu.h"
+#include "gfx.h"
 #include "engine_profile.h"
 #include <math.h>
 #include <limits.h>
 
-#define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
-#define abs(x)			((x<0)?-(x):(x))
-
 static SDL_GLContext context = NULL;
 
-static GLuint gltexture[3];
-static GLint textureColorFormat[3];
-static GLint texturePixelFormat[3];
-
 static int viewportWidth, viewportHeight;      // dimensions of display area
-static int textureWidth, textureHeight;        // dimensions of game screen and GL texture 0
+static int textureWidth, textureHeight;        // authored game-screen dimensions
 static int displayWidth, displayHeight;
 /* Movies retain their own layout; selecting one never replaces RGB state. */
 static yuv_video_mode movieMode;
 
-static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point form
 static GLuint shaderProgram; // fragment shader program
 
-// use some variables declared in video.c that are common to both backends
+// Window state is shared with video.c.
 extern int stretch;
 extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
@@ -67,14 +60,6 @@ extern SDL_Window* window;
 	"    return color;\n"                                                  \
 	"}\n"
 
-#define FRAGMENT_SHADER_RGB_BASIC                                          \
-	"void main()\n"                                                        \
-	"{\n"                                                                  \
-	"    vec3 color = texture2D(tex, gl_TexCoord[0].xy).xyz;\n"            \
-	"    gl_FragColor.xyz = applyCorrection(color);\n"                     \
-	"    gl_FragColor.w = 1.0;\n"                                          \
-	"}\n"
-
 #define FRAGMENT_SHADER_RGB_HIGH_QUALITY                                   \
 	"vec3 getPixel(vec2 coord)\n"                                          \
     "{\n"                                                                  \
@@ -93,13 +78,7 @@ extern SDL_Window* window;
 
 static const char *fragmentShaderSourceHighQualityRGB =
         FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB_HIGH_QUALITY;
-/*static const char *vertexShaderSource =
-        "varying vec2 texCoord;\n"
-        "void main()\n"
-        "{\n"
-        "    gl_TexCoord[0] = gl_MultiTexCoord0;\n"
-        "    gl_Position = ftransform();\n"
-        "}\n";*/
+
 
 /*
  * Damon V. Caskey
@@ -130,7 +109,6 @@ void video_gl_shutdown(void)
 	}
 
 	/* Numeric GL object names become reusable after context destruction. */
-	memset(gltexture, 0, sizeof(gltexture));
 	shaderProgram = 0;
 	opengl = 0;
 }
@@ -161,89 +139,22 @@ void video_gl_setup_screen()
 /*
  * Damon V. Caskey
  * 2026-11-12
- * 2026-11-15 - Distinguish private filter images from RGB32 scene textures.
- * Allocate the presenter's RGB or video-plane texture, invalidating native
- * bindings before replacing objects or selecting a different texture unit.
- */
-void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
-{
-	int allocTextureWidth, allocTextureHeight;
-	SDL_Surface *surface;
-
-	/* Deletion and allocation can reuse GL names as well as change bindings. */
-	gpu_gl_invalidate_state();
-
-	// set texture format
-	switch(bytesPerPixel)
-	{
-	case 1: // Y/U/V (not indexed!)
-		textureColorFormat[index] = GL_RED;
-		texturePixelFormat[index] = GL_UNSIGNED_BYTE;
-		break;
-	case 2: // Private BGR565 CPU filter output, never an engine scene format.
-		textureColorFormat[index] = GL_RGB;
-		texturePixelFormat[index] = GL_UNSIGNED_SHORT_5_6_5_REV;
-		break;
-	case 4: // XBGR8888
-		textureColorFormat[index] = GL_RGBA;
-		texturePixelFormat[index] = GL_UNSIGNED_BYTE;
-		break;
-	default:
-		assert(!"unknown bytes per pixel; should be 1, 2, or 4");
-	}
-
-	// enable 2D textures
-	glActiveTexture(GL_TEXTURE0 + index);
-	glEnable(GL_TEXTURE_2D);
-
-	// use non-power-of-two texture dimensions if they are available
-	if(SDL_GL_ExtensionSupported("GL_ARB_texture_non_power_of_two"))
-	{
-		allocTextureWidth = width;
-		allocTextureHeight = height;
-	}
-	else
-	{
-		allocTextureWidth = nextpowerof2(width);
-		allocTextureHeight = nextpowerof2(height);
-	}
-
-	// calculate maximum texture coordinates
-	tcx = (width == 0) ? 0 : (float)width / (float)allocTextureWidth;
-	tcy = (height == 0) ? 0 : (float)height / (float)allocTextureHeight;
-
-	// allocate a temporary surface to initialize the texture with
-	surface = SDL_CreateRGBSurface(0, allocTextureWidth, allocTextureHeight, bytesPerPixel * 8, 0,0,0,0);
-
-	// create texture object
-	glDeleteTextures(1, &gltexture[index]);
-	glGenTextures(1, &gltexture[index]);
-	glBindTexture(GL_TEXTURE_2D, gltexture[index]);
-	glTexImage2D(GL_TEXTURE_2D, 0, textureColorFormat[index], allocTextureWidth, allocTextureHeight,
-	        0, textureColorFormat[index], texturePixelFormat[index], surface->pixels);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// free up the temporary surface
-	SDL_FreeSurface(surface);
-	surface = NULL;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
  * 2026-11-13 - Make presentation failures and CPU drawing modes visible at startup.
  * 2026-11-13 - Format presentation checks and initialized settings for readers.
  * 2026-11-15 - Leave failed native RGB32 mode selection to the strict caller policy.
+ * 2026-11-16 - Require native scenes and keep filter intermediates on the GPU.
  * Create the desktop GL presentation context and its completed-image shader.
  * Preserve live screens across mode changes, validate the presentation path,
- * then enable native scene drawing when the selected output mode supports it.
+ * then enable native scene drawing for every output-filter selection.
  */
 int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
-	const char *fallback_reason = "OpenGL initialization failed";
-	const char *gpu_setting = getenv("OPENBOR_GPU");
+	const char *failure_reason = "OpenGL initialization failed";
+	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
+	GLint shader_status;
+	char shader_log[1024] = { 0 };
+	GLuint fragmentShader;
 
 	/*
 	 * Script-created screens can survive display changes. Drain their latest
@@ -251,7 +162,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	 */
 	video_gl_shutdown();
 
-	/* These dimensions describe the completed image after CPU preprocessing. */
+	/* Authored dimensions control layout independently of GPU filter targets. */
 	displayWidth = textureWidth = videomodes.hRes;
 	displayHeight = textureHeight = videomodes.vRes;
 
@@ -268,8 +179,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// set up OpenGL double buffering
 	if(SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
 	{
-		fallback_reason = "OpenGL double buffering is unavailable";
-		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
+		failure_reason = "OpenGL double buffering is unavailable";
+		gpu_log("WARNING: %s: %s.", failure_reason, SDL_GetError());
 		goto error;
 	}
 
@@ -279,11 +190,10 @@ int video_gl_set_mode(s_videomodes videomodes)
 #endif
 
 	/* The window must advertise GL support before SDL can create its context. */
-	SetVideoMode(viewportWidth, viewportHeight, 0, true);
-	if(!window)
+	if(!SetVideoMode(viewportWidth, viewportHeight))
 	{
-		fallback_reason = "the OpenGL-compatible window could not be created";
-		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
+		failure_reason = "the OpenGL-compatible window could not be created";
+		gpu_log("WARNING: %s: %s.", failure_reason, SDL_GetError());
 		goto error;
 	}
 	context = SDL_GL_CreateContext(window);
@@ -291,16 +201,16 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// make sure the context was created successfully
 	if(!context)
 	{
-		fallback_reason = "the OpenGL context could not be created";
-		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
+		failure_reason = "the OpenGL context could not be created";
+		gpu_log("WARNING: %s: %s.", failure_reason, SDL_GetError());
 		goto error;
 	}
 
 	// update viewport size based on actual dimensions
 	if(SDL_GL_MakeCurrent(window, context) < 0)
 	{
-		fallback_reason = "the OpenGL context could not be activated";
-		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
+		failure_reason = "the OpenGL context could not be activated";
+		gpu_log("WARNING: %s: %s.", failure_reason, SDL_GetError());
 		goto error;
 	}
 
@@ -315,8 +225,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	/* Resolve required GL entry points against the newly created context. */
 	if(LoadGLFunctions() == 0)
 	{
-		fallback_reason = "required OpenGL entry points are unavailable";
-		gpu_log("WARNING: %s. Native scene capabilities could not be checked.", fallback_reason);
+		failure_reason = "required OpenGL entry points are unavailable";
+		gpu_log("WARNING: %s. Native scene capabilities could not be checked.", failure_reason);
 		goto error;
 	}
 #endif
@@ -327,30 +237,31 @@ int video_gl_set_mode(s_videomodes videomodes)
 	 */
 	if(!SDL_GL_ExtensionSupported("GL_ARB_fragment_shader"))
 	{
-		fallback_reason = "the required GL_ARB_fragment_shader capability is missing";
-		gpu_log("WARNING: %s.", fallback_reason);
+		failure_reason = "the required GL_ARB_fragment_shader capability is missing";
+		gpu_log("WARNING: %s.", failure_reason);
 		goto error;
 	}
 
 	// reject the Mesa software renderer (swrast) because it's slow
 	if(stricmp((const char*)glGetString(GL_RENDERER), "Software Rasterizer") == 0)
 	{
-		fallback_reason = "the OpenGL driver reports the unsupported Software Rasterizer";
-		gpu_log("WARNING: %s.", fallback_reason);
+		failure_reason = "the OpenGL driver reports the unsupported Software Rasterizer";
+		gpu_log("WARNING: %s.", failure_reason);
 		goto error;
 	}
 
 	// don't try to create a texture larger than the maximum allowed dimensions
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
-	if((textureWidth > maxTextureSize) || (textureHeight > maxTextureSize))
+	if((textureWidth > maxTextureSize / (filter_active ? 2 : 1)) ||
+	   (textureHeight > maxTextureSize / (filter_active ? 2 : 1)))
 	{
-		fallback_reason = "the presentation texture exceeds the GPU texture-size limit";
-		gpu_log("WARNING: %s: requested=%dx%d, maximum=%d.", fallback_reason,
+		failure_reason = filter_active ? "the 2x output-filter target exceeds the GPU texture-size limit" :
+		                  "the presentation texture exceeds the GPU texture-size limit";
+		gpu_log("WARNING: %s: requested=%dx%d, maximum=%d.", failure_reason,
 		        textureWidth, textureHeight, maxTextureSize);
 		goto error;
 	}
-	/* Presenter support does not establish native scene support. The native
-	 * renderer performs its own checks below unless settings choose CPU drawing. */
+	/* Native scene resources receive their own capability checks below. */
 	gpu_log("OpenGL Presentation Checks\n"
 	        "\tFragment shader extension:         AVAILABLE\n"
 	        "\tMaximum texture size:              %d pixels per axis\n"
@@ -370,9 +281,6 @@ int video_gl_set_mode(s_videomodes videomodes)
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_DITHER);
 
-	// initialize texture object
-	video_gl_init_texture(0, textureWidth, textureHeight, videomodes.pixel);
-
 	// set up offsets, scale factors, and viewport
 	video_gl_setup_screen();
 
@@ -380,55 +288,56 @@ int video_gl_set_mode(s_videomodes videomodes)
 	 * This shader owns final display scaling and color correction. Scene draws
 	 * bind their own program; each presentation pass restores this one.
 	 */
-	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceHighQualityRGB, NULL);
-	glCompileShaderARB(fragmentShader);
-	shaderProgram = glCreateProgramObjectARB();
-	glAttachObjectARB(shaderProgram, fragmentShader);
-	glLinkProgramARB(shaderProgram);
-	glUseProgramObjectARB(shaderProgram);
-	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "tex"), 0);
-	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), textureWidth, textureHeight);
+	fragmentShader = ptr_glCreateShader(GL_FRAGMENT_SHADER);
+	if(!fragmentShader)
+	{
+		failure_reason = "the presentation shader could not be allocated";
+		goto error;
+	}
+	ptr_glShaderSource(fragmentShader, 1, &fragmentShaderSourceHighQualityRGB, NULL);
+	ptr_glCompileShader(fragmentShader);
+	ptr_glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &shader_status);
+	if(!shader_status)
+	{
+		ptr_glGetShaderInfoLog(fragmentShader, sizeof(shader_log), NULL, shader_log);
+		gpu_log("WARNING: Presentation shader compilation failed: %s", shader_log);
+		ptr_glDeleteShader(fragmentShader);
+		failure_reason = "the presentation shader could not compile";
+		goto error;
+	}
+	shaderProgram = ptr_glCreateProgram();
+	if(!shaderProgram)
+	{
+		ptr_glDeleteShader(fragmentShader);
+		failure_reason = "the presentation program could not be allocated";
+		goto error;
+	}
+	ptr_glAttachShader(shaderProgram, fragmentShader);
+	ptr_glLinkProgram(shaderProgram);
+	ptr_glDeleteShader(fragmentShader);
+	ptr_glGetProgramiv(shaderProgram, GL_LINK_STATUS, &shader_status);
+	if(!shader_status)
+	{
+		ptr_glGetProgramInfoLog(shaderProgram, sizeof(shader_log), NULL, shader_log);
+		gpu_log("WARNING: Presentation shader linking failed: %s", shader_log);
+		failure_reason = "the presentation shader could not link";
+		goto error;
+	}
+	ptr_glUseProgram(shaderProgram);
+	ptr_glUniform1i(ptr_glGetUniformLocation(shaderProgram, "tex"), 0);
+	ptr_glUniform2f(ptr_glGetUniformLocation(shaderProgram, "texDims"), textureWidth, textureHeight);
 	float scaleFactor = MIN((float)viewportWidth / textureWidth, (float)viewportHeight / textureHeight);
-	glUniform1fARB(glGetUniformLocationARB(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
+	ptr_glUniform1f(ptr_glGetUniformLocation(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
 	video_gl_set_color_correction(savedata.gamma, savedata.brightness);
 
+	/* Scene composition stays native with every output-filter selection. */
+	if(!gpu_gl_init())
+	{
+		failure_reason = "required native scene rendering is unavailable";
+		goto error;
+	}
 	opengl = 1;
-	/*
-	 * CPU output filters operate on the whole composed image. Keep that mode
-	 * fully on the legacy path instead of reading a GPU frame back each time.
-	 * The caller rejects normal RGB32 modes if native initialization fails.
-	 */
-	if(!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)))
-	{
-		gpu_gl_init();
-	}
-	else
-	{
-		/* This filter still consumes a CPU-composed image. Select that existing
-		 * mode explicitly rather than enabling it after a native draw failure. */
-		gpu_set_native_required(0);
-		gpu_log("WARNING: CPU output filter %d is active.\n"
-		        "\tScene drawing uses the CPU; OpenGL presents the completed frames.\n"
-		        "\tNative scene capabilities were not tested because this filter selects software drawing.\n"
-		        "\tSignificant slowdown is possible.", savedata.swfilter);
-	}
 
-	/* Native probing already prints the driver. Configuration can skip that
-	 * probe, so identify the presenter driver here only for those selections. */
-	if((savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)) ||
-	   (gpu_setting && !strcmp(gpu_setting, "0")))
-	{
-		const char *vendor = (const char *)glGetString(GL_VENDOR);
-		const char *renderer_name = (const char *)glGetString(GL_RENDERER);
-		const char *version = (const char *)glGetString(GL_VERSION);
-		gpu_log("Driver\n"
-		        "\tVendor:                            %s\n"
-		        "\tRenderer:                          %s\n"
-		        "\tOpenGL version:                    %s\n",
-		        vendor ? vendor : "unknown", renderer_name ? renderer_name : "unknown",
-		        version ? version : "unknown");
-	}
 	/* These values describe this initialization. Menu changes can select
 	 * different presentation settings later in the same session. */
 	{
@@ -452,19 +361,16 @@ int video_gl_set_mode(s_videomodes videomodes)
 		        "\tSwap interval:                     %d\n"
 		        "\tDisplay refresh rate:              %s\n"
 		        "\tOutput color depth:                %d bits\n",
-		        gpu_is_active() ? "Active (supported RGB32 targets)" :
-		        (savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)) ?
-		        "Inactive (CPU output filter)" : "Unavailable (RGB32 draws disabled)",
+		        "Active (RGB32 scenes and GPU output filters)",
 		        savedata.fpslimit == 1 ? "Enabled" : "Disabled",
 		        swap_interval == 0 ? "Disabled" : swap_interval < 0 ? "Adaptive" : "Enabled",
 		        swap_interval, refresh_label, videomodes.pixel * 8);
 	}
 	return 1;
 error:
-	/* Release partial resources without changing the caller's required drawing
-	 * mode. Its explicit unported-format/filter policy controls any other path. */
+	/* Release partial resources while retaining required native scene policy. */
 	gpu_log("ERROR: GPU presentation initialization failed.\n"
-	        "\tReason: %s.", fallback_reason);
+	        "\tReason: %s.", failure_reason);
 	video_gl_shutdown();
 	return 0;
 }
@@ -500,15 +406,15 @@ void video_gl_draw_quad(int x, int y, int width, int height)
 	glActiveTexture(GL_TEXTURE0);
 	glBegin(GL_QUADS);
 		// Top left
-		glMultiTexCoord2f(GL_TEXTURE0, 0.0, tcy);
+		glMultiTexCoord2f(GL_TEXTURE0, 0.0, 1.0);
 		glVertex2i(x, y);
 
 		// Top right
-		glMultiTexCoord2f(GL_TEXTURE0, tcx, tcy);
+		glMultiTexCoord2f(GL_TEXTURE0, 1.0, 1.0);
 		glVertex2i(x+width-1, y);
 
 		// Bottom right
-		glMultiTexCoord2f(GL_TEXTURE0, tcx, 0.0);
+		glMultiTexCoord2f(GL_TEXTURE0, 1.0, 0.0);
 		glVertex2i(x+width-1, y+height-1);
 
 		// Bottom left
@@ -540,79 +446,26 @@ void render()
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Present a completed CPU image through the GL output texture. Restore the
- * window's render state after native operations, upload the synchronized
- * pixels, then apply the existing display scaling and frame-pacing policy.
- */
-int video_gl_copy_screen(s_videosurface* surface)
-{
-	uint64_t gpu_scope = engine_profile_gpu_begin(EP_GPU_PRESENT);
-	ep_scope setup_scope = engine_profile_span_begin();
-	ep_scope swap_scope;
-
-	/*
-	 * Native draws and explicit CPU readbacks can leave an offscreen target
-	 * bound. Reestablish the window framebuffer, projection and RGB shader.
-	 */
-	gpu_gl_prepare_present();
-	video_gl_setup_screen();
-	glUseProgramObjectARB(shaderProgram);
-	glDisable(GL_BLEND);
-	glDisable(GL_SCISSOR_TEST);
-	glDisable(GL_DEPTH_TEST);
-	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), textureWidth, textureHeight);
-
-	/* Upload the caller's already converted/filtered CPU image as one texture. */
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, textureColorFormat[0],
-			texturePixelFormat[0], surface->data);
-
-	// set linear filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// render the frame
-	render();
-	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
-	engine_profile_gpu_end(gpu_scope);
-
-	/* End the GPU presentation interval before a possibly blocking swap.
-	 * Swap and the explicit FPS limiter receive separate CPU measurements. */
-	swap_scope = engine_profile_span_begin();
-	SDL_GL_SwapWindow(window);
-	engine_profile_span_end(swap_scope, EP_SPAN_SWAP);
-
-	if(savedata.fpslimit >= 2)
-	{
-		FramerateDelay();
-	}
-
-	return 1;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
  * 2026-11-15 - Return rejected presentation to the caller's no-retry policy.
+ * 2026-11-16 - Filter resident RGB32 scenes before final display scaling.
  * Present a GPU-resident screen with the normal display scaling and color
  * correction, without converting or uploading its CPU pixel buffer. Return
- * zero when the native renderer cannot provide this screen so the caller
- * applies the selected rendering policy.
+ * zero on rejection before touching the window; the caller logs and stops.
  */
 int video_gl_copy_gpu_screen(s_screen *screen)
 {
 	unsigned nativeTexture;
 	int nativeWidth, nativeHeight;
-	GLfloat savedTcx, savedTcy;
+	int filter = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen) ?
+	             savedata.swfilter : BLITTER_NONE;
 	float scaleFactor;
 	uint64_t gpu_scope = engine_profile_gpu_begin(EP_GPU_PRESENT);
 	ep_scope setup_scope = engine_profile_span_begin();
 	ep_scope swap_scope;
 
-	if(!gpu_gl_get_screen_texture(screen, &nativeTexture, &nativeWidth, &nativeHeight))
+	if(!gpu_gl_get_filtered_screen_texture(screen, filter, &nativeTexture, &nativeWidth, &nativeHeight))
 	{
-		/* Only explicitly selected output filters permit CPU presentation. */
+		/* Invalid or unavailable filters never trigger a CPU presentation retry. */
 		engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
 		engine_profile_gpu_end(gpu_scope);
 		return 0;
@@ -624,7 +477,7 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	 */
 	gpu_gl_prepare_present();
 	video_gl_setup_screen();
-	glUseProgramObjectARB(shaderProgram);
+	ptr_glUseProgram(shaderProgram);
 	glDisable(GL_BLEND);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_DEPTH_TEST);
@@ -632,20 +485,12 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	glBindTexture(GL_TEXTURE_2D, nativeTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), nativeWidth, nativeHeight);
+	ptr_glUniform2f(ptr_glGetUniformLocation(shaderProgram, "texDims"), nativeWidth, nativeHeight);
 	scaleFactor = MIN((float)viewportWidth / nativeWidth, (float)viewportHeight / nativeHeight);
-	glUniform1fARB(glGetUniformLocationARB(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
+	ptr_glUniform1f(ptr_glGetUniformLocation(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
 
-	/*
-	 * Native targets occupy their full texture. Preserve the legacy presenter's
-	 * texture-coordinate limits so a later CPU upload can reuse its allocation.
-	 */
-	savedTcx = tcx;
-	savedTcy = tcy;
-	tcx = tcy = 1.0f;
+	/* The scene and optional 2x filter target share the same image extent. */
 	render();
-	tcx = savedTcx;
-	tcy = savedTcy;
 
 	/* Native sampling parameters are initialized once, not reissued per draw.
 	 * Restore this borrowed texture's NEAREST policy before returning ownership. */
@@ -697,11 +542,11 @@ void video_gl_set_color_correction(int gamma, int brightness)
 		brightness = 256;
 	}
 
-	glUseProgramObjectARB(shaderProgram);
-	brightnessLocation = glGetUniformLocationARB(shaderProgram, "brightness");
-	glUniform1fARB(brightnessLocation, brightness / 256.0);
-	gammaLocation = glGetUniformLocationARB(shaderProgram, "gamma");
-	glUniform1fARB(gammaLocation, gamma / 256.0);
+	ptr_glUseProgram(shaderProgram);
+	brightnessLocation = ptr_glGetUniformLocation(shaderProgram, "brightness");
+	ptr_glUniform1f(brightnessLocation, brightness / 256.0);
+	gammaLocation = ptr_glGetUniformLocation(shaderProgram, "gamma");
+	ptr_glUniform1f(gammaLocation, gamma / 256.0);
 }
 
 /*
