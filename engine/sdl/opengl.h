@@ -10,6 +10,7 @@
 #define BOR_OPENGL_H
 
 #include "types.h"
+#include "gpu.h"
 #include "yuv.h"
 #include "videocommon.h"
 
@@ -25,7 +26,8 @@ void video_gl_set_color_correction(int, int);
 
 // for WebM video playback
 int video_gl_setup_yuv_overlay(const yuv_video_mode*);
-int video_gl_prepare_yuv_frame(yuv_frame*);
+int video_gl_prepare_yuv_frame(const gpu_yuv_source*, e_drawmethod_resample);
+int video_gl_capture_yuv_frame(s_screen*, const gpu_yuv_source*, e_drawmethod_resample);
 int video_gl_display_yuv_frame(void);
 
 #else
@@ -38,7 +40,8 @@ int video_gl_display_yuv_frame(void);
 #define video_gl_clearscreen()
 #define video_gl_set_color_correction(X,Y)
 #define video_gl_setup_yuv_overlay(X)           0
-#define video_gl_prepare_yuv_frame(X)           0
+#define video_gl_prepare_yuv_frame(X,Y)         0
+#define video_gl_capture_yuv_frame(X,Y,Z)       0
 #define video_gl_display_yuv_frame()            0
 
 #endif

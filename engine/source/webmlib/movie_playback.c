@@ -29,7 +29,6 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 
 #include "globals.h"
 #include "ram.h"
-#include "screen.h"
 #include "sound_channel.h"
 #include "soundmix.h"
 #include "timer.h"
@@ -95,7 +94,6 @@ typedef struct s_movie_playback_pool {
     uint64_t active_mask;
     uint64_t cached_bytes;
     int initialized;
-    int yuv_initialized;
 } s_movie_playback_pool;
 
 static s_movie_playback_pool movie_playback_pool;
@@ -150,8 +148,8 @@ static bool movie_playback_sanitize_speed(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Validate screens and allocate exact logical dimensions
-* over the engine's four-pixel-aligned screen storage.
+* Validate RGB32 destination screens. Movie rectangle dimensions no longer
+* require a CPU RGB allocation or fixed-point scaling representation.
 */
 static bool movie_playback_screen_valid(const s_screen *screen)
 {
@@ -164,29 +162,7 @@ static bool movie_playback_screen_valid(const s_screen *screen)
 
 static bool movie_playback_dimensions_valid(int width, int height)
 {
-    int allocation_width;
-
-    if(width < 1 || height < 1 || width > INT_MAX - 3) {
-        return false;
-    }
-    allocation_width = (width + 3) & ~3;
-    return allocation_width <=
-        INT_MAX / height / (int)sizeof(uint32_t);
-}
-
-static s_screen *movie_playback_alloc_screen(int width, int height)
-{
-    s_screen *screen;
-
-    if(!movie_playback_dimensions_valid(width, height)) {
-        return NULL;
-    }
-
-    screen = allocscreen((width + 3) & ~3, height, PIXEL_32);
-    if(screen) {
-        screen->width = width;
-    }
-    return screen;
+    return width > 0 && height > 0;
 }
 
 /*
@@ -423,14 +399,9 @@ static void movie_playback_close_media(s_movie_playback *playback)
     }
 
     movie_playback_close_decoder(playback);
+    gpu_release_yuv(playback);
     yuv_frame_destroy(playback->current_frame);
     playback->current_frame = NULL;
-    if(playback->rgb_frame) {
-        freescreen(&playback->rgb_frame);
-    }
-    if(playback->scaled_frame) {
-        freescreen(&playback->scaled_frame);
-    }
 }
 
 static void movie_playback_reset_record(s_movie_playback *playback)
@@ -455,14 +426,15 @@ static void movie_playback_reset_record(s_movie_playback *playback)
     playback->sound_channel = SOUND_CHANNEL_MUSIC_DEFAULT;
     playback->speed = 1.0;
     playback->interrupt = 1;
+    playback->resample = DC_RESAMPLE_MOVIE;
 }
 
 /*
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Initialize one stable bank of 64 movie playback objects,
-* dynamic source storage, and shared 32-bit YUV conversion.
+* Initialize one stable bank of 64 movie playback objects and dynamic source
+* storage. Decoded YUV planes remain unchanged until GPU rendering.
 */
 bool movie_playback_init(void)
 {
@@ -489,8 +461,6 @@ bool movie_playback_init(void)
         return false;
     }
 
-    yuv_init(4);
-    movie_playback_pool.yuv_initialized = 1;
     return true;
 }
 
@@ -498,8 +468,8 @@ bool movie_playback_init(void)
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Stop every playback, release loaded sources, and clear the
-* shared converter during script or engine shutdown.
+* Stop every playback and release loaded sources during script or engine
+* shutdown. Resetting the playback records also releases their GPU YUV storage.
 */
 void movie_playback_shutdown(void)
 {
@@ -518,9 +488,6 @@ void movie_playback_shutdown(void)
         free(movie_playback_pool.source[source_id].cache_buffer);
     }
     free(movie_playback_pool.source);
-    if(movie_playback_pool.yuv_initialized) {
-        yuv_clear();
-    }
     webm_lifecycle_shutdown();
     memset(&movie_playback_pool, 0, sizeof(movie_playback_pool));
 }
@@ -1023,14 +990,12 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
     duration = webm_get_duration(decoder->context);
     if((video_mode.width & 1) ||
        (video_mode.height & 1) ||
-       video_mode.width > (INT_MAX >> 16) ||
-       video_mode.height > (INT_MAX >> 16) ||
        !movie_playback_dimensions_valid(
            video_mode.width,
            video_mode.height
        )) {
         printf(
-            "Error: Movie frame dimensions %d*%d cannot be represented by the 32-bit screen renderer.\n",
+            "Error: Invalid movie frame dimensions %d*%d.\n",
             video_mode.width,
             video_mode.height
         );
@@ -1042,12 +1007,6 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
         yuv_frame_destroy(playback->current_frame);
         playback->current_frame = NULL;
         playback->current_frame_presented = 0;
-        if(playback->rgb_frame) {
-            freescreen(&playback->rgb_frame);
-        }
-        if(playback->scaled_frame) {
-            freescreen(&playback->scaled_frame);
-        }
     }
     playback->video_mode = video_mode;
     playback->duration = duration / UINT64_C(1000000);
@@ -1163,210 +1122,43 @@ void movie_playback_stop_all(void)
 }
 
 /*
-* Caskey, Damon V.
-* 2026-08-15
-*
-* Protect absolute black after conversion when a movie frame will be drawn
-* into a subscreen that reserves RGB 0,0,0 as its transparency mask.
-*/
-static void movie_playback_filter_black(
-    const s_movie_playback *playback,
-    s_screen *frame
+ * Damon V. Caskey
+ * 2026-11-15
+ * Describe immutable retained decoder planes using a stable playback owner and
+ * a promotion generation. Legacy field cr contains U, and cb contains V.
+ * Presentation and draw-property changes do not change the uploaded pixels.
+ */
+static gpu_yuv_source movie_playback_frame_source(
+    const s_movie_playback *playback
 )
 {
-    size_t pixel_count;
-    size_t pixel_index;
-    uint32_t *pixel;
-    uint32_t protected_black;
-
-    if(!playback->black_filter) {
-        return;
-    }
-
-    gpu_prepare_cpu_write(frame);
-    pixel_count = (size_t)frame->width * (size_t)frame->height;
-    pixel = (uint32_t *)frame->data;
-    protected_black = colour32(1, 1, 1);
-    for(pixel_index = 0; pixel_index < pixel_count; pixel_index++) {
-        if(pixel[pixel_index] == 0) {
-            pixel[pixel_index] = protected_black;
-        }
-    }
+    const yuv_frame *frame = playback->current_frame;
+    gpu_yuv_source source = {
+        .owner = playback,
+        .generation = playback->frame_generation,
+        .width = frame->width,
+        .height = frame->height,
+        .y = frame->lum,
+        .u = frame->cr,
+        .v = frame->cb
+    };
+    return source;
 }
 
 /*
-* Caskey, Damon V.
-* 2026-08-15
-*
-* Convert a current frame only when its pixels or destination dimensions
-* change. Resized output converts directly from YUV at the requested size,
-* avoiding a full-resolution RGB conversion and subsequent scaling pass.
-*/
-static bool movie_playback_prepare_frame(
-    s_movie_playback *playback,
-    const s_screen *destination,
-    s_screen **render_frame
-)
-{
-    int height;
-    int width;
-
-    if(!playback->current_frame) {
-        return false;
-    }
-    if(!movie_playback_resolve_dimensions(
-        playback,
-        destination,
-        &width,
-        &height
-    )) {
-        return false;
-    }
-
-    if(playback->frame_dirty) {
-        playback->rgb_frame_dirty = 1;
-        playback->scaled_frame_dirty = 1;
-    }
-
-    if(width == playback->current_frame->width &&
-       height == playback->current_frame->height) {
-        if(!playback->rgb_frame) {
-            playback->rgb_frame = movie_playback_alloc_screen(width, height);
-            playback->rgb_frame_dirty = 1;
-        }
-        if(!playback->rgb_frame) {
-            return false;
-        }
-        if(playback->rgb_frame_dirty) {
-            yuv_to_rgb(playback->current_frame, playback->rgb_frame);
-            movie_playback_filter_black(playback, playback->rgb_frame);
-            playback->rgb_frame_dirty = 0;
-        }
-        playback->frame_dirty = 0;
-        *render_frame = playback->rgb_frame;
-        return true;
-    }
-
-    if(playback->scaled_frame &&
-       (playback->scaled_frame->width != width ||
-        playback->scaled_frame->height != height)) {
-        freescreen(&playback->scaled_frame);
-    }
-    if(!playback->scaled_frame) {
-        playback->scaled_frame = movie_playback_alloc_screen(width, height);
-        playback->scaled_frame_dirty = 1;
-    }
-    if(!playback->scaled_frame) {
-        return false;
-    }
-    if(playback->scaled_frame_dirty) {
-        if(!yuv_to_rgb_scaled(
-            playback->current_frame,
-            playback->scaled_frame
-        )) {
-            return false;
-        }
-        movie_playback_filter_black(playback, playback->scaled_frame);
-        playback->scaled_frame_dirty = 0;
-    }
-
-    playback->frame_dirty = 0;
-    *render_frame = playback->scaled_frame;
-    return true;
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-12
-*
-* Copy a prepared 32-bit movie frame with signed offsets and
-* destination clipping independent of global draw state.
-*/
-static void movie_playback_copy_frame(
-    s_screen *destination,
-    const s_screen *source,
-    int offset_x,
-    int offset_y
-)
-{
-    const unsigned char *source_row;
-    unsigned char *destination_row;
-    int64_t destination_x = offset_x;
-    int64_t destination_y = offset_y;
-    int source_x = 0;
-    int source_y = 0;
-    int width = source->width;
-    int height = source->height;
-    int row;
-
-    /* Negative placement clips from the source's leading edges. Keep offset
-     * arithmetic wide until the surviving rectangle is within both screens. */
-    if(destination_x < 0)
-    {
-        int64_t clipped_width = -destination_x;
-        if(clipped_width >= width)
-        {
-            return;
-        }
-        source_x = (int)clipped_width;
-        width -= source_x;
-        destination_x = 0;
-    }
-    if(destination_y < 0)
-    {
-        int64_t clipped_height = -destination_y;
-        if(clipped_height >= height)
-        {
-            return;
-        }
-        source_y = (int)clipped_height;
-        height -= source_y;
-        destination_y = 0;
-    }
-
-    /* Bound the trailing edges against the destination before calculating
-     * row addresses. Fully clipped frames leave screen ownership unchanged. */
-    if(destination_x >= destination->width ||
-       destination_y >= destination->height)
-    {
-        return;
-    }
-    if(width > destination->width - destination_x)
-    {
-        width = (int)(destination->width - destination_x);
-    }
-    if(height > destination->height - destination_y)
-    {
-        height = (int)(destination->height - destination_y);
-    }
-    if(width <= 0 || height <= 0)
-    {
-        return;
-    }
-
-    /* Movie composition may follow GPU draws on this same screen. Keep the
-     * clipped border intact and make the converted CPU frame visible. */
-    gpu_sync_cpu((s_screen *)source);
-    gpu_prepare_cpu_write(destination);
-    source_row = source->data +
-        ((source_y * source->width + source_x) * (int)sizeof(uint32_t));
-    destination_row = destination->data +
-        (((int)destination_y * destination->width + (int)destination_x) *
-         (int)sizeof(uint32_t));
-    for(row = 0; row < height; row++)
-    {
-        memcpy(destination_row, source_row, (size_t)width * sizeof(uint32_t));
-        source_row += source->width * (int)sizeof(uint32_t);
-        destination_row += destination->width * (int)sizeof(uint32_t);
-    }
-}
-
+ * Damon V. Caskey
+ * 2026-11-15
+ * Compose retained YUV directly into an RGB32 GPU screen. Keep opaque movie
+ * writes, exact dimensions, signed clipping and call-order layering independent
+ * of global drawmethod state. Display correction belongs to final presentation.
+ */
 static bool movie_playback_render_to(
     s_movie_playback *playback,
     s_screen *destination
 )
 {
-    s_screen *render_frame;
+    gpu_yuv_source source;
+    gpu_movie_draw draw = { 0 };
 
     if(!movie_playback_screen_valid(destination)) {
         return false;
@@ -1374,20 +1166,24 @@ static bool movie_playback_render_to(
     if(!playback->current_frame) {
         return true;
     }
-    if(!movie_playback_prepare_frame(
+    if(!movie_playback_resolve_dimensions(
         playback,
         destination,
-        &render_frame
+        &draw.width,
+        &draw.height
     )) {
         return false;
     }
 
-    movie_playback_copy_frame(
-        destination,
-        render_frame,
-        playback->offset_x,
-        playback->offset_y
-    );
+    source = movie_playback_frame_source(playback);
+    draw.x = playback->offset_x;
+    draw.y = playback->offset_y;
+    draw.resample = playback->resample;
+    draw.black_filter = playback->black_filter;
+    if(!gpu_draw_yuv(destination, &source, &draw)) {
+        return false;
+    }
+    playback->frame_dirty = 0;
     playback->current_frame_presented = 1;
     return true;
 }
@@ -1444,6 +1240,7 @@ static void movie_playback_promote_next_frame(
     yuv_frame_destroy(playback->current_frame);
     playback->current_frame = playback->next_frame;
     playback->next_frame = NULL;
+    ++playback->frame_generation;
     playback->frame_dirty = 1;
     playback->current_frame_presented = 0;
 }
@@ -1656,6 +1453,7 @@ bool movie_playback_draw_to_yuv(int channel)
 {
     s_movie_playback *playback;
     yuv_video_mode mode;
+    gpu_yuv_source source;
 
     if(!movie_playback_pool.initialized ||
        channel < 0 ||
@@ -1686,13 +1484,34 @@ bool movie_playback_draw_to_yuv(int channel)
         movie_yuv_channel = channel;
         movie_yuv_mode = mode;
     }
-    if(!video_prepare_yuv_frame(playback->current_frame) ||
+    source = movie_playback_frame_source(playback);
+    if(!video_prepare_yuv_frame(&source, playback->resample) ||
        !video_display_yuv_frame()) {
         return false;
     }
     playback->frame_dirty = 0;
     playback->current_frame_presented = 1;
     return true;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Capture the retained frame with the hardware movie color treatment. Explicit
+ * capture does not acknowledge presentation or alter playback scheduling.
+ */
+bool movie_playback_capture_frame(s_screen *screen, int channel)
+{
+    s_movie_playback *playback = movie_playback_get(channel);
+    gpu_yuv_source source;
+
+    if(!playback || !playback->active ||
+       !(movie_playback_pool.active_mask & (UINT64_C(1) << channel)) ||
+       !playback->current_frame || !movie_playback_screen_valid(screen)) {
+        return false;
+    }
+    source = movie_playback_frame_source(playback);
+    return video_capture_yuv_frame(screen, &source, playback->resample) != 0;
 }
 
 /*
@@ -1822,6 +1641,26 @@ bool movie_playback_set_repeat(s_movie_playback *playback, int repeat)
         return false;
     }
     playback->repeat = repeat != 0;
+    return true;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Select one defined GPU reconstruction filter without changing decoded planes
+ * or transport state. A retained paused frame becomes ready for redraw.
+ */
+bool movie_playback_set_resample(
+    s_movie_playback *playback,
+    e_drawmethod_resample resample
+)
+{
+    if(movie_playback_get_index(playback) < 0 ||
+       (unsigned int)resample >= (unsigned int)DC_RESAMPLE_END) {
+        return false;
+    }
+    playback->resample = resample;
+    playback->frame_dirty = 1;
     return true;
 }
 

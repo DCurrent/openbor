@@ -33,16 +33,4 @@ yuv_frame *yuv_frame_create(int width, int height);
 // Frees a YUV frame
 void yuv_frame_destroy(yuv_frame *frame);
 
-// Intializes a context for YUV->RGB color conversion; bits should be 16 or 32
-void yuv_init(int bits);
-
-// Frees the context allocated for color conversion
-void yuv_clear(void);
-
-// Performs YUV->RGB color conversion on a single frame; requires initialized context
-void yuv_to_rgb(yuv_frame *in, s_screen *out);
-
-// Converts and nearest-neighbor scales a YUV frame directly to a 32-bit screen
-bool yuv_to_rgb_scaled(const yuv_frame *in, s_screen *out);
-
 #endif

@@ -113,6 +113,21 @@ typedef struct gpu_image
     struct gpu_image *next;
 } gpu_image;
 
+typedef struct gpu_movie_source
+{
+    const void *owner;
+    uint64_t generation;
+    int width, height, uploaded;
+    GLuint texture[3];
+    struct gpu_movie_source *next;
+} gpu_movie_source;
+
+typedef struct gpu_movie_uniforms
+{
+    GLint target_size, source_size, y, u, v;
+    GLint resample, black_filter, gamma, brightness;
+} gpu_movie_uniforms;
+
 typedef struct gpu_uniforms
 {
     GLint target_size, source_size;
@@ -235,6 +250,10 @@ static int palette_lru_tail = GPU_PALETTE_NO_SLOT;
 static int palette_selected_slot = GPU_PALETTE_NO_SLOT;
 static const unsigned char *table_pointers[MAX_BLENDINGS];
 static ep_fallback native_failure = EP_FALLBACK_OTHER;
+static gpu_movie_source *movie_sources;
+static GLuint movie_program;
+static gpu_movie_uniforms movie_uniforms;
+static int movie_program_attempted, movie_present_warning;
 
 /* Private declarations keep optional timer entry points independent from the
  * GL 2.1 presentation loader and from newer typedefs in platform GL headers. */
@@ -3383,10 +3402,438 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
                                     src->height >= dest->height);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Compile the shared movie program on first use. A rejected movie shader
+ * leaves scene rendering available and remains rejected for this context.
+ */
+static int gpu_movie_program_ready(void)
+{
+    GLuint vertex = 0, fragment = 0;
+    GLint linked = 0;
+    char message[4096];
+    if(movie_program) return 1;
+    if(movie_program_attempted) return 0;
+    movie_program_attempted = 1;
+    vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
+    fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_movie_fragment_shader_source);
+    if(!vertex || !fragment) goto failed;
+    movie_program = gpu_CreateProgram();
+    if(!movie_program) goto failed;
+    gpu_AttachShader(movie_program, vertex);
+    gpu_AttachShader(movie_program, fragment);
+    gpu_BindAttribLocation(movie_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
+    gpu_BindAttribLocation(movie_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_LinkProgram(movie_program);
+    gpu_GetProgramiv(movie_program, GL_LINK_STATUS, &linked);
+    if(!linked)
+    {
+        message[0] = '\0';
+        gpu_GetProgramInfoLog(movie_program, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = '\0';
+        gpu_log("WARNING: Native movie shader link failed.\n\tDriver diagnostic:\n%s",
+                message[0] ? message : "not provided");
+        goto failed;
+    }
+#define GPU_MOVIE_UNIFORM(member, name) \
+    do { movie_uniforms.member = gpu_GetUniformLocation(movie_program, name); \
+         if(movie_uniforms.member < 0) goto failed; } while(0)
+    GPU_MOVIE_UNIFORM(target_size, "targetSize");
+    GPU_MOVIE_UNIFORM(source_size, "sourceSize");
+    GPU_MOVIE_UNIFORM(y, "yTexture");
+    GPU_MOVIE_UNIFORM(u, "uTexture");
+    GPU_MOVIE_UNIFORM(v, "vTexture");
+    GPU_MOVIE_UNIFORM(resample, "resampleMode");
+    GPU_MOVIE_UNIFORM(black_filter, "blackFilter");
+    GPU_MOVIE_UNIFORM(gamma, "movieGamma");
+    GPU_MOVIE_UNIFORM(brightness, "movieBrightness");
+#undef GPU_MOVIE_UNIFORM
+    if(glGetError() != GL_NO_ERROR) goto failed;
+    gpu_DeleteShader(vertex);
+    gpu_DeleteShader(fragment);
+    gpu_log("Native movie rendering enabled: retained YUV420 planes, direct GPU conversion and static resampling.");
+    return 1;
+failed:
+    if(vertex) gpu_DeleteShader(vertex);
+    if(fragment) gpu_DeleteShader(fragment);
+    if(movie_program) gpu_DeleteProgram(movie_program);
+    movie_program = 0;
+    native_failure = EP_FALLBACK_RESOURCE;
+    gpu_log("WARNING: Native movie shader unavailable; movie drawing is disabled without CPU conversion or rendering retry.");
+    gpu_gl_invalidate_state();
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Delete one decoder owner's retained planes before its identity is reused.
+ * No color conversion or readback is needed to discard a recreatable source.
+ */
+static void gpu_movie_release(const void *owner)
+{
+    gpu_movie_source **link = &movie_sources;
+    while(*link)
+    {
+        gpu_movie_source *entry = *link;
+        if(entry->owner == owner)
+        {
+            *link = entry->next;
+            gpu_gl_invalidate_state();
+            glDeleteTextures(3, entry->texture);
+            free(entry);
+            --stats.movie_resources;
+            return;
+        }
+        link = &entry->next;
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Retire all movie resources while their GL context still exists. Decoder
+ * frames remain CPU-owned and can repopulate a replacement context lazily.
+ */
+static void gpu_movie_shutdown(void)
+{
+    while(movie_sources) gpu_movie_release(movie_sources->owner);
+    if(movie_program) gpu_DeleteProgram(movie_program);
+    movie_program = 0;
+    movie_program_attempted = movie_present_warning = 0;
+    memset(&movie_uniforms, 0, sizeof(movie_uniforms));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reuse one complete uploaded frame per stable owner and generation. Source
+ * addresses are borrowed only for these synchronous, tightly packed uploads.
+ */
+static gpu_movie_source *gpu_movie_upload(const gpu_yuv_source *source)
+{
+    gpu_movie_source *entry = movie_sources;
+    const unsigned char *planes[3] = { source->y, source->u, source->v };
+    int plane;
+    ep_scope upload_scope;
+    while(entry && entry->owner != source->owner) entry = entry->next;
+    if(entry && (entry->width != source->width || entry->height != source->height))
+    {
+        gpu_movie_release(source->owner);
+        entry = NULL;
+    }
+    if(!entry)
+    {
+        entry = (gpu_movie_source *)calloc(1, sizeof(*entry));
+        if(!entry)
+        {
+            native_failure = EP_FALLBACK_RESOURCE;
+            return NULL;
+        }
+        entry->owner = source->owner;
+        entry->width = source->width;
+        entry->height = source->height;
+        for(plane = 0; plane < 3; ++plane)
+        {
+            int width = source->width / (plane ? 2 : 1);
+            int height = source->height / (plane ? 2 : 1);
+            entry->texture[plane] = gpu_new_texture(width, height, GL_LUMINANCE8,
+                                                    GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+            if(!entry->texture[plane]) break;
+            /* Linear plane filtering is the original hardware movie policy.
+             * Other kernels sample exact centers through this same storage. */
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            if(glGetError() != GL_NO_ERROR) break;
+        }
+        if(plane != 3)
+        {
+            gpu_gl_invalidate_state();
+            glDeleteTextures(3, entry->texture);
+            free(entry);
+            native_failure = EP_FALLBACK_RESOURCE;
+            return NULL;
+        }
+        entry->next = movie_sources;
+        movie_sources = entry;
+        ++stats.movie_resources;
+    }
+    if(entry->uploaded && entry->generation == source->generation)
+    {
+        ++stats.movie_cache_hits;
+        return entry;
+    }
+
+    /* An interrupted update must never publish a mixture of two frames.
+     * Retrying reuploads all planes before this generation becomes visible. */
+    entry->uploaded = 0;
+    upload_scope = engine_profile_span_begin();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    for(plane = 0; plane < 3; ++plane)
+    {
+        int width = source->width / (plane ? 2 : 1);
+        int height = source->height / (plane ? 2 : 1);
+        gpu_edit_texture(plane, entry->texture[plane]);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
+                       GL_LUMINANCE, GL_UNSIGNED_BYTE, planes[plane]);
+        if(glGetError() != GL_NO_ERROR)
+        {
+            engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+            native_failure = EP_FALLBACK_RESOURCE;
+            gpu_gl_invalidate_state();
+            return NULL;
+        }
+        ++stats.uploads;
+        engine_profile_count(EP_COUNT_IMAGE_UPLOADS, 1);
+        engine_profile_count(EP_COUNT_IMAGE_UPLOAD_BYTES, (uint64_t)width * height);
+    }
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+    entry->generation = source->generation;
+    entry->uploaded = 1;
+    ++stats.movie_uploads;
+    return entry;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Validate decoded storage and every movie draw value before GL allocation or
+ * target ownership changes. Movie color stays RGB32 and decoder planes 8-bit.
+ */
+static int gpu_movie_parameters_valid(const gpu_yuv_source *source,
+                                       const gpu_movie_draw *draw)
+{
+    if(!initialized || !source || !draw || !source->owner ||
+       !source->y || !source->u || !source->v ||
+       source->width < 2 || source->height < 2 ||
+       source->width > maximum_texture_size || source->height > maximum_texture_size ||
+       (source->width & 1) || (source->height & 1) ||
+       draw->width <= 0 || draw->height <= 0 ||
+       draw->resample < DC_RESAMPLE_NEAREST || draw->resample >= DC_RESAMPLE_END ||
+       !isfinite(draw->gamma) || !isfinite(draw->brightness) ||
+       draw->gamma < -1.0f || draw->gamma > 1.0f ||
+       draw->brightness < -1.0f || draw->brightness > 1.0f)
+    {
+        native_failure = EP_FALLBACK_SOURCE_FORMAT;
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Clip in double precision before making float vertices, retaining signed
+ * placement and extreme requested extents without overflowing integer sums.
+ * Window coordinates preserve the old projection and reversed movie Y axis.
+ */
+static int gpu_movie_vertices(const gpu_yuv_source *source, const gpu_movie_draw *draw,
+                               int width, int height, int window_target,
+                               gpu_vertex vertices[4])
+{
+    double left = draw->x, bottom = draw->y;
+    double right = left + draw->width, top = bottom + draw->height;
+    double clipped_left, clipped_right, clipped_bottom, clipped_top;
+    double u0, u1, v0, v1;
+    if(window_target)
+    {
+        /* The old projection has no defined span for a one-pixel axis.
+         * Use ordinary pixel edges on that axis so tiny windows still draw. */
+        double inset_x = width > 1 ? 1.0 : 0.0;
+        double inset_y = height > 1 ? 1.0 : 0.0;
+        double scale_x = width > 1 ? (double)width / (width - 1) : 1.0;
+        double scale_y = height > 1 ? (double)height / (height - 1) : 1.0;
+        right = (right - inset_x) * scale_x;
+        top = (top - inset_y) * scale_y;
+        left *= scale_x;
+        bottom *= scale_y;
+    }
+    if(right <= left || top <= bottom) return 0;
+    clipped_left = left < 0.0 ? 0.0 : left;
+    clipped_bottom = bottom < 0.0 ? 0.0 : bottom;
+    clipped_right = right > width ? width : right;
+    clipped_top = top > height ? height : top;
+    if(clipped_left >= clipped_right || clipped_bottom >= clipped_top) return 0;
+    u0 = (clipped_left - left) / (right - left) * source->width;
+    u1 = (clipped_right - left) / (right - left) * source->width;
+    v0 = (clipped_bottom - bottom) / (top - bottom) * source->height;
+    v1 = (clipped_top - bottom) / (top - bottom) * source->height;
+    if(window_target)
+    {
+        v0 = source->height - v0;
+        v1 = source->height - v1;
+    }
+    vertices[0] = (gpu_vertex){ (float)clipped_left, (float)clipped_bottom, (float)u0, (float)v0 };
+    vertices[1] = (gpu_vertex){ (float)clipped_right, (float)clipped_bottom, (float)u1, (float)v0 };
+    vertices[2] = (gpu_vertex){ (float)clipped_right, (float)clipped_top, (float)u1, (float)v1 };
+    vertices[3] = (gpu_vertex){ (float)clipped_left, (float)clipped_top, (float)u0, (float)v1 };
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Draw filtered decoder planes directly into an existing RGB target or the
+ * window. Resource and state preparation finish before the first pixel write.
+ */
+static int gpu_movie_render(s_screen *destination, const gpu_yuv_source *source,
+                             const gpu_movie_draw *draw, int width, int height)
+{
+    gpu_movie_source *movie = NULL;
+    gpu_image *target = NULL;
+    gpu_vertex vertices[4];
+    int visible, discard_destination;
+    size_t stream_first = 0;
+    ep_scope state_scope, submit_scope;
+    uint64_t previous_state_changes = stats.state_changes;
+    uint64_t previous_state_reuses = stats.state_reuses;
+    native_failure = EP_FALLBACK_OTHER;
+    if(!gpu_movie_parameters_valid(source, draw)) goto failed;
+    if(width <= 0 || height <= 0 ||
+       (destination && (destination->pixelformat != PIXEL_32 ||
+                        width > maximum_texture_size || height > maximum_texture_size)))
+    {
+        native_failure = EP_FALLBACK_TARGET_FORMAT;
+        goto failed;
+    }
+    visible = gpu_movie_vertices(source, draw, width, height, !destination, vertices);
+    if(!visible && destination) return 1;
+    if(!gpu_movie_program_ready()) goto failed;
+    if(visible)
+    {
+        movie = gpu_movie_upload(source);
+        if(!movie) goto failed;
+        quad_count = 0;
+        if(!gpu_collect_quad(vertices, 0, NULL)) goto failed;
+        submit_scope = engine_profile_span_begin();
+        if(!gpu_upload_geometry(&stream_first))
+        {
+            engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+            goto failed;
+        }
+        engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    }
+    if(destination)
+    {
+        discard_destination = draw->x <= 0 && draw->y <= 0 &&
+                              (int64_t)draw->x + draw->width >= width &&
+                              (int64_t)draw->y + draw->height >= height;
+        target = gpu_screen_image(destination, !discard_destination);
+        if(!target) goto failed;
+    }
+
+    state_scope = engine_profile_span_begin();
+    gpu_bind_framebuffer(target ? target->framebuffer : 0);
+    gpu_set_viewport(width, height);
+    gpu_set_scissor_enabled(0);
+    gpu_set_draw_raster();
+    gpu_set_color_mask();
+    if(!destination) gpu_set_clear_color();
+    if(visible)
+    {
+        gpu_UseProgram(movie_program);
+        gl_state.program = movie_program;
+        gl_state.program_valid = 1;
+        ++stats.state_changes;
+        gpu_bind_texture(0, movie->texture[0]);
+        gpu_bind_texture(1, movie->texture[1]);
+        gpu_bind_texture(2, movie->texture[2]);
+        gpu_select_texture_unit(0);
+        gpu_bind_geometry();
+        gpu_Uniform2f(movie_uniforms.target_size, (float)width, (float)height);
+        gpu_Uniform2f(movie_uniforms.source_size, (float)source->width, (float)source->height);
+        gpu_Uniform1i(movie_uniforms.y, 0);
+        gpu_Uniform1i(movie_uniforms.u, 1);
+        gpu_Uniform1i(movie_uniforms.v, 2);
+        gpu_Uniform1i(movie_uniforms.resample, draw->resample);
+        gpu_Uniform1i(movie_uniforms.black_filter, draw->black_filter != 0);
+        gpu_Uniform1f(movie_uniforms.gamma, draw->gamma);
+        gpu_Uniform1f(movie_uniforms.brightness, draw->brightness);
+        stats.state_changes += 9;
+    }
+    if(glGetError() != GL_NO_ERROR)
+    {
+        engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+        native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
+        goto failed;
+    }
+    engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+
+    submit_scope = engine_profile_span_begin();
+    if(!destination) glClear(GL_COLOR_BUFFER_BIT);
+    if(visible)
+    {
+        gpu_DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
+                         (const void *)(uintptr_t)(stream_first * 6 * sizeof(GLuint)));
+    }
+    if(glGetError() != GL_NO_ERROR) gpu_fatal("movie draw");
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    if(target)
+    {
+        target->gpu_dirty = 1;
+        target->cpu_dirty = 0;
+    }
+    if(visible)
+    {
+        ++stats.movie_draws;
+        ++stats.draws;
+        engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+        engine_profile_count(EP_COUNT_NATIVE_QUADS, 1);
+        engine_profile_count(EP_COUNT_NATIVE_BATCHES, 1);
+    }
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, stats.state_changes - previous_state_changes);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, stats.state_reuses - previous_state_reuses);
+    return 1;
+failed:
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Preserve caller-owned screen layering: only the clipped movie rectangle
+ * changes, with no global drawmethod, implicit clear, or CPU pixel access.
+ */
+static int gpu_movie_draw_screen(s_screen *destination, const gpu_yuv_source *source,
+                                  const gpu_movie_draw *draw)
+{
+    if(!destination) return 0;
+    return gpu_movie_render(destination, source, draw, destination->width, destination->height);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Present at the window's native resolution while keeping scene rendering
+ * active. Border clearing occurs only after all required setup succeeds.
+ */
+int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,
+                       int viewport_width, int viewport_height)
+{
+    int result;
+    gpu_gl_prepare_present();
+    result = gpu_movie_render(NULL, source, draw, viewport_width, viewport_height);
+    if(!result && !movie_present_warning)
+    {
+        movie_present_warning = 1;
+        gpu_log("WARNING: Native movie presentation unavailable or rejected; presentation skipped without CPU retry.");
+    }
+    return result;
+}
+
+
 static const gpu_backend renderer_backend = {
     gpu_screen_draw, gpu_sprite_draw, gpu_box_draw, gpu_line_draw,
     gpu_screen_clear, gpu_screen_copy, gpu_read_screen, gpu_dirty_screen,
-    gpu_free_screen, gpu_free_sprite, gpu_dirty_tables
+    gpu_free_screen, gpu_free_sprite, gpu_dirty_tables,
+    gpu_movie_draw_screen, gpu_movie_release
 };
 
 /*
@@ -3448,6 +3895,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-15 - Report rejected RGB32 operations without software retry.
  * 2026-11-15 - Identify RGB32 as the sole scene format.
  * 2026-11-15 - Report water sampling and compact plane recurrence support.
+ * 2026-11-15 - Report shared movie reconstruction and lazy shader validation.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -3523,12 +3971,21 @@ static void gpu_log_capability_result(int native_available)
             "\tBuilt-in formulas:                 %s\n"
             "\tDefault:                           Nearest (existing exact sampling)\n"
             "\tSmooth formulas:                   Bilinear, Catmull-Rom, Mitchell, B-spline, Lanczos 2/3\n"
-            "\tMovie resample:                    Bilinear alias; movie YUV conversion unchanged\n"
+            "\tMovie resample:                    Bilinear alias; each decoded plane is filtered before conversion\n"
             "\tSampling:                          One master filter; center-aligned encoded RGB\n"
             "\tCoverage:                          Per-texel keys/palettes/masks before reconstruction\n"
             "\tReduction:                         Fixed support; no mipmap/area prefilter\n"
             "\tSoftware implementation:           None; unavailable filtered draws logged and skipped\n",
             native_available ? "NATIVE - available" : "UNAVAILABLE");
+    gpu_log("Movie Rendering\n"
+            "\tRendering path:                    %s\n"
+            "\tShader validation:                 Compiled and linked on first movie draw\n"
+            "\tSource storage:                    Retained YUV420 planes per owner and frame generation\n"
+            "\tOutput:                            Direct RGB32 target or native-resolution window\n"
+            "\tColor conversion:                  Established hardware matrix and plane sampling\n"
+            "\tSoftware implementation:           None; unavailable movie draws logged and skipped\n",
+            native_available ? "Shared native screen/fullscreen pipeline; shader pending first use" :
+                               "UNAVAILABLE - native scene backend required");
     gpu_log("Color Rules\n"
             "\tChroma key execution:              %s\n"
             "\tSubstitute execution:              %s\n"
@@ -4035,6 +4492,7 @@ void gpu_gl_shutdown(void)
      * ready for the presenter's own teardown or a replacement video mode. */
     gpu_unregister_backend();
     gpu_gl_prepare_present();
+    gpu_movie_shutdown();
     gpu_DeleteProgram(program);
     glDeleteTextures(1, &white_texture);
     glDeleteTextures(1, &palette_texture);

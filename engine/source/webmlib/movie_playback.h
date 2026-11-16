@@ -49,6 +49,7 @@ typedef struct s_movie_playback {
     int offset_y;
     uint64_t width;
     uint64_t height;
+    e_drawmethod_resample resample;
     int sound_channel;
     int source_id;
     int failed;
@@ -60,15 +61,12 @@ typedef struct s_movie_playback {
     yuv_video_mode video_mode;
     yuv_frame *current_frame;
     yuv_frame *next_frame;
-    s_screen *rgb_frame;
-    s_screen *scaled_frame;
+    uint64_t frame_generation;
     uint64_t clock_anchor;
     uint64_t position_anchor;
     int volume;
     bool replace_all_audio;
     int frame_dirty;
-    int rgb_frame_dirty;
-    int scaled_frame_dirty;
     int terminal_pending;
     int current_frame_presented;
     uint64_t presentation_drop_count;
@@ -97,6 +95,7 @@ uint64_t movie_playback_get_active_mask(void);
 void movie_playback_update(int interrupt_requested);
 bool movie_playback_draw_to_screen(s_screen *screen, int channel);
 bool movie_playback_draw_to_yuv(int channel);
+bool movie_playback_capture_frame(s_screen *screen, int channel);
 void movie_playback_stop(s_movie_playback *playback);
 void movie_playback_stop_all(void);
 
@@ -115,6 +114,10 @@ bool movie_playback_set_position(
     int volume
 );
 bool movie_playback_set_repeat(s_movie_playback *playback, int repeat);
+bool movie_playback_set_resample(
+    s_movie_playback *playback,
+    e_drawmethod_resample resample
+);
 bool movie_playback_set_sound_channel(
     s_movie_playback *playback,
     int sound_channel,

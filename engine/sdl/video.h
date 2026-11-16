@@ -11,6 +11,7 @@
 
 #include "gfxtypes.h"
 #include "types.h"
+#include "gpu.h"
 #include "yuv.h"
 #if SDL
 #include "SDL.h"
@@ -34,7 +35,8 @@ void video_set_color_correction(int, int);
 
 // for WebM video playback
 int video_setup_yuv_overlay(const yuv_video_mode*);
-int video_prepare_yuv_frame(yuv_frame*);
+int video_prepare_yuv_frame(const gpu_yuv_source*, e_drawmethod_resample);
+int video_capture_yuv_frame(s_screen*, const gpu_yuv_source*, e_drawmethod_resample);
 int video_display_yuv_frame(void);
 
 int video_current_refresh_rate();

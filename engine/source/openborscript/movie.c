@@ -68,6 +68,9 @@ static const s_movie_property_info movie_properties[] = {
     { MOVIE_PROPERTY_WIDTH, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, width),
       "MOVIE_PROPERTY_WIDTH", VT_UINTEGER64 },
+    { MOVIE_PROPERTY_RESAMPLE, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+      PROPERTY_MEMBER_OFFSET(s_movie_playback, resample),
+      "MOVIE_PROPERTY_RESAMPLE", VT_INTEGER },
     { MOVIE_PROPERTY_END, PROPERTY_ACCESS_CONFIG_NONE, 0,
       "Movie", VT_EMPTY }
 };
@@ -540,6 +543,13 @@ HRESULT openbor_movie_set_property(
         case MOVIE_PROPERTY_WIDTH:
             result = SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[2], &unsigned_value)) &&
                 movie_playback_set_width(playback, unsigned_value);
+            break;
+        case MOVIE_PROPERTY_RESAMPLE:
+            result = varlist[2]->vt == VT_INTEGER &&
+                varlist[2]->lVal >= DC_RESAMPLE_NEAREST &&
+                varlist[2]->lVal < DC_RESAMPLE_END &&
+                movie_playback_set_resample(playback,
+                    (e_drawmethod_resample)varlist[2]->lVal);
             break;
         case MOVIE_PROPERTY_ACTIVE:
         case MOVIE_PROPERTY_CHANNEL:

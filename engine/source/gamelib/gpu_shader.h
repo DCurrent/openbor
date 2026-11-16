@@ -68,6 +68,8 @@
  */
 extern const char *gpu_vertex_shader_source;
 extern const char *gpu_fragment_shader_source;
+/* Shared direct YUV reconstruction for screen targets and window output. */
+extern const char *gpu_movie_fragment_shader_source;
 
 /* Standalone reference helpers used by regression tests and shader diagnostics. */
 unsigned gpu_shader_blend_reference(int mode, unsigned source, unsigned destination);

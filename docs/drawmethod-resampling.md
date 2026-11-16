@@ -151,10 +151,12 @@ it is the same selector value as `DC_RESAMPLE_BILINEAR`.
 
 Selecting this alias on an RGB/indexed scene draw does not invoke YUV
 conversion or make quantized RGB interpolation identical to filtering YUV
-planes first. This change does not replace the movie playback systems, change
-their conversion coefficients, change chroma reconstruction, or add new movie
-drawmethod arguments. The existing hardware movie appearance remains the
-reference for the later playback integration.
+planes first. Movie playback now uses a shared GPU YUV renderer and exposes
+`MOVIE_PROPERTY_RESAMPLE` with the same constants, defaulting to
+`DC_RESAMPLE_MOVIE`. That renderer reconstructs each plane before conversion,
+retaining the existing hardware coefficients and direct fullscreen correction
+order. See [GPU movie playback](gpu-movie-playback.md) for script examples,
+screen/fullscreen contracts, capture, and platform availability.
 
 ## Availability and limits
 

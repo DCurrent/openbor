@@ -52604,14 +52604,27 @@ int playwebm(const char *path, int noskip)
                 if(screenshot_frame) {
                     freescreen(&screenshot_frame);
                 }
-                screenshot_frame = allocscreen(
-                    playback->current_frame->width,
-                    playback->current_frame->height,
-                    PIXEL_32
-                );
+                int capture_width = playback->current_frame->width;
+                int capture_height = playback->current_frame->height;
+                /* allocscreen rounds width down to four pixels. Reserve enough
+                 * storage first, then retain the exact decoded capture width. */
+                if(capture_width > 0 && capture_height > 0 &&
+                   capture_width <= INT_MAX - 3 &&
+                   ((capture_width + 3) & ~3) <= INT_MAX / capture_height / 4) {
+                    screenshot_frame = allocscreen(
+                        (capture_width + 3) & ~3,
+                        capture_height,
+                        PIXEL_32
+                    );
+                    if(screenshot_frame) {
+                        screenshot_frame->width = capture_width;
+                    }
+                }
             }
-            if(screenshot_frame) {
-                yuv_to_rgb(playback->current_frame, screenshot_frame);
+            if(screenshot_frame &&
+               movie_playback_capture_frame(screenshot_frame, playback->index)) {
+                /* Capture uses the movie GPU shader. File encoding explicitly
+                 * synchronizes this screen; ordinary playback never reads back. */
                 screenshot(screenshot_frame, NULL, 0);
             }
         }

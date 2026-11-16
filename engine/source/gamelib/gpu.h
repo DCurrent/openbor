@@ -7,6 +7,37 @@
 #define OPENBOR_GPU_H
 
 #include "types.h"
+#include <stdint.h>
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Describe tightly packed, even-sized 8-bit YUV420 decoder planes without
+ * retaining their CPU addresses. The stable owner identifies one source;
+ * generation changes whenever its decoded pixels change, including seeks.
+ */
+typedef struct gpu_yuv_source
+{
+    const void *owner;
+    uint64_t generation;
+    int width, height;
+    const unsigned char *y, *u, *v;
+} gpu_yuv_source;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * One opaque movie rectangle and its sampling policy. Correction follows
+ * the established movie polynomial, with neutral zero and range [-1, 1].
+ * Screen composition normally leaves correction to final presentation.
+ */
+typedef struct gpu_movie_draw
+{
+    int x, y, width, height;
+    e_drawmethod_resample resample;
+    int black_filter;
+    float gamma, brightness;
+} gpu_movie_draw;
 
 /*
  * Rendering dispatch is independent of the window system. Draw/clear/copy
@@ -44,6 +75,10 @@ typedef struct gpu_backend
 
     /* Table edits can retain an address while changing all of its lookup values. */
     void (*invalidate_tables)(void);
+
+    /* Movie planes stay resident across screen and fullscreen draws. */
+    int (*draw_yuv)(s_screen *, const gpu_yuv_source *, const gpu_movie_draw *);
+    void (*release_yuv)(const void *owner);
 } gpu_backend;
 
 /* Root dispatch uses separate warning bits so a failed operation logs once,
@@ -82,5 +117,7 @@ void gpu_prepare_cpu_write(s_screen *screen);
 void gpu_release_screen(s_screen *screen);
 void gpu_release_sprite(s_sprite *sprite);
 void gpu_invalidate_tables(void);
+int gpu_draw_yuv(s_screen *dest, const gpu_yuv_source *source, const gpu_movie_draw *draw);
+void gpu_release_yuv(const void *owner);
 
 #endif

@@ -30,6 +30,12 @@ SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture *texture = NULL;
 SDL_Texture *texture_base = NULL;
+/* Android retains its accelerated SDL fullscreen presenter until the shared
+ * native scene renderer is ported. Movie storage is separate from game output. */
+static SDL_Texture *movie_texture;
+static e_drawmethod_resample movie_resample = DC_RESAMPLE_MOVIE;
+static const void *movie_owner;
+static uint64_t movie_generation;
 
 //For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
@@ -368,6 +374,9 @@ int video_set_mode(s_videomodes videomodes)
     savedata.fullscreen = 1;
 
     //destroy all
+    SDL_DestroyTexture(movie_texture);
+    movie_texture = NULL;
+    movie_owner = NULL;
     if(texture_base)
     {
         SDL_DestroyTexture(texture_base);
@@ -470,9 +479,18 @@ int video_set_mode(s_videomodes videomodes)
     return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Release fullscreen movie storage while retaining Android game textures and
+ * touch controls. Movie selection no longer replaces their presentation state.
+ */
 int video_restore_mode(void)
 {
-    return video_set_mode(stored_videomodes);
+    SDL_DestroyTexture(movie_texture);
+    movie_texture = NULL;
+    movie_owner = NULL;
+    return renderer && texture;
 }
 
 void video_fullscreen_flip()
@@ -595,32 +613,246 @@ void video_set_color_correction(int gm, int br)
 	brightness = br;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Allocate an Android hardware movie texture with an explicitly supported
+ * sampling choice. Restore the global SDL hint so movie selection cannot
+ * change subsequent game textures. Higher kernels need the native port.
+ */
+static SDL_Texture *video_android_movie_texture(int width, int height,
+                                               e_drawmethod_resample resample)
+{
+    SDL_Texture *result;
+    const char *hint = SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY);
+    char *saved_hint = hint ? SDL_strdup(hint) : NULL;
+    if(resample != DC_RESAMPLE_NEAREST && resample != DC_RESAMPLE_BILINEAR)
+    {
+        static int warned;
+        if(!warned)
+        {
+            warned = 1;
+            gpu_log("WARNING: Android SDL movies support nearest and bilinear sampling. Higher resampling kernels require the native scene renderer port; output skipped.");
+        }
+        SDL_free(saved_hint);
+        return NULL;
+    }
+    if(hint && !saved_hint)
+    {
+        gpu_log("WARNING: Android hardware movie sampling setup could not allocate hint storage.");
+        return NULL;
+    }
+    /* Match the game's DEFAULT hint priority. Higher-priority configuration
+     * may reject this request; never silently use a different movie filter. */
+    if(!SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY,
+                resample == DC_RESAMPLE_NEAREST ? "nearest" : "linear", SDL_HINT_DEFAULT))
+    {
+        const char *active = SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY);
+        int matches = active && (resample == DC_RESAMPLE_NEAREST
+            ? (!SDL_strcasecmp(active, "nearest") || !strcmp(active, "0"))
+            : (!SDL_strcasecmp(active, "linear") || !strcmp(active, "1")));
+        if(!matches)
+        {
+            gpu_log("WARNING: Android movie sampling is blocked by an overriding SDL scale-quality setting; output skipped.");
+            SDL_free(saved_hint);
+            return NULL;
+        }
+    }
+    result = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
+                                SDL_TEXTUREACCESS_STREAMING, width, height);
+    SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY,
+                            saved_hint ? saved_hint : "nearest", SDL_HINT_DEFAULT);
+    SDL_free(saved_hint);
+    if(!result)
+    {
+        gpu_log("WARNING: Android hardware movie texture allocation failed: %s.", SDL_GetError());
+    }
+    return result;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Retain Android fullscreen playback without replacing its RGB game texture.
+ * This platform's SDL presenter is explicit and is never a retry after a
+ * declined native movie-to-screen operation.
+ */
 int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	stored_yuv_mode = *mode;
-
-	SDL_DestroyTexture(texture);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	texture = SDL_CreateTexture(renderer,
-	                            SDL_PIXELFORMAT_YV12,
-	                            SDL_TEXTUREACCESS_STREAMING,
-	                            mode->width, mode->height);
-	textureWidth = mode->display_width;
-    textureHeight = mode->display_height;
-	return texture ? 1 : 0;
+    SDL_Texture *replacement;
+    if(!renderer || !mode || mode->width < 2 || mode->height < 2 ||
+       (mode->width & 1) || (mode->height & 1) ||
+       mode->display_width <= 0 || mode->display_height <= 0)
+    {
+        return 0;
+    }
+    replacement = video_android_movie_texture(mode->width, mode->height, DC_RESAMPLE_MOVIE);
+    if(!replacement)
+    {
+        return 0;
+    }
+    SDL_DestroyTexture(movie_texture);
+    movie_texture = replacement;
+    movie_resample = DC_RESAMPLE_MOVIE;
+    movie_owner = NULL;
+    stored_yuv_mode = *mode;
+    return 1;
 }
 
-int video_prepare_yuv_frame(yuv_frame *src)
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Upload retained planes to Android's hardware presenter only when the
+ * decoded generation changes. Plane names here explicitly follow Y, U, V.
+ */
+int video_prepare_yuv_frame(const gpu_yuv_source *source,
+                            e_drawmethod_resample resample)
 {
-	SDL_UpdateYUVTexture(texture, NULL, src->lum, stored_yuv_mode.width,
-	        src->cr, stored_yuv_mode.width/2, src->cb, stored_yuv_mode.width/2);
-	return 1;
+    if(!source || !source->owner || !source->y || !source->u || !source->v ||
+       !renderer || source->width != stored_yuv_mode.width ||
+       source->height != stored_yuv_mode.height)
+    {
+        return 0;
+    }
+    /* Controller layout can remain selected across a video-mode recreation.
+     * Rebuild discarded storage from the retained frame on its next draw. */
+    if(!movie_texture || movie_resample != resample)
+    {
+        SDL_Texture *replacement = video_android_movie_texture(source->width, source->height, resample);
+        if(!replacement)
+        {
+            return 0;
+        }
+        SDL_DestroyTexture(movie_texture);
+        movie_texture = replacement;
+        movie_resample = resample;
+        movie_owner = NULL;
+    }
+    if(movie_owner != source->owner || movie_generation != source->generation)
+    {
+        if(SDL_UpdateYUVTexture(movie_texture, NULL, source->y, source->width,
+                                source->u, source->width / 2,
+                                source->v, source->width / 2) < 0)
+        {
+            gpu_log("WARNING: Android hardware movie upload failed: %s.", SDL_GetError());
+            return 0;
+        }
+        movie_owner = source->owner;
+        movie_generation = source->generation;
+    }
+    return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Capture Android movie pixels through SDL's accelerated YUV conversion and
+ * an explicit render-target readback. No CPU color converter is retained.
+ * Restore presenter state before returning, including after failed capture.
+ */
+int video_capture_yuv_frame(s_screen *screen, const gpu_yuv_source *source,
+                            e_drawmethod_resample resample)
+{
+    SDL_Texture *planes = NULL, *target = NULL, *saved_target;
+    SDL_Rect viewport, clip;
+    SDL_BlendMode blend;
+    Uint8 red, green, blue, alpha;
+    float scale_x, scale_y;
+    int logical_width, logical_height, clipped, success = 0;
+    if(!renderer || !screen || screen->pixelformat != PIXEL_32 ||
+       screen->width <= 0 || screen->height <= 0 || !source ||
+       source->width < 2 || source->height < 2 ||
+       (source->width & 1) || (source->height & 1) ||
+       !source->y || !source->u || !source->v)
+    {
+        return 0;
+    }
+    planes = video_android_movie_texture(source->width, source->height, resample);
+    if(!planes)
+    {
+        return 0;
+    }
+    target = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
+                                SDL_TEXTUREACCESS_TARGET, screen->width, screen->height);
+    if(!target ||
+       SDL_UpdateYUVTexture(planes, NULL, source->y, source->width,
+                            source->u, source->width / 2,
+                            source->v, source->width / 2) < 0)
+    {
+        goto done;
+    }
+    saved_target = SDL_GetRenderTarget(renderer);
+    SDL_RenderGetViewport(renderer, &viewport);
+    SDL_RenderGetClipRect(renderer, &clip);
+    clipped = SDL_RenderIsClipEnabled(renderer);
+    SDL_RenderGetScale(renderer, &scale_x, &scale_y);
+    SDL_RenderGetLogicalSize(renderer, &logical_width, &logical_height);
+    SDL_GetRenderDrawBlendMode(renderer, &blend);
+    SDL_GetRenderDrawColor(renderer, &red, &green, &blue, &alpha);
+    if(SDL_SetRenderTarget(renderer, target) == 0)
+    {
+        SDL_RenderSetLogicalSize(renderer, 0, 0);
+        SDL_RenderSetScale(renderer, 1.0f, 1.0f);
+        SDL_RenderSetViewport(renderer, NULL);
+        SDL_RenderSetClipRect(renderer, NULL);
+        SDL_SetTextureBlendMode(planes, SDL_BLENDMODE_NONE);
+        if(SDL_RenderCopy(renderer, planes, NULL, NULL) == 0)
+        {
+            if(brightness)
+            {
+                int opacity = brightness > 0 ? MIN(256, brightness) : -MAX(-256, brightness);
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                SDL_SetRenderDrawColor(renderer, brightness > 0 ? 255 : 0,
+                    brightness > 0 ? 255 : 0, brightness > 0 ? 255 : 0,
+                    (Uint8)(opacity - 1));
+                SDL_RenderFillRect(renderer, NULL);
+            }
+            /* Screenshot output consumes RGB only. SDL owns the YUV conversion;
+             * this explicit capture is the sole requested CPU pixel transfer. */
+            gpu_prepare_cpu_write(screen);
+            success = SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ABGR8888,
+                                            screen->data, screen->width * 4) == 0;
+        }
+    }
+    SDL_SetRenderTarget(renderer, saved_target);
+    SDL_RenderSetLogicalSize(renderer, logical_width, logical_height);
+    SDL_RenderSetScale(renderer, scale_x, scale_y);
+    SDL_RenderSetViewport(renderer, &viewport);
+    SDL_RenderSetClipRect(renderer, clipped ? &clip : NULL);
+    SDL_SetRenderDrawBlendMode(renderer, blend);
+    SDL_SetRenderDrawColor(renderer, red, green, blue, alpha);
+done:
+    if(!success)
+    {
+        gpu_log("WARNING: Android hardware movie screenshot capture failed: %s.", SDL_GetError());
+    }
+    if(planes) SDL_DestroyTexture(planes);
+    if(target) SDL_DestroyTexture(target);
+    return success;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Present the dedicated Android movie texture with existing touch controls
+ * and display correction, then restore the game texture and its dimensions.
+ */
 int video_display_yuv_frame(void)
 {
-	blit();
-	return 1;
+    SDL_Texture *game_texture = texture;
+    int game_width = textureWidth, game_height = textureHeight;
+    if(!movie_texture)
+    {
+        return 0;
+    }
+    texture = movie_texture;
+    textureWidth = stored_yuv_mode.display_width;
+    textureHeight = stored_yuv_mode.display_height;
+    blit();
+    texture = game_texture;
+    textureWidth = game_width;
+    textureHeight = game_height;
+    return 1;
 }
 
 int video_current_refresh_rate()

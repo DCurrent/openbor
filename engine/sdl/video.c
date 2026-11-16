@@ -476,9 +476,20 @@ int video_set_mode(s_videomodes videomodes)
 	return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Finish movie output without recreating a healthy native context. The RGB
+ * presenter and scene targets remain available throughout movie playback.
+ */
 int video_restore_mode(void)
 {
-	return video_set_mode(stored_videomodes);
+    yuv_mode = 0;
+    if(opengl && gpu_is_active())
+    {
+        return 1;
+    }
+    return video_set_mode(stored_videomodes);
 }
 
 void video_fullscreen_flip()
@@ -576,8 +587,9 @@ int video_copy_screen(s_screen* src)
 	 * Native GPU screens already contain the composed frame. Present their
 	 * texture before requesting CPU pixels or applying output filtering.
 	 */
-	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src))
+	if(opengl && video_gl_copy_gpu_screen(src))
 	{
+		yuv_mode = 0;
 		return 1;
 	}
 	if(!gpu_allow_cpu_operation(src, GPU_OPERATION_PRESENT))
@@ -645,50 +657,59 @@ void video_set_color_correction(int gm, int br)
 
 /*
  * Damon V. Caskey
- * 2026-11-13
- * Report the actual movie presenter after selecting the existing GL or SDL
- * upload path. Playback does not enable native scene drawing.
+ * 2026-11-15
+ * Configure native movie layout while retaining normal scene drawing. Failed
+ * setup leaves the current presenter unchanged and never selects CPU work.
  */
 int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	stored_yuv_mode = *mode;
-	yuv_mode = 1;
-	if(opengl) return video_gl_setup_yuv_overlay(mode);
-
-	SDL_DestroyTexture(texture);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-	texture = SDL_CreateTexture(renderer,
-	                            SDL_PIXELFORMAT_YV12,
-	                            SDL_TEXTUREACCESS_STREAMING,
-	                            mode->width, mode->height);
-	if(!stretch)
-		SDL_RenderSetLogicalSize(renderer, mode->display_width, mode->display_height);
-	if(texture)
-	{
-		gpu_log("Video playback uses SDL YUV presentation. Native scene drawing remains inactive in this mode.");
-	}
-	else
-	{
-		gpu_log("ERROR: SDL YUV presentation texture creation failed: %s.", SDL_GetError());
-	}
-	return texture ? 1 : 0;
+    if(!opengl || !video_gl_setup_yuv_overlay(mode))
+    {
+        gpu_log("WARNING: Native movie presentation is unavailable; playback output was not changed.");
+        return 0;
+    }
+    stored_yuv_mode = *mode;
+    yuv_mode = 1;
+    return 1;
 }
 
-int video_prepare_yuv_frame(yuv_frame *src)
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Submit the same retained source used by movie-to-screen composition. Plane
+ * upload identity is independent of which output last presented the frame.
+ */
+int video_prepare_yuv_frame(const gpu_yuv_source *source,
+                            e_drawmethod_resample resample)
 {
-	if(opengl) return video_gl_prepare_yuv_frame(src);
-
-	SDL_UpdateYUVTexture(texture, NULL, src->lum, stored_yuv_mode.width,
-	        src->cr, stored_yuv_mode.width/2, src->cb, stored_yuv_mode.width/2);
-	return 1;
+    if(!opengl || !video_gl_prepare_yuv_frame(source, resample))
+    {
+        return 0;
+    }
+    yuv_mode = 1;
+    return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Prepare an explicitly requested screenshot with hardware movie colors.
+ * This neither swaps a window nor acknowledges a playback presentation.
+ */
+int video_capture_yuv_frame(s_screen *screen, const gpu_yuv_source *source,
+                            e_drawmethod_resample resample)
+{
+    return opengl && video_gl_capture_yuv_frame(screen, source, resample);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Complete native movie presentation without switching rendering modes.
+ */
 int video_display_yuv_frame(void)
 {
-	if(opengl) return video_gl_display_yuv_frame();
-
-	blit();
-	return 1;
+    return opengl && video_gl_display_yuv_frame();
 }
 
 int video_current_refresh_rate()

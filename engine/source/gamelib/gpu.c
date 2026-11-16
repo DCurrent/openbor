@@ -16,6 +16,7 @@ static const gpu_backend *active_backend;
 static int native_required;
 static unsigned declined_operation_warnings;
 static unsigned declined_resample_warnings;
+static int declined_movie_warning;
 static const char *const operation_names[GPU_OPERATION_COUNT] = {
     "screen draw", "sprite draw", "rectangle draw", "line draw",
     "pixel draw", "screen clear", "screen copy", "scene presentation"
@@ -60,6 +61,7 @@ void gpu_register_backend(const gpu_backend *backend)
 {
     /* Publish callbacks only after their context, shaders and resources are ready. */
     active_backend = backend;
+    declined_movie_warning = 0;
     if(backend)
     {
         gpu_set_native_required(1);
@@ -348,6 +350,47 @@ int gpu_copy_screen(s_screen *dest, s_screen *src)
 
     /* Preserve both owner identities so compatible copies stay in GPU storage. */
     return active_backend->copy_screen(dest, src) != 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Compose decoded planes through the native renderer only. Failed movie
+ * draws leave the target unchanged and report once per backend lifetime;
+ * no CPU conversion, scaling or copy is a substitute for this operation.
+ */
+int gpu_draw_yuv(s_screen *dest, const gpu_yuv_source *source, const gpu_movie_draw *draw)
+{
+    if(dest && dest->pixelformat == PIXEL_32 && source && draw &&
+       active_backend && active_backend->draw_yuv &&
+       active_backend->draw_yuv(dest, source, draw))
+    {
+        return 1;
+    }
+    if(!active_backend || !active_backend->draw_yuv)
+    {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
+    }
+    if(!declined_movie_warning)
+    {
+        declined_movie_warning = 1;
+        gpu_log("WARNING: Native movie drawing unavailable or rejected; movie draw skipped. CPU conversion and rendering retry are disabled.");
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Retire a movie source before its stable owner is reset or reused. Context
+ * shutdown already discards these recreatable textures without readback.
+ */
+void gpu_release_yuv(const void *owner)
+{
+    if(owner && active_backend && active_backend->release_yuv)
+    {
+        active_backend->release_yuv(owner);
+    }
 }
 
 /*

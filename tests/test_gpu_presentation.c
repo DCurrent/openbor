@@ -193,6 +193,104 @@ static void test_scene_format_rejection(s_videomodes valid_mode, s_screen *scree
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Compare logical RGB channels while allowing one framebuffer rounding unit.
+ */
+static void test_movie_color(unsigned actual, unsigned expected)
+{
+    int channel;
+    for(channel = 0; channel < 3; ++channel)
+    {
+        int value = (actual >> (channel*8)) & 255;
+        int wanted = (expected >> (channel*8)) & 255;
+        assert(abs(value-wanted) <= 1);
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Real video entry points share resident planes between fullscreen output and
+ * explicit capture. Correction must precede clipping, screenshots remain GPU
+ * authoritative until requested, and movie layout never suspends scene draws.
+ */
+static void test_native_movie_presentation(s_screen *screen)
+{
+    yuv_video_mode mode = {6, 8, 8, 8};
+    unsigned char luminance[48], chroma_u[12], chroma_v[12];
+    gpu_yuv_source source = {
+        .owner = luminance, .generation = 1, .width = 6, .height = 8,
+        .y = luminance, .u = chroma_u, .v = chroma_v
+    };
+    s_screen *capture = test_screen(6, 8, PIXEL_32);
+    SDL_GLContext context = SDL_GL_GetCurrentContext();
+    void (APIENTRY *read_buffer)(GLenum) = SDL_GL_GetProcAddress("glReadBuffer");
+    unsigned pixels[64], stale_pixel;
+    gpu_renderer_stats before;
+    int index;
+
+    assert(read_buffer);
+    assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00887766, &plainmethod));
+    stale_pixel = test_pixel(screen, 2, 2);
+    before = *gpu_gl_get_stats();
+    assert(video_setup_yuv_overlay(&mode));
+    assert(gpu_is_active());
+    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+    assert(SDL_GL_GetCurrentContext() == context);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    assert(test_pixel(screen, 2, 2) == stale_pixel);
+
+    /* RGB before clipping is approximately (434.54,207.12,29.98). Gamma +1
+     * produces (129,246,56); an RGB32 conversion first would give R=255. */
+    memset(luminance, 235, sizeof(luminance));
+    memset(chroma_u, 16, sizeof(chroma_u));
+    memset(chroma_v, 240, sizeof(chroma_v));
+    video_gl_set_color_correction(256, 0);
+    assert(video_prepare_yuv_frame(&source, DC_RESAMPLE_MOVIE));
+    assert(video_display_yuv_frame());
+    assert(gpu_is_active());
+    assert(gpu_gl_get_stats()->movie_uploads == before.movie_uploads+1);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    read_buffer(GL_FRONT);
+    glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    read_buffer(GL_BACK);
+    test_movie_color(pixels[4*8+4], 0x0038f681);
+
+    before = *gpu_gl_get_stats();
+    assert(video_capture_yuv_frame(capture, &source, DC_RESAMPLE_MOVIE));
+    assert(gpu_gl_get_stats()->movie_uploads == before.movie_uploads);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    for(index = 0; index < 48; ++index) assert(((unsigned *)capture->data)[index] == 0);
+    gpu_sync_cpu(capture);
+    for(index = 0; index < 48; ++index)
+        test_movie_color(((unsigned *)capture->data)[index], 0x0038f681);
+
+    /* Scene presentation is valid immediately after movies and capture.
+     * Restoring a healthy normal mode retains the context and source cache. */
+    video_gl_set_color_correction(0, 0);
+    before = *gpu_gl_get_stats();
+    assert(video_copy_screen(screen));
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    read_buffer(GL_FRONT);
+    glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    read_buffer(GL_BACK);
+    test_movie_color(pixels[4*8+4], 0x00887766);
+    assert(video_restore_mode());
+    assert(SDL_GL_GetCurrentContext() == context);
+    assert(gpu_is_active());
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    assert(gpu_gl_get_stats()->movie_resources == before.movie_resources);
+    assert(video_prepare_yuv_frame(&source, DC_RESAMPLE_BICUBIC_MITCHELL));
+    assert(video_display_yuv_frame());
+    assert(gpu_gl_get_stats()->movie_uploads == before.movie_uploads);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    assert(video_restore_mode());
+    gpu_release_yuv(source.owner);
+    release_test_screen(capture);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Require native RGB32 through mode failures and context teardown.
  * 2026-11-15 - Reject removed scene formats and exercise real filter storage.
@@ -204,10 +302,6 @@ int main(void)
     s_videomodes mode = { .hRes = 8, .vRes = 8, .pixel = 4 };
     s_videomodes closed = {0};
     s_screen *screen = test_screen(8, 8, PIXEL_32);
-    yuv_video_mode movie_mode = {8, 8, 8, 8};
-    unsigned char luminance[64], chroma_u[16], chroma_v[16];
-    yuv_frame frame = { .width = 8, .height = 8, .lum = luminance,
-                        .cb = chroma_u, .cr = chroma_v };
     unsigned long readbacks;
 
     /* Use the real video lifecycle so context selection and GPU registration
@@ -257,24 +351,13 @@ int main(void)
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
     test_cpu_output_filter(screen);
 
-    /* Returning from a CPU filter must restore native drawing. Entering YUV
-     * mode then retires that context's scene resources with current shadows. */
+    /* Returning from a CPU filter restores native drawing. Movie output and
+     * capture now share that renderer while preserving ordinary scene work. */
     savedata.swfilter = 0;
     savedata.hwscale = 1.0f;
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
-    assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00887766, &plainmethod));
-    memset(luminance, 128, sizeof(luminance));
-    memset(chroma_u, 128, sizeof(chroma_u));
-    memset(chroma_v, 128, sizeof(chroma_v));
-    assert(video_setup_yuv_overlay(&movie_mode));
-    assert(!gpu_is_active());
-    assert(gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
-    assert(test_pixel(screen, 2, 2) == 0x00887766);
-    assert(video_prepare_yuv_frame(&frame));
-    assert(video_display_yuv_frame());
-    assert(video_restore_mode());
-    assert(gpu_is_active());
+    test_native_movie_presentation(screen);
 
     /* Explicitly disabling the required GPU rejects the mode. Neither scene
      * drawing nor presentation may silently read back and select software. */
@@ -320,6 +403,6 @@ int main(void)
     SDL_DestroyWindow(window);
     window = NULL;
     SDL_Quit();
-    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filter intermediates, YUV, required RGB32 failures, RGB32-only scene modes.");
+    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, filter intermediates, native movie color/capture/coexistence, required RGB32 failures, RGB32-only scene modes.");
     return 0;
 }

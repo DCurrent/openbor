@@ -25,6 +25,7 @@ typedef enum e_movie_properties {
     MOVIE_PROPERTY_SOURCE,
     MOVIE_PROPERTY_SPEED,
     MOVIE_PROPERTY_WIDTH,
+    MOVIE_PROPERTY_RESAMPLE,
     MOVIE_PROPERTY_END
 } e_movie_properties;
 

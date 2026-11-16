@@ -23,6 +23,7 @@
 #include "gpu.h"
 #include "engine_profile.h"
 #include <math.h>
+#include <limits.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
 #define abs(x)			((x<0)?-(x):(x))
@@ -36,6 +37,8 @@ static GLint texturePixelFormat[3];
 static int viewportWidth, viewportHeight;      // dimensions of display area
 static int textureWidth, textureHeight;        // dimensions of game screen and GL texture 0
 static int displayWidth, displayHeight;
+/* Movies retain their own layout; selecting one never replaces RGB state. */
+static yuv_video_mode movieMode;
 
 static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point form
 static GLuint shaderProgram; // fragment shader program
@@ -88,35 +91,8 @@ extern SDL_Window* window;
 	"    gl_FragColor.w = 1.0;\n"                                          \
 	"}\n"
 
-#define FRAGMENT_SHADER_YUV                                                \
-	"uniform sampler2D utex;\n"                                            \
-	"uniform sampler2D vtex;\n"                                            \
-	"\n"                                                                   \
-	"vec3 yuv2rgb(vec3 yuv)\n"                                             \
-	"{\n"                                                                  \
-	"	yuv += vec3(-.0625, -.5, -.5);\n"                                  \
-	"	vec3 rgb;\n"                                                       \
-	"	rgb.x = dot(yuv, vec3(1.164, 0, 1.596));\n"                        \
-	"	rgb.y = dot(yuv, vec3(1.164, -.391, -.813));\n"                    \
-	"	rgb.z = dot(yuv, vec3(1.164, 2.018, 0));\n"                        \
-	"	return rgb;\n"                                                     \
-	"}\n"                                                                  \
-	"\n"                                                                   \
-	"void main()\n"                                                        \
-	"{\n"                                                                  \
-	"	vec3 yuv;\n"                                                       \
-	"	yuv.x = texture2D(tex,  gl_TexCoord[0].xy).x; // Y\n"              \
-	"	yuv.y = texture2D(utex, gl_TexCoord[0].xy).x; // U\n"              \
-	"	yuv.z = texture2D(vtex, gl_TexCoord[0].xy).x; // V\n"              \
-	"	gl_FragColor.xyz = applyCorrection(yuv2rgb(yuv));\n"               \
-	"	gl_FragColor.w = 1.0;\n"                                           \
-	"}\n"
-
-
 static const char *fragmentShaderSourceHighQualityRGB =
         FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB_HIGH_QUALITY;
-static const char *fragmentShaderSourceYUV =
-        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_YUV;
 /*static const char *vertexShaderSource =
         "varying vec2 texCoord;\n"
         "void main()\n"
@@ -730,90 +706,104 @@ void video_gl_set_color_correction(int gamma, int brightness)
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-13 - Identify movie presentation separately from native scene drawing.
- * 2026-11-15 - Explicitly select the unmigrated movie composition mode.
- * Switch the presenter from game RGB output to decoded YUV video planes.
- * Preserve native screen contents before retiring scene drawing, then prepare
- * three plane textures and the conversion shader used during movie playback.
+ * 2026-11-15
+ * Select movie display dimensions without retiring scene resources or changing
+ * the normal RGB presenter. The native renderer owns all movie plane textures
+ * and the shared screen/window conversion shader.
  */
 int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	/* Scripted screens remain valid while movie frames use the upload path. */
-	gpu_gl_shutdown();
-	gpu_set_native_required(0);
-	gpu_log("Video playback uses OpenGL YUV presentation. Native scene drawing is suspended until normal game video-mode initialization resumes.");
-
-	/* Source plane dimensions and display aspect can differ for decoded video. */
-	textureWidth = mode->width;
-	textureHeight = mode->height;
-	displayWidth = mode->display_width;
-	displayHeight = mode->display_height;
-	video_gl_init_texture(0, mode->width, mode->height, 1);
-	video_gl_init_texture(1, mode->width/2, mode->height/2, 1);
-	video_gl_init_texture(2, mode->width/2, mode->height/2, 1);
-
-	/* The movie shader combines the three planes and retains display correction. */
-	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceYUV, NULL);
-	glCompileShaderARB(fragmentShader);
-	shaderProgram = glCreateProgramObjectARB();
-	glAttachObjectARB(shaderProgram, fragmentShader);
-	glLinkProgramARB(shaderProgram);
-	glUseProgramObjectARB(shaderProgram);
-	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "tex"), 0);
-	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "utex"), 1);
-	glUniform1iARB(glGetUniformLocationARB(shaderProgram, "vtex"), 2);
-	video_gl_set_color_correction(lastGamma, lastBrightness);
-	return 1;
+    if(!gpu_is_active() || !mode || mode->width < 2 || mode->height < 2 ||
+       (mode->width & 1) || (mode->height & 1) ||
+       mode->display_width <= 0 || mode->display_height <= 0)
+    {
+        gpu_log("WARNING: GPU movie presentation requires an active native renderer and valid YUV420 dimensions.");
+        return 0;
+    }
+    movieMode = *mode;
+    return 1;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * Upload a decoded movie frame and compose it into the window back buffer.
- * Restore presentation state, update full-resolution luma and half-resolution
- * chroma planes, then leave the final swap to the video timing path.
+ * 2026-11-15
+ * Present retained YUV planes at window resolution using the same native movie
+ * shader as screen composition. Preserve the existing encoded/display sizing
+ * rule and apply display correction before clamping the converted RGB result.
  */
-int video_gl_prepare_yuv_frame(yuv_frame *frame)
+int video_gl_prepare_yuv_frame(const gpu_yuv_source *source,
+                               e_drawmethod_resample resample)
 {
-	/* Reassert window state so previous offscreen work cannot redirect the movie. */
-	gpu_gl_prepare_present();
-	video_gl_setup_screen();
-	glUseProgramObjectARB(shaderProgram);
-	glDisable(GL_BLEND);
-	glDisable(GL_SCISSOR_TEST);
-	glDisable(GL_DEPTH_TEST);
+    gpu_movie_draw draw = {0};
+    double scaled_width, scaled_height;
+    float scale;
+    if(!source || source->width != movieMode.width ||
+       source->height != movieMode.height ||
+       viewportWidth <= 0 || viewportHeight <= 0)
+    {
+        return 0;
+    }
 
-	/* Each texture unit remains paired with the sampler configured for its plane. */
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight,
-			textureColorFormat[0], texturePixelFormat[0], frame->lum);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, gltexture[1]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth/2, textureHeight/2,
-			textureColorFormat[1], texturePixelFormat[1], frame->cr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, gltexture[2]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth/2, textureHeight/2,
-			textureColorFormat[2], texturePixelFormat[2], frame->cb);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	/* Compose all three updated planes with the current display aspect setting. */
-	render();
-	return 1;
+    /* Fullscreen movie output retains decoded resolution, independently of the
+     * authored game screen. Stretch continues to select the entire window. */
+    scale = MIN((float)viewportWidth / source->width,
+                (float)viewportHeight / source->height);
+    scaled_width = stretch ? viewportWidth : (float)movieMode.display_width * scale;
+    scaled_height = stretch ? viewportHeight : (float)movieMode.display_height * scale;
+    if(scaled_width < 1.0 || scaled_height < 1.0 ||
+       scaled_width > INT_MAX || scaled_height > INT_MAX)
+    {
+        gpu_log("WARNING: GPU movie display dimensions are outside the supported viewport range.");
+        return 0;
+    }
+    draw.width = (int)scaled_width;
+    draw.height = (int)scaled_height;
+    draw.x = (viewportWidth - draw.width) / 2;
+    draw.y = (viewportHeight - draw.height) / 2;
+    draw.resample = resample;
+    draw.gamma = MAX(-256, MIN(256, lastGamma)) / 256.0f;
+    draw.brightness = MAX(-256, MIN(256, lastBrightness)) / 256.0f;
+    /* Fullscreen movies remain opaque; black protection is for subscreens. */
+    return gpu_gl_present_yuv(source, &draw, viewportWidth, viewportHeight);
 }
 
-// display the rendered frame on the screen
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Render a screenshot through the same YUV conversion and display correction
+ * as fullscreen output. The caller chooses capture dimensions and performs
+ * the explicit readback only when it writes the screenshot file.
+ */
+int video_gl_capture_yuv_frame(s_screen *screen, const gpu_yuv_source *source,
+                               e_drawmethod_resample resample)
+{
+    gpu_movie_draw draw = {0};
+    if(!screen)
+    {
+        return 0;
+    }
+    draw.width = screen->width;
+    draw.height = screen->height;
+    draw.resample = resample;
+    draw.gamma = MAX(-256, MIN(256, lastGamma)) / 256.0f;
+    draw.brightness = MAX(-256, MIN(256, lastBrightness)) / 256.0f;
+    return gpu_draw_yuv(screen, source, &draw);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Swap a prepared native movie without changing scene ownership. Subsequent
+ * screen drawing or RGB presentation can use the same context immediately.
+ */
 int video_gl_display_yuv_frame(void)
 {
-	SDL_GL_SwapWindow(window);
-	return 1;
+    if(!gpu_is_active())
+    {
+        return 0;
+    }
+    SDL_GL_SwapWindow(window);
+    return 1;
 }
 
 #endif

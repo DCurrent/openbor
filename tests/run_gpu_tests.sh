@@ -268,6 +268,26 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_gpu_resample_tests.sh
 
+# Preserve movie color conversion, per-plane reconstruction, opaque clipping,
+# resident source caching and native ownership across real context replacement.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_movie_tests.sh
+
+# Verify movie controller generation, presentation acknowledgement and script
+# property validation without media workers or a software drawing substitute.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    bash tests/run_movie_gpu_controller_tests.sh
+
+# Exercise the supported Android SDL movie adapter against a real accelerated
+# host renderer, including its sampler policy and explicit capture lifecycle.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_android_movie_tests.sh
+
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
     "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \
     engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/simple2x.c \

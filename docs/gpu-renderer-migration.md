@@ -23,10 +23,10 @@ Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
 warning and returns without a CPU rendering retry, readback, or software-state
 setup. Warnings are bounded to one per operation type for that mode selection.
 Losing or unregistering the native backend does not restore CPU eligibility.
-CPU work still required by Android until native GLES integration, active CPU
-output filters, and the existing fullscreen-video path retains its existing
-implementation. Their migration remains separate work; this change does not
-remove all CPU image code.
+CPU work still required by Android until native GLES integration and active
+CPU output filters retains its existing implementation. Their migration remains
+separate work; this change does not remove all CPU image code. Desktop movie
+composition and fullscreen output share the native GPU YUV renderer.
 
 `PIXEL_32` is the scene target format. Indexed artwork remains supported as
 `PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
@@ -72,7 +72,7 @@ are file-format details, not additional engine scene formats.
 | Indexed asset processing | Existing image operations; scene composition uses RGB32 |
 | Active CPU output filters | Existing software renderer/presentation path |
 | Android | Existing renderer retained; no native GLES migration claimed |
-| Video playback | Existing movie path retained, with synchronized transitions |
+| Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
 
 The affine contract from the separate transform experiment is available through
 `changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
@@ -86,8 +86,9 @@ No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
 One master `DM_RESAMPLE` selection now controls image reconstruction after the
 selected transform. See [the resampling guide](drawmethod-resampling.md) for
 formulas, script examples, coverage rules and fixed-support reduction limits.
-`DC_RESAMPLE_MOVIE` aliases bilinear; existing movie conversion and playback
-remain unchanged. Explicit filtered draws have no software implementation and
+`DC_RESAMPLE_MOVIE` aliases bilinear and is the default movie filter. See
+[GPU movie playback](gpu-movie-playback.md) for shared rendering and
+`MOVIE_PROPERTY_RESAMPLE`. Explicit filtered draws have no software implementation and
 are logged/skipped when native execution is unavailable, including unmigrated
 Android/CPU-output configurations. Default nearest behavior is unchanged.
 
@@ -760,7 +761,7 @@ platform build results remain release gates for further renderer migration.
 Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
 The retained CPU implementations still support required renderer paths,
 explicit image operations, and reference tests. Remaining work includes
-Android/GLES integration, movie composition, launcher text, additional batching,
+Android/GLES integration, launcher text, additional batching,
 and GPU equivalents for CPU output filters. Remove
 CPU rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing
