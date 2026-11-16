@@ -375,8 +375,7 @@ int video_set_mode(s_videomodes videomodes)
             return 0;
         }
         if(videomodes.hRes <= 0 || videomodes.vRes <= 0 ||
-           videomodes.hRes > INT_MAX / 4 || savedata.swfilter < BLITTER_NONE ||
-           savedata.swfilter >= BLITTER_MAX || (savedata.swfilter && videomodes.vRes > INT_MAX / 2))
+           savedata.swfilter < BLITTER_NONE || savedata.swfilter >= BLITTER_MAX)
         {
             gpu_log("ERROR: Android video mode rejected invalid dimensions or output-filter selection.");
             return 0;
