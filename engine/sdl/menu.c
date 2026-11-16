@@ -13,11 +13,7 @@
 #include "soundmix.h"
 #include "packfile.h"
 #include "gfx.h"
-#if defined(ANDROID)
-#include "hankaku.h"
-#else
 #include "launcher_text.h"
-#endif
 #include "stristr.h"
 #include "stringptr.h"
 #include "gpu.h"
@@ -40,6 +36,10 @@ extern int nativeWidth;
 static s_screen* bgscreen;
 // CRxTRDude - Added the log screen variable.
 static s_screen* logscreen;
+/* Recompose after rejected presentation, including Android context resets. */
+static int launcher_redraw;
+/* Formatting can fail before reaching the renderer; present only full frames. */
+static int launcher_frame_ready;
 
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB(R,G,B)   RGB32(R,G,B)
@@ -205,96 +205,10 @@ static int findPaks(void)
 	return i;
 }
 
-#if defined(ANDROID)
-/*
- * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Keep launcher glyph writes exclusively in its RGB32 format.
- * 2026-11-16 - Isolate this existing path until the Android launcher is removed.
- * Draw launcher-menu text into the screen's CPU pixel storage. Preserve any
- * native-rendered image beneath the text before writing glyph rows, then
- * leave the screen marked for upload when presentation next uses it.
- */
-static void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
-{
-	int x1, y1, i;
-	u32 data;
-	u32 *line32 = NULL;
-	u8 *font;
-	u8 ch = 0;
-	char buf[128] = {""};
-	int pitch = vscreen->width * sizeof(u32);
-	va_list arglist;
-
-	/* Format the menu label before traversing the fixed-width bitmap font. */
-	va_start(arglist, format);
-	vsprintf(buf, format, arglist);
-	va_end(arglist);
-
-	/*
-	 * Glyphs modify only part of the screen. Resolve its current pixels first,
-	 * then transfer write ownership to the CPU copy before any glyph is drawn.
-	 */
-	gpu_prepare_cpu_write(vscreen);
-
-	for(i=0; i<sizeof(buf); i++)
-	{
-		ch = buf[i];
-		/* Map character codes into the compact font's printable glyph ranges. */
-		if(ch < 0x20)
-		{
-			ch = 0;
-		}
-		else if(ch < 0x80)
-		{
-			ch -= 0x20;
-		}
-		else if(ch < 0xa0)
-		{
-			ch = 0;
-		}
-		else
-		{
-			ch -= 0x40;
-		}
-		font = (u8 *)&hankaku_font10[ch*10];
-
-		/* The launcher owns an RGB32 screen, so each destination is one u32. */
-		line32 = (u32 *)(vscreen->data + x * sizeof(u32) + y * pitch);
-
-		/*
-		 * Each font byte supplies one five-pixel row. Set foreground pixels and
-		 * optionally fill the background, preserving untouched pixels otherwise.
-		 */
-		for (y1=0; y1<10; y1++)
-		{
-			data = *font++;
-			for (x1=0; x1<5; x1++)
-			{
-				if (data & 1)
-				{
-					*line32 = col;
-				}
-				else if (fill)
-				{
-					*line32 = backcol;
-				}
-
-				line32++;
-
-				data = data >> 1;
-			}
-			/* Advance to the next row after the five glyph pixels just consumed. */
-			line32 += vscreen->width - 5;
-		}
-		x+=5;
-	}
-}
-#else
 /*
  * Damon V. Caskey
  * 2026-11-16
- * Draw desktop development-launcher labels in the existing native scene.
+ * Draw launcher labels through the native desktop or Android GPU compositor.
  * Formatting and font mapping do not transfer the destination back to the CPU.
  */
 static void printText(int x, int y, int col, int backcol, int fill, const char *format, ...)
@@ -304,12 +218,17 @@ static void printText(int x, int y, int col, int backcol, int fill, const char *
 	/* Submit at the original call site so previews and later labels retain
 	 * their established overlap order. Native failure only logs and skips. */
 	va_start(args, format);
-	launcher_text_vprintf(vscreen, x, y, (unsigned)col, (unsigned)backcol,
-	                     fill, format, args);
+	launcher_frame_ready &= launcher_text_vprintf(vscreen, x, y, (unsigned)col,
+	                                             (unsigned)backcol, fill, format, args);
 	va_end(args);
 }
-#endif
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Prepare the existing preview asset before ordered GPU composition. Indexed
+ * images carry a palette; RGB32 images have no palette storage to copy.
+ */
 static s_screen *getPreview(char *filename)
 {
 	s_screen *title = NULL;
@@ -328,7 +247,10 @@ static s_screen *getPreview(char *filename)
 	{
 		scalescreen(scale, title);
 	}
-	memcpy(scale->palette, title->palette, PAL_BYTES);
+	if(scale->palette && title->palette)
+	{
+		memcpy(scale->palette, title->palette, PAL_BYTES);
+	}
 
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
@@ -502,6 +424,7 @@ static int ControlBGM()
 /*
  * Damon V. Caskey
  * 2026-11-15
+ * 2026-11-16 - Require launcher GPU storage before starting the control loop.
  * Initialize launcher resources only after its requested video mode is ready.
  * Failed required GPU setup must not leave an invisible launcher running.
  */
@@ -532,12 +455,14 @@ static void initMenu(int type)
 
 	/* Native RGB32 initialization can fail explicitly. Stop through the
 	 * platform cleanup path instead of attempting software menu drawing. */
-	if(!video_set_mode(videomodes))
+	if(!video_set_mode(videomodes) || !video_launcher_begin(vscreen))
 	{
 		gpu_log("ERROR: Unable to initialize the launcher video mode; stopping without a software rendering retry.");
 		borExit(EXIT_FAILURE);
 		return;
 	}
+	launcher_redraw = 1;
+	launcher_frame_ready = 0;
 
 	// Read Logo or Menu from Array.
 	if(!type)
@@ -565,13 +490,24 @@ static void termMenu()
 	control_exit();
 }
 
-static void blit_video_menu(s_screen* vscreen)
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Preserve fullscreen launcher presentation and request recomposition after a
+ * rejected frame. Idle menus can recover GPU storage without waiting for input.
+ */
+static void blit_video_menu(s_screen* screen)
 {
     video_stretch(1); // set to fullscreen
-    video_copy_screen(vscreen);
+    launcher_redraw = !launcher_frame_ready || !video_copy_screen(screen);
     video_stretch(savedata.stretch); // reset to saved value
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Compose labels and the selected preview in their existing GPU painter order.
+ */
 static void drawMenu()
 {
 	char listing[45] = {""};
@@ -580,7 +516,8 @@ static void drawMenu()
 	int colors = 0;
 	s_screen* Image = NULL;
 
-	putscreen(vscreen,bgscreen,0,0,NULL);
+	launcher_frame_ready = video_launcher_begin(vscreen);
+	launcher_frame_ready &= video_launcher_screen(vscreen, bgscreen, 0, 0);
 	if(dListTotal < 1) printText((isWide ? 30 : 8), (isWide ? 33 : 24), RED, 0, 0, "No modules In Paks Folder!");
 	for(list = 0; list < dListTotal; list++)
 	{
@@ -629,7 +566,8 @@ static void drawMenu()
 
 	if(Image)
 	{
-		putscreen(vscreen, Image, isWide ? 286 : 155, isWide ? 32:21, NULL);
+		launcher_frame_ready &= video_launcher_screen(vscreen, Image,
+		                                              isWide ? 286 : 155, isWide ? 32:21);
 		freescreen(&Image);
 	}
 	else
@@ -638,6 +576,11 @@ static void drawMenu()
 	blit_video_menu(vscreen);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Keep the music panel, its opaque box and all labels in one GPU frame.
+ */
 static void drawBGMPlayer()
 {
 	char listing[45] = {""}, bgmListing[25] = {""};
@@ -647,8 +590,10 @@ static void drawBGMPlayer()
 	int filename_len = strlen(filelist[bgmCurrent].filename)-4;
 
 	// Allocate Preview Box for Music Text Info.
-	putscreen(vscreen,bgscreen,0,0,NULL);
-	putbox((isWide ? 286 : 155),(isWide ? 32 : 21),160,120,LIGHT_GRAY,vscreen,NULL);
+	launcher_frame_ready = video_launcher_begin(vscreen);
+	launcher_frame_ready &= video_launcher_screen(vscreen, bgscreen, 0, 0);
+	launcher_frame_ready &= video_launcher_box(vscreen, (isWide ? 286 : 155),
+	                                          (isWide ? 32 : 21), 160, 120, LIGHT_GRAY);
 
 	for(list=0; list<dListTotal; list++)
 	{
@@ -717,6 +662,7 @@ static void drawBGMPlayer()
  * Damon V. Caskey
  * 2026-11-16
  * Keep copied log lines terminated before passing them to the label formatter.
+ * Rebuild the log frame on the GPU, retaining its existing input/update loop.
  */
 static void drawLogs()
 {
@@ -726,7 +672,8 @@ static void drawLogs()
 	while(!done)
 	{
 		// CRxTRDude - replaced bg with a log screen
-		putscreen(vscreen,logscreen,0,0,NULL);
+		launcher_frame_ready = video_launcher_begin(vscreen);
+		launcher_frame_ready &= video_launcher_screen(vscreen, logscreen, 0, 0);
 	    inputrefresh(0);
 	    sound_update_music();
 	    printText((isWide ? 410 : 250), 3, RED, 0, 0, "Quit : Escape");
@@ -770,6 +717,8 @@ static void drawLogs()
 }
 
 /*
+	Damon V. Caskey - 2026-11-16
+	Retain the logo in a GPU target and rebuild it after rejected presentation.
 	Kratus (01-2023) Added a option to skip the OpenBOR logo
 	Simply add an empty txt file named "logoff" inside the "Paks" folder
 	Reduced the logo delay a bit to load faster
@@ -789,13 +738,24 @@ static void drawLogo()
 
 	for(i = 0; i < delay; i++)
     {
-        blit_video_menu(bgscreen);
+        if(launcher_redraw)
+        {
+            launcher_frame_ready = video_launcher_begin(vscreen);
+            launcher_frame_ready &= video_launcher_screen(vscreen, bgscreen, 0, 0);
+        }
+        blit_video_menu(vscreen);
         SDL_Delay(1);
     }
 
 	termMenu();
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Rebuild an invalid GPU frame from current menu state while preserving the
+ * existing control/audio loop. Recovery never reads a launcher CPU shadow.
+ */
 void Menu()
 {
 	int done = 0;
@@ -855,6 +815,11 @@ void Menu()
 					break;
 			}
 
+            if(launcher_redraw && !done)
+            {
+                if(pControl == ControlBGM && dListTotal > 0) drawBGMPlayer();
+                else drawMenu();
+            }
             blit_video_menu(vscreen);
 		}
 		freeAllLogs();

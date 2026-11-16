@@ -359,6 +359,51 @@ int video_copy_screen(s_screen *src)
 /*
  * Damon V. Caskey
  * 2026-11-16
+ * Start desktop launcher composition in its ordinary native RGB32 screen.
+ * The shared menu uses this same boundary for Android's private GPU target.
+ */
+int video_launcher_begin(s_screen *target)
+{
+    static int warned;
+    int okay = target && target->pixelformat == PIXEL_32 && opengl &&
+               gpu_is_active() && gpu_clear_screen(target);
+    if(!okay && !warned)
+    {
+        gpu_log("WARNING: Native launcher frame unavailable; frame preparation skipped without CPU retry.");
+    }
+    warned = !okay;
+    return okay;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Keep launcher backgrounds and previews in their original opaque native
+ * draw order. Rejection reaches the existing diagnostic without CPU drawing.
+ */
+int video_launcher_screen(s_screen *target, s_screen *source, int x, int y)
+{
+    if(gpu_draw_screen(target, source, x, y, NULL)) return 1;
+    gpu_allow_cpu_operation(target, GPU_OPERATION_SCREEN);
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Compose the launcher's opaque music-information box through native geometry.
+ */
+int video_launcher_box(s_screen *target, int x, int y, int width, int height,
+                       unsigned color)
+{
+    if(gpu_draw_box(target, x, y, width, height, color, NULL)) return 1;
+    gpu_allow_cpu_operation(target, GPU_OPERATION_BOX);
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
  * Clear the active GPU presenter without creating a separate SDL renderer.
  */
 void video_clearscreen(void)

@@ -24,5 +24,8 @@ gpu_output_filter_android *gpu_output_filter_android_create(
 SDL_Texture *gpu_output_filter_android_apply(
     gpu_output_filter_android *filter, SDL_Texture *source);
 void gpu_output_filter_android_destroy(gpu_output_filter_android *filter);
+/* Device/context reset releases SDL storage and metadata without touching
+ * private GL names that may have been reused by the replacement context. */
+void gpu_output_filter_android_abandon(gpu_output_filter_android *filter);
 
 #endif

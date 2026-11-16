@@ -309,6 +309,13 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_android_output_filter_tests.sh
 
+# Preserve ordered Android launcher images and glyphs through the production
+# GLES2 compositor, video lifecycle and final brightness/aspect/touch pipeline.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_android_launcher_tests.sh
+
 test_presentation_sources=("${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c
     engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/gfx.c)
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \

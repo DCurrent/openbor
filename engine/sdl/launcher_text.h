@@ -18,7 +18,7 @@
  * occupy a blank cell; control bytes do not introduce new lines or tabs. */
 size_t launcher_text_map(unsigned char *text, size_t capacity);
 
-/* Desktop launcher labels use native RGB32 drawing exclusively. Formatting
+/* Launcher labels use native RGB32 drawing exclusively on every target. Formatting
  * and glyph mapping remain CPU work; no destination pixels are read or written.
  * Returns zero on failure after logging, without a CPU rendering retry. */
 int launcher_text_vprintf(s_screen *screen, int x, int y,

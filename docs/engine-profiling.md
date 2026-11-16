@@ -539,11 +539,12 @@ bus traffic or GPU memory-bandwidth consumption.
 `software_ms` and the software draw/clear/copy counters cover instrumented
 high-level operations in required CPU paths and indexed image processing.
 Scene targets use RGB32; indexed source storage does not define another scene
-color mode. Android scene composition still requires CPU rendering until its
+color mode. Android gameplay scene composition still requires CPU rendering until its
 native GLES backend is implemented. Output filters already run on the GPU on
 desktop and Android. Desktop filtering uses resident scene textures without
 readback; Android retains the upload of its completed RGB32 scene before the
-GLES2 filter pass. Filter choice no longer selects CPU desktop scene drawing.
+GLES2 filter pass. Android launcher composition uses its own resident GPU target
+and bypasses that CPU scene upload. Filter choice no longer selects CPU desktop scene drawing.
 They do not claim to count every low-level CPU pixel routine in the engine.
 When a retained CPU operation first synchronizes a GPU-authored screen, its
 inclusive software span includes that readback; `readback_ms` also records the

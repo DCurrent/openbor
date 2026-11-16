@@ -22,6 +22,7 @@
 #include "videocommon.h"
 #include "gpu.h"
 #include "gpu_output_filter_android.h"
+#include "gpu_launcher_android.h"
 
 #include "pngdec.h"
 
@@ -38,6 +39,16 @@ static e_drawmethod_resample movie_resample = DC_RESAMPLE_MOVIE;
 static const void *movie_owner;
 static uint64_t movie_generation;
 static gpu_output_filter_android *output_filter;
+static gpu_launcher_android *launcher;
+static const s_screen *launcher_owner;
+static SDL_GLContext launcher_context;
+static SDL_atomic_t launcher_reset_pending;
+static int launcher_watch_installed;
+static int launcher_frame_valid;
+static int launcher_init_failed;
+static int launcher_warning;
+static int launcher_rebuild_pending;
+static int video_mode_ready;
 
 //For Android - Textures and a surface for the buttons
 SDL_Texture *buttons = NULL;
@@ -348,6 +359,209 @@ static void setup_touch()
 }
 //End of touch control UI code
 
+/* Android launcher GPU presentation boundary. */
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * SDL can announce renderer loss from another thread. Record only an atomic
+ * notification here; the render thread retires resources and starts a new
+ * composition before any launcher pixels can be presented again.
+ */
+static int SDLCALL video_launcher_watch(void *unused, SDL_Event *event)
+{
+    (void)unused;
+    if(event && (event->type == SDL_RENDER_TARGETS_RESET ||
+                 event->type == SDL_RENDER_DEVICE_RESET))
+    {
+        SDL_AtomicSet(&launcher_reset_pending, 1);
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Failed launcher work poisons this frame, including idle re-presentation.
+ * Keep its owner registered so stale CPU screen pixels cannot become a retry.
+ * Rearm diagnostics only after a complete frame is successfully presented.
+ */
+static int video_launcher_reject(const char *reason)
+{
+    launcher_frame_valid = 0;
+    gpu_launcher_android_invalidate(launcher);
+    if(!launcher_warning)
+    {
+        gpu_log("WARNING: Android GPU launcher failed at %s; frame skipped without CPU retry.", reason);
+        launcher_warning = 1;
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Retire the private composition before its SDL renderer or screen owner.
+ * Lost contexts require abandoning raw GL names, which may already refer to
+ * unrelated objects in a replacement context. SDL still owns its textures.
+ */
+static void video_launcher_retire(int context_lost)
+{
+    if(launcher_watch_installed)
+    {
+        SDL_DelEventWatch(video_launcher_watch, NULL);
+        launcher_watch_installed = 0;
+    }
+    launcher_frame_valid = 0;
+    launcher_owner = NULL;
+    if(context_lost) gpu_launcher_android_abandon(launcher);
+    else gpu_launcher_android_destroy(launcher);
+    launcher = NULL;
+    launcher_context = NULL;
+    launcher_init_failed = 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Reject a stale frame before accessing its target, atlas or source storage.
+ * Ordinary game screens remain outside this launcher-only ownership boundary.
+ */
+static int video_launcher_current(const s_screen *target)
+{
+    if(launcher_context && SDL_GL_GetCurrentContext() != launcher_context)
+    {
+        SDL_AtomicSet(&launcher_reset_pending, 1);
+    }
+    if(!target || target != launcher_owner || !launcher || !renderer ||
+       !video_mode_ready || !launcher_frame_valid ||
+       SDL_AtomicGet(&launcher_reset_pending))
+    {
+        return video_launcher_reject("unavailable or invalidated composition");
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Begin each launcher composition on its private RGB32 GPU target. Register
+ * the requested owner even when initialization fails, so presentation cannot
+ * fall through to the unrelated CPU scene upload. Reset recovery recreates
+ * SDL presentation resources before replaying the caller's normal draw order.
+ * Failed construction or mode recovery stays unavailable until a new mode,
+ * context or reset event, bounding initialization attempts and diagnostics
+ * while leaving command retry intact.
+ */
+int video_launcher_begin(s_screen *target)
+{
+    launcher_owner = target;
+    launcher_frame_valid = 0;
+    if(SDL_AtomicGet(&launcher_reset_pending) ||
+       ((launcher || launcher_init_failed) &&
+        SDL_GL_GetCurrentContext() != launcher_context))
+    {
+        launcher_rebuild_pending = 1;
+    }
+    if(launcher_rebuild_pending)
+    {
+        s_videomodes mode = stored_videomodes;
+        if(!video_set_mode(mode))
+        {
+            launcher_owner = target;
+            launcher_context = SDL_GL_GetCurrentContext();
+            launcher_init_failed = 1;
+            launcher_rebuild_pending = 0;
+            /* Mode teardown removed the old watch. A fresh reset can permit
+             * another recovery attempt; ordinary redraws must not repeatedly
+             * recreate the renderer or compile an unavailable filter. */
+            if(!launcher_watch_installed)
+            {
+                SDL_AddEventWatch(video_launcher_watch, NULL);
+                launcher_watch_installed = 1;
+            }
+            return video_launcher_reject("renderer reset recovery");
+        }
+        launcher_owner = target;
+        launcher_rebuild_pending = 0;
+    }
+    if(!video_mode_ready || !renderer || !texture || !target ||
+       target->pixelformat != PIXEL_32 || target->width != textureWidth ||
+       target->height != textureHeight || target->width <= 0 || target->height <= 0)
+    {
+        return video_launcher_reject("invalid RGB32 owner or video mode");
+    }
+    if(!launcher_watch_installed)
+    {
+        SDL_AddEventWatch(video_launcher_watch, NULL);
+        launcher_watch_installed = 1;
+    }
+    if(!launcher)
+    {
+        if(launcher_init_failed)
+            return video_launcher_reject("unavailable compositor initialization");
+        launcher_context = SDL_GL_GetCurrentContext();
+        launcher = gpu_launcher_android_create(renderer, target->width, target->height);
+        if(!launcher)
+        {
+            launcher_init_failed = 1;
+            return video_launcher_reject("composition allocation");
+        }
+        launcher_context = SDL_GL_GetCurrentContext();
+    }
+    if(SDL_AtomicGet(&launcher_reset_pending) ||
+       !gpu_launcher_android_begin(launcher))
+    {
+        return video_launcher_reject("composition start");
+    }
+    launcher_frame_valid = 1;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Consume launcher backgrounds and previews synchronously, retaining no
+ * borrowed screen pointer after return. Previews may be freed immediately.
+ */
+int video_launcher_screen(s_screen *target, s_screen *source, int x, int y)
+{
+    if(!video_launcher_current(target)) return 0;
+    if(source == launcher_owner)
+        return video_launcher_reject("GPU owner used as a CPU source asset");
+    if(!gpu_launcher_android_screen(launcher, source, x, y))
+        return video_launcher_reject("image composition");
+    return 1;
+}
+
+/* Damon V. Caskey - 2026-11-16: preserve opaque launcher panel order on GPU. */
+int video_launcher_box(s_screen *target, int x, int y, int width, int height, unsigned color)
+{
+    if(!video_launcher_current(target)) return 0;
+    if(!gpu_launcher_android_box(launcher, x, y, width, height, color))
+        return video_launcher_reject("box composition");
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * The common formatter supplies safe byte-mapped glyphs. Rasterize them at
+ * their original call site without writing or synchronizing the CPU owner.
+ */
+int video_launcher_text(s_screen *target, int x, int y, unsigned foreground,
+                         unsigned background, int fill, const unsigned char *glyphs,
+                         size_t count, const unsigned char *font_rows, size_t font_glyph_count)
+{
+    if(!video_launcher_current(target)) return 0;
+    if(!gpu_launcher_android_text(launcher, x, y, foreground, background, fill,
+                                  glyphs, count, font_rows, font_glyph_count))
+        return video_launcher_reject("text composition");
+    return 1;
+}
+
+/* End Android launcher GPU presentation boundary. */
+
 /*
 Start of video code. Unlike the original code for video, everything is
 incorporated in video_set_mode, since this is isolated from the main
@@ -365,6 +579,7 @@ int video_set_mode(s_videomodes videomodes)
 {
     //hardcode flags
     int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
+    int recreate_renderer;
 
     /* Zero dimensions request shutdown and carry no scene format. */
     if(videomodes.hRes != 0 || videomodes.vRes != 0)
@@ -385,7 +600,13 @@ int video_set_mode(s_videomodes videomodes)
     savedata.fullscreen = 1;
 
     //destroy all
-    gpu_output_filter_android_destroy(output_filter);
+    video_mode_ready = 0;
+    recreate_renderer = launcher_rebuild_pending || SDL_AtomicGet(&launcher_reset_pending) ||
+        (launcher_context && SDL_GL_GetCurrentContext() != launcher_context);
+    video_launcher_retire(recreate_renderer);
+    SDL_AtomicSet(&launcher_reset_pending, 0);
+    if(recreate_renderer) gpu_output_filter_android_abandon(output_filter);
+    else gpu_output_filter_android_destroy(output_filter);
     output_filter = NULL;
     SDL_DestroyTexture(movie_texture);
     movie_texture = NULL;
@@ -405,10 +626,17 @@ int video_set_mode(s_videomodes videomodes)
         SDL_DestroyTexture(buttons);
         buttons = NULL;
     }
+    if(recreate_renderer && renderer)
+    {
+        SDL_DestroyRenderer(renderer);
+        renderer = NULL;
+    }
 
     if(videomodes.hRes == 0 && videomodes.vRes == 0)
     {
         //Term_Gfx();
+        launcher_rebuild_pending = 0;
+        launcher_warning = 0;
         return 0;
     }
 
@@ -514,6 +742,8 @@ int video_set_mode(s_videomodes videomodes)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     video_clearscreen();
 
+    video_mode_ready = 1;
+    launcher_rebuild_pending = 0;
     return 1;
 }
 
@@ -535,24 +765,32 @@ void video_fullscreen_flip()
 {
 }
 
-void blit()
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Retain Android's final brightness, aspect and touch composition, reporting
+ * SDL failures so a GPU-only launcher frame can be rebuilt without uploading
+ * an obsolete CPU screen. Flush before present to observe queued draw errors.
+ */
+int blit(void)
 {
     int i, h;
     int hide_touch;
+    static int warned;
     extern int hide_t;
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
+    if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) < 0 ||
+       SDL_RenderClear(renderer) < 0) goto failed;
 
     //SDL_SetRenderTarget(renderer, NULL);
     //SDL_RenderSetLogicalSize(renderer, 0, 0);
-    SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE);
-    SDL_RenderCopy(renderer, texture_base, NULL, NULL);
+    if(SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE) < 0 ||
+       SDL_RenderCopy(renderer, texture_base, NULL, NULL) < 0) goto failed;
 
     if(stretch)
     {
         //SDL_RenderSetLogicalSize(renderer, 0, 0);
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        if(SDL_RenderCopy(renderer, texture, NULL, NULL) < 0) goto failed;
     }
     else
     {
@@ -562,18 +800,18 @@ void blit()
 
         //SDL_Log("aspect: from %d/%d con %f, orig: %d/%d -> %d",textureWidth,textureHeight,aspectRatio,nativeWidth,nativeHeight,(int)newWidth);
         SDL_Rect d_rect = {(int)(nativeWidth/2.0f - newWidth/2.0f), 0, (int)newWidth, nativeHeight};
-        SDL_RenderCopy(renderer, texture, NULL, &d_rect);
+        if(SDL_RenderCopy(renderer, texture, NULL, &d_rect) < 0) goto failed;
     }
 
     if(brightness > 0)
     {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
+        if(SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1) < 0) goto failed;
     }
     else if(brightness < 0)
     {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
+        if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1) < 0) goto failed;
     }
-    SDL_RenderFillRect(renderer, NULL);
+    if(SDL_RenderFillRect(renderer, NULL) < 0) goto failed;
 
     //SDL_RenderSetLogicalSize(renderer, 0, 0);
     hide_touch = (timer_gettick() > hide_t);
@@ -590,52 +828,84 @@ void blit()
         // if(!hide_touch && (i != SDID_SCREENSHOT || touchstates[i]))
         if(!hide_touch)
         {
-            SDL_SetTextureAlphaMod(buttons, touchstates[i] ? 128 : 64);
-            SDL_RenderCopy(renderer, buttons, &btnsrc[i], &btndes[i]);
+            if(SDL_SetTextureAlphaMod(buttons, touchstates[i] ? 128 : 64) < 0 ||
+               SDL_RenderCopy(renderer, buttons, &btnsrc[i], &btndes[i]) < 0) goto failed;
         }
     }
     if(h)
     {
         hide_t = timer_gettick() + 5000;
     }
+    if(SDL_RenderFlush(renderer) < 0) goto failed;
     SDL_RenderPresent(renderer);
+    warned = 0;
+    return 1;
+failed:
+    if(!warned)
+    {
+        gpu_log("WARNING: Android presentation failed: %s; frame skipped.", SDL_GetError());
+        warned = 1;
+    }
+    return 0;
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-16
- * Upload the current RGB32 scene, run its selected output filter on GLES2,
- * then retain the existing brightness, aspect and touch presentation. Movie
- * textures remain independent and restore this game texture after playback.
+ * Present a completed launcher target directly, or upload the ordinary CPU
+ * game scene. Both use the same GLES2 output filter and existing brightness,
+ * aspect and touch presentation. Launcher failure never enters the CPU path.
+ * Movie textures remain independent of both scene sources.
  */
 int video_copy_screen(s_screen *src)
 {
     SDL_Texture *game_texture = texture;
-    SDL_Texture *filtered;
+    SDL_Texture *source_texture, *filtered;
     int game_width = textureWidth, game_height = textureHeight;
-    s_videosurface *surface = getVideoSurface(src);
-    if(!surface)
+    int is_launcher = src && src == launcher_owner;
+    int success;
+    if(is_launcher)
     {
-        return 0;
+        if(!video_launcher_current(src)) return 0;
+        source_texture = gpu_launcher_android_texture(launcher);
+        if(!source_texture) return video_launcher_reject("completed target access");
     }
-    if(surface->width != textureWidth || surface->height != textureHeight ||
-       SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch) < 0)
+    else
     {
-        gpu_log("ERROR: Android RGB32 scene upload failed: %s.", SDL_GetError());
-        return 0;
+        s_videosurface *surface = getVideoSurface(src);
+        if(!surface) return 0;
+        if(surface->width != textureWidth || surface->height != textureHeight ||
+           SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch) < 0)
+        {
+            gpu_log("ERROR: Android RGB32 scene upload failed: %s.", SDL_GetError());
+            return 0;
+        }
+        source_texture = texture;
     }
     if(savedata.swfilter)
     {
-        filtered = gpu_output_filter_android_apply(output_filter, texture);
-        if(!filtered) return 0;
-        texture = filtered;
+        filtered = gpu_output_filter_android_apply(output_filter, source_texture);
+        if(!filtered)
+        {
+            if(is_launcher) video_launcher_reject("output filtering");
+            return 0;
+        }
+        source_texture = filtered;
         textureWidth *= 2;
         textureHeight *= 2;
     }
-    blit();
+    texture = source_texture;
+    success = blit();
     texture = game_texture;
     textureWidth = game_width;
     textureHeight = game_height;
+    if(is_launcher)
+    {
+        if(!success || SDL_AtomicGet(&launcher_reset_pending))
+            return video_launcher_reject("final presentation");
+        launcher_warning = 0;
+    }
+    if(!success) return 0;
 
     SDL_Delay(1);
     return 1;
@@ -899,6 +1169,7 @@ int video_display_yuv_frame(void)
 {
     SDL_Texture *game_texture = texture;
     int game_width = textureWidth, game_height = textureHeight;
+    int success;
     if(!movie_texture)
     {
         return 0;
@@ -906,11 +1177,11 @@ int video_display_yuv_frame(void)
     texture = movie_texture;
     textureWidth = stored_yuv_mode.display_width;
     textureHeight = stored_yuv_mode.display_height;
-    blit();
+    success = blit();
     texture = game_texture;
     textureWidth = game_width;
     textureHeight = game_height;
-    return 1;
+    return success;
 }
 
 int video_current_refresh_rate()

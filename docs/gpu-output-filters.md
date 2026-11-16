@@ -175,7 +175,7 @@ readback when needed before losing their graphics context. Filter output adds
 no readback to that process. Context recreation compiles the filter shader and
 allocates its target again on first use.
 
-Android still uses its existing CPU scene composition. Its presentation path
+Android gameplay still uses its existing CPU scene composition. Its presentation path
 uploads that complete RGB32 frame once, runs the same equations through a
 dedicated GLES2 pass, and gives the filtered texture back to SDL for final
 display. Native SDL 32-bit RGBX textures match the engine's existing RGB byte
@@ -183,6 +183,12 @@ order, so this upload needs no CPU color-conversion surface. Their GL storage
 retains eight bits per channel, and the filter writes opaque RGBA output.
 This step removes CPU output filtering and reduced-color conversion;
 porting Android scene drawing to a native GLES backend remains separate work.
+
+The Android pack launcher supplies its resident GPU composition target directly
+to the same output-filter pass, so launcher presentation has no CPU scene
+upload. Filtered launcher frames retain the normal brightness, aspect and touch
+overlay order. See [launcher composition](gpu-renderer-migration.md#launcher-text-and-composition)
+for its scoped target, failure handling and reset recovery.
 
 Desktop GLSL 1.20 and GLES GLSL ES 1.00 sources come from one body in
 [`gpu_shader.c`](../engine/source/gamelib/gpu_shader.c). GLES uses high precision

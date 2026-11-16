@@ -23,11 +23,13 @@ Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
 warning and returns without a CPU rendering retry, readback, or software-state
 setup. Warnings are bounded to one per operation type for that mode selection.
 Losing or unregistering the native backend does not restore CPU eligibility.
-Android still composes its scene on the CPU until the native scene backend is
-ported to GLES. Its completed RGB32 scene is uploaded once and output filters
+Android still composes gameplay scenes on the CPU until the native scene backend is
+ported to GLES. Its completed RGB32 game scene is uploaded once and output filters
 run on GLES2. Desktop output filters consume the resident scene texture without
 readback. Filter selection never makes desktop scene rendering select the CPU.
 Desktop movie composition and fullscreen output share the native GPU YUV renderer.
+The pack launcher now composes on the GPU on every platform, including Android's
+scoped GLES target; launcher presentation does not upload a CPU scene.
 
 `PIXEL_32` is the scene target format. Indexed artwork remains supported as
 `PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
@@ -64,7 +66,7 @@ formats.
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
-| Desktop development-launcher text | Resident bitmap atlas, native indexed glyph batches and existing RGB32 scene order; no CPU glyph fallback |
+| Launcher text and composition | Resident glyph atlas and ordered GPU backgrounds, previews and boxes on desktop and Android; no CPU glyph implementation |
 | Native geometry submission | Contiguous vertex uploads and cached triangle indices; draw order and material boundaries retained |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
@@ -74,7 +76,7 @@ formats.
 | Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
 | Indexed asset processing | Existing image operations; scene composition uses RGB32 |
 | Output filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
-| Android | Existing CPU scene composition retained; completed RGB32 image uploaded once and output filters executed on GLES2 |
+| Android gameplay | Existing CPU scene composition retained; completed RGB32 image uploaded once and output filters executed on GLES2 |
 | Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
 
 The affine contract from the separate transform experiment is available through
@@ -525,23 +527,22 @@ loading, not eliminate a transfer currently repeated on every draw. Discarding
 the CPU source would require a separate lifetime/restoration design and is not
 part of state caching.
 
-## Desktop development-launcher text
+## Launcher text and composition
 
-The pack launcher's bitmap text now uses the native renderer on Windows,
-Linux and macOS. This covers the module list, music player and log viewer.
-The launcher is retained as a desktop development option; its planned removal
-from Android is separate. No Android launcher GPU adapter is added. Its
-existing text implementation is isolated behind the Android build guard and
-is absent from desktop binaries.
+The pack launcher now uses GPU composition on Windows, Linux, macOS and Android.
+This covers the logo, module list, music player and log viewer. The former CPU
+glyph rasterizer is removed completely. Removing the Android launcher itself
+remains a separate future decision.
 
 The original 160-glyph font retains its five-by-ten-pixel cells, five-pixel
 advance and bit-exact nearest sampling. One private 80-by-100 index texture
 stores all glyphs. The renderer uploads it on first use, reuses it across
 labels and color changes, and releases it when its context is destroyed.
-The ordinary resident palette mechanism supplies foreground and background
-colors without changing the glyph texture.
+Desktop supplies text colors through the ordinary resident palette mechanism;
+Android supplies foreground and background shader values. Color changes do not
+rebuild either glyph atlas.
 
-Each label submits its visible glyphs in one indexed native batch, directly
+Each label submits its visible glyphs in one native batch, directly
 at the original `printText()` call site. Existing backgrounds, previews and
 later labels therefore retain their overlap order. Text does not read back
 the destination, write CPU pixels or upload a modified scene. Transparent
@@ -558,13 +559,54 @@ Other nonzero bytes occupy blank cells, including the previously out-of-range
 `0xe0..0xff` values. Newline and tab bytes retain one blank cell rather than
 introducing layout rules.
 
-Validation or resource rejection before submission logs and skips the label
-without entering a desktop CPU glyph path. Driver errors after submission
-retain the native renderer's existing fatal-error policy. This change makes
-launcher rendering consistent with native scene composition; no launcher
-FPS improvement is claimed. The regression fixture compares complete RGB8
-images with an independent bitmap reference and checks atlas reuse, ordering,
-clipping, safe formatting, failure recovery and context replacement.
+### Android composition and presentation
+
+Android owns one private RGB32 SDL target for the active launcher screen. Each
+composition begins with a GPU clear, then submits backgrounds, glyphs, previews
+and boxes in their original order. RGB32 source images upload directly; indexed
+previews use a GPU index texture and palette lookup, including opaque palette
+index zero. Source uploads are consumed during each call, so the menu can free
+a preview immediately afterward. File decoding and existing preview asset
+preparation remain CPU work.
+
+The completed target passes through the existing GPU output filter, aspect
+handling, brightness and touch overlays. Idle presentation reuses it without
+uploading a CPU scene. The logo similarly composes once and retains its GPU
+frame. This is scoped launcher storage, not a general Android screen backend:
+the launcher has no CPU pixel readers, and its screen allocation is not treated
+as a synchronized copy of the GPU target. Gameplay still uses its existing
+scene path until the broader Android native renderer port.
+
+The launcher and output-filter adapters share SDL/GLES state preservation.
+They restore program, vertex attributes, buffers, texture units, viewport,
+raster state, unpack alignment, clear color and SDL target/scale/clip state
+before the next SDL operation. This also preserves SDL 2.0.10's internal state
+assumptions after raw GLES calls.
+
+### Failure and context lifecycle
+
+The menu records every composition result, including formatting failures that
+occur before a GPU call. Incomplete frames are not presented. Failures log and
+request a new composition from the current menu state without CPU rasterization
+or a stale CPU-screen upload. Ordinary desktop driver errors after submission
+retain the native renderer's existing fatal error policy.
+
+Initial launcher GPU setup must succeed before the control loop starts.
+Failed Android compositor creation is latched until the mode or context is
+recreated, avoiding repeated shader compilation and diagnostic floods.
+
+Android's SDL reset watch only records an atomic flag. Drawing and idle
+presentation reject invalidated targets. The next composition abandons old
+private GL names, recreates SDL presentation resources, and redraws the current
+view from its assets. Context replacement restores the font, output filter and
+touch resources without waiting for user input. Normal mode teardown releases
+launcher ownership before the screen allocation is freed.
+
+These changes make launcher rendering consistent across supported platforms;
+no launcher FPS improvement is claimed. Desktop and GLES regression fixtures
+compare complete RGB8 images with an independent bitmap reference and check
+atlas reuse, ordered composition, safe formatting, failure suppression,
+presentation state and context replacement.
 
 ## Screen ownership and synchronization
 
@@ -819,6 +861,9 @@ The suites cover:
   clipping and overlap with previews; no text-induced readback or scene upload.
 - Launcher atlas reuse across labels/colors, failed allocation/upload recovery,
   invalid-run atomicity and fresh residency after context replacement.
+- Android launcher RGB32/indexed source composition, original font pixels,
+  source reuse and immediate preview disposal, frame rejection before display,
+  SDL state restoration, output filters, brightness/touch and renderer resets.
 - Exact RGB8 output-filter images against an independent scalar oracle,
   including every byte value, tiny/odd dimensions, explicit borders and all
   Scale2x equality branches; no scene readback during filtering.
@@ -837,9 +882,9 @@ platform build results remain release gates for further renderer migration.
 Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
 The retained CPU implementations still support required renderer paths,
 explicit image operations, and reference tests. Remaining work includes
-Android native scene/GLES integration and additional batching. Desktop launcher
-text now uses native glyph batches; the Android pack launcher is planned for
-removal instead of a separate GPU port.
+Android native gameplay scene/GLES integration and additional batching. Launcher
+composition now uses the GPU on every platform. Reconsidering the Android pack
+launcher's availability is separate from this rendering migration.
 Output filtering has moved to the GPU on desktop and Android. Remove
 CPU rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing

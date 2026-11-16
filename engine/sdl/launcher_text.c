@@ -3,14 +3,14 @@
  * All rights reserved, see LICENSE in OpenBOR root for details.
  * Copyright (c) OpenBOR Team
  */
-#if !defined(ANDROID)
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "launcher_text.h"
 #include "hankaku.h"
 #include "gpu.h"
-#if defined(OPENGL)
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_LAUNCHER_TEST)
+#include "video.h"
+#elif defined(OPENGL)
 #include "gpu_renderer.h"
 #endif
 
@@ -65,7 +65,7 @@ int launcher_text_vprintf(s_screen *screen, int x, int y,
     va_list copy;
     int length, result = 0;
     size_t count;
-#if !defined(OPENGL)
+#if !defined(OPENGL) && !defined(ANDROID) && !defined(OPENBOR_ANDROID_LAUNCHER_TEST)
     static int unavailable_logged;
 #endif
 
@@ -107,7 +107,12 @@ int launcher_text_vprintf(s_screen *screen, int x, int y,
     /* Mapping stops at the first NUL, including one produced by %c. Blank
      * glyphs inside the mapped run are ordinary cells, not terminators. */
     count = launcher_text_map(text, (size_t)length);
-#if defined(OPENGL)
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_LAUNCHER_TEST)
+    /* Android composes the complete launcher in its scoped GLES target. Its
+     * video adapter retains frame ordering and owns presentation eligibility. */
+    result = video_launcher_text(screen, x, y, foreground, background, fill,
+                                 text, count, hankaku_font10, LAUNCHER_FONT_GLYPHS);
+#elif defined(OPENGL)
     result = gpu_gl_draw_launcher_text(screen, x, y, foreground, background,
                                        fill, text, count, hankaku_font10,
                                        LAUNCHER_FONT_GLYPHS);
@@ -136,5 +141,3 @@ int launcher_text_vprintf(s_screen *screen, int x, int y,
      * another warning for every failed label in the same launcher frame. */
     return result;
 }
-
-#endif
