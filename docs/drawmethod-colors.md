@@ -51,6 +51,12 @@ untouched destination pixels. Zero-opacity masks and all-zero channel opacity,
 when that channel-opacity mode applies, do not trigger substitution. Existing
 opacity arithmetic, including its `/256` behavior, remains unchanged.
 
+With opt-in [drawmethod resampling](drawmethod-resampling.md), zero-key and
+Chroma decisions apply to each contributing source texel before reconstruction.
+Filtered color and coverage then enter the material operations above, while
+Substitute still examines the final output bytes. Transparent contributing
+texels cannot introduce their RGB into a neighboring visible sample.
+
 Sprite transparent index zero remains a hole regardless of its palette RGB.
 For screens, existing requested zero-key behavior also takes precedence:
 indexed zero or RGB black discarded by that setting cannot be restored by

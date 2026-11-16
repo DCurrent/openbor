@@ -118,7 +118,7 @@ typedef struct gpu_uniforms
     GLint target_size, source_size;
     GLint source, palette, mask, destination, tables;
     GLint palette_row;
-    GLint indexed, masked, color_key, fill, has_destination, wrap;
+    GLint indexed, masked, color_key, fill, has_destination, wrap, resample;
     GLint blend_mode, tint_mode, table_mask;
     GLint fill_color, tint_color, channels;
     GLint chroma_enabled, substitute_enabled, primitive_source;
@@ -144,7 +144,7 @@ typedef struct gpu_material_state
     gpu_uniform_value target_size, source_size;
     gpu_uniform_value source, palette, mask, destination, tables;
     gpu_uniform_value palette_row;
-    gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap;
+    gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap, resample;
     gpu_uniform_value blend_mode, tint_mode, table_mask;
     gpu_uniform_value fill_color, tint_color, channels;
     gpu_uniform_value chroma_enabled, substitute_enabled, primitive_source;
@@ -2350,6 +2350,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
  * 2026-11-14 - Upload a contiguous vertex stream and submit indexed triangles.
  * 2026-11-14 - Supply exact legacy shear state through the common material path.
  * 2026-11-15 - Sample water and cached plane rows through the same materials.
+ * 2026-11-15 - Reconstruct selected filters and composite fractional key coverage.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
@@ -2365,7 +2366,10 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     int indexed = source && source->format == PIXEL_x8;
     int masked = mask != NULL;
     int blend_mode = method->alpha > 0 ? method->alpha : 0;
-    int needs_destination = masked || blend_mode != 0;
+    int resample = primitive ? DC_RESAMPLE_NEAREST : method->resample;
+    int color_key = !primitive && (source_is_sprite ||
+                    (method->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY));
+    int needs_destination;
     int self_draw = source == target;
     int fill = primitive || method->fillcolor != 0;
     /* Optional color rules never move an ordinary draw to software. Indexed
@@ -2380,11 +2384,22 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     uint64_t previous_state_reuses = stats.state_reuses;
     ep_scope state_scope, submit_scope;
 
+    /* Filtered key edges contain fractional coverage even without an explicit
+     * blend mode. Opaque filtered copies retain the snapshot-free fast path;
+     * partial coverage always reads the completed destination on the GPU. */
+    needs_destination = masked || blend_mode != 0 ||
+                        (resample != DC_RESAMPLE_NEAREST && (color_key || chroma_enabled));
+
     /* Finish resource preparation before touching destination pixels. Empty
      * or fully clipped geometry is already a successful, completed draw. */
     if(!quad_count || !gpu_draw_bounds(target, method, rectangle))
     {
         return 1;
+    }
+    if(resample < DC_RESAMPLE_NEAREST || resample >= DC_RESAMPLE_END)
+    {
+        native_failure = EP_FALLBACK_TRANSFORM;
+        return 0;
     }
     if(blend_mode > MAX_BLENDINGS || method->tintmode > MAX_BLENDINGS)
     {
@@ -2474,8 +2489,8 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     }
     gpu_uniform_integer(uniforms.indexed, &gl_state.material.indexed, indexed);
     gpu_uniform_integer(uniforms.masked, &gl_state.material.masked, masked);
-    gpu_uniform_integer(uniforms.color_key, &gl_state.material.color_key, !primitive &&
-                         (source_is_sprite || (method->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY)));
+    gpu_uniform_integer(uniforms.color_key, &gl_state.material.color_key, color_key);
+    gpu_uniform_integer(uniforms.resample, &gl_state.material.resample, resample);
     gpu_uniform_integer(uniforms.fill, &gl_state.material.fill, fill);
     gpu_uniform_integer(uniforms.has_destination, &gl_state.material.has_destination, needs_destination);
     gpu_uniform_integer(uniforms.blend_mode, &gl_state.material.blend_mode, blend_mode);
@@ -3474,7 +3489,7 @@ static void gpu_log_capability_result(int native_available)
     }
     gpu_log("Legacy Shear\n"
             "\tLegacy shear setup:                %s\n"
-            "\tSampling:                          Existing 8.8 rounding and clipped source phase\n"
+            "\tNearest sampling:                  Existing 8.8 rounding and clipped source phase\n"
             "\tManual affine:                     Takes priority over legacy shear\n"
             "\tImages exceeding 65535 per axis:    CPU row geometry; native pixels when otherwise supported\n",
             !native_available ? "UNAVAILABLE - RGB32 drawing disabled" :
@@ -3490,7 +3505,7 @@ static void gpu_log_capability_result(int native_available)
             "\tWave accuracy:                    Quantized phase; bounded one-pixel horizontal approximation\n"
             "\tExtreme wave parameters:          CPU row geometry; native pixels\n"
             "\tPlane preparation:                Exact CPU recurrence cached independently of position/scroll\n"
-            "\tPlane sampling accuracy:          Exact source row; bounded one-source-texel horizontal rounding\n"
+            "\tNearest plane accuracy:           Exact source row; bounded one-source-texel horizontal rounding\n"
             "\tPlane data transfer:              16 bytes per row once per resident map\n",
             native_available && water_supported ? "NATIVE - shader sampling, one quad" :
                 native_available ? "CPU - row geometry; native pixels" : "UNAVAILABLE",
@@ -3504,6 +3519,16 @@ static void gpu_log_capability_result(int native_available)
     {
         gpu_log("WARNING: Compact plane sampling unavailable; retaining CPU row geometry with native pixel rendering.");
     }
+    gpu_log("Drawmethod Resampling\n"
+            "\tBuilt-in formulas:                 %s\n"
+            "\tDefault:                           Nearest (existing exact sampling)\n"
+            "\tSmooth formulas:                   Bilinear, Catmull-Rom, Mitchell, B-spline, Lanczos 2/3\n"
+            "\tMovie resample:                    Bilinear alias; movie YUV conversion unchanged\n"
+            "\tSampling:                          One master filter; center-aligned encoded RGB\n"
+            "\tCoverage:                          Per-texel keys/palettes/masks before reconstruction\n"
+            "\tReduction:                         Fixed support; no mipmap/area prefilter\n"
+            "\tSoftware implementation:           None; unavailable filtered draws logged and skipped\n",
+            native_available ? "NATIVE - available" : "UNAVAILABLE");
     gpu_log("Color Rules\n"
             "\tChroma key execution:              %s\n"
             "\tSubstitute execution:              %s\n"
@@ -3806,6 +3831,7 @@ compile_scene_shader:
     GPU_UNIFORM(fill, "fillEnabled");
     GPU_UNIFORM(has_destination, "hasDestination");
     GPU_UNIFORM(wrap, "wrapSource");
+    GPU_UNIFORM(resample, "resampleMode");
     GPU_UNIFORM(blend_mode, "blendMode");
     GPU_UNIFORM(tint_mode, "tintMode");
     GPU_UNIFORM(table_mask, "blendTableMask");

@@ -45,7 +45,10 @@ typedef struct gpu_shear_sampling
     float origin[3]; /* Whole X, byte X, exclusive destination bottom. */
     float extent[3]; /* Whole width, byte width, destination row count. */
     float shift[2];  /* Whole/byte signed step toward the previous row. */
-    float source[2], step[2]; /* Source origin and increments in 8.8 units. */
+    /* Nearest uses 8.8 origins/increments. Filtered draws use source-edge
+     * coordinates: source X at the fixed row origin, Y at the bottom row's
+     * pixel center, then true inverse X and bottom-to-top Y increments. */
+    float source[2], step[2];
     float clip[2];   /* Destination clip: inclusive left, exclusive right. */
 } gpu_shear_sampling;
 
@@ -61,9 +64,10 @@ typedef struct gpu_water_sampling
 
 typedef struct gpu_plane_row
 {
-    /* One floating-point texture texel retains the exact CPU recurrence.
-     * Padding supplies a stable RGBA upload layout without packed arithmetic. */
-    float step, source_y, reserved[2];
+    /* One RGBA texel retains both the exact nearest row and its continuous
+     * recurrence. The last channels store wrapped fractional Y and the local
+     * vertical increment; filtered sampling adds half that increment. */
+    float step, source_y, source_y_continuous, step_y;
 } gpu_plane_row;
 
 typedef struct gpu_plane_sampling

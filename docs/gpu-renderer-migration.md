@@ -54,6 +54,7 @@ are file-format details, not additional engine scene formats.
 | Indexed sprites, source palettes and remaps | Cached index textures, bounded resident palette atlas, and draw-time palette lookup |
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
 | Existing scale, flip and rotation transforms | GPU pixel sampling with existing transform parameters |
+| Drawmethod resampling | Nearest default; opt-in bilinear/movie, three named cubics and Lanczos 2/3 on the GPU, with per-texel palette/key/mask coverage |
 | Legacy shear | One bounded quad and exact shader row sampling; existing native row geometry retained when shader setup is unavailable |
 | Sine-water displacement | One bounded quad with shader phase/displacement for supported parameters; at most one horizontal pixel of accepted approximation |
 | Plane effects | One quad sampling a compact cached row map; exact CPU scale/source-row recurrence prepared once per map |
@@ -81,6 +82,14 @@ for opt-in chroma coverage and final-output substitutions. Color rules execute
 only on supported native RGB32 draws. Software draws and unsupported native
 color capabilities ignore those settings while retaining ordinary drawing.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
+
+One master `DM_RESAMPLE` selection now controls image reconstruction after the
+selected transform. See [the resampling guide](drawmethod-resampling.md) for
+formulas, script examples, coverage rules and fixed-support reduction limits.
+`DC_RESAMPLE_MOVIE` aliases bilinear; existing movie conversion and playback
+remain unchanged. Explicit filtered draws have no software implementation and
+are logged/skipped when native execution is unavailable, including unmigrated
+Android/CPU-output configurations. Default nearest behavior is unchanged.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
 palette reuse and subsequent context-local state caching. Palette-only commit

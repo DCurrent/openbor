@@ -664,6 +664,7 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
  * 2026-11-12
  * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
  * 2026-11-15 - Prepare CPU globals only in modes that still require software.
+ * 2026-11-15 - Reject unavailable GPU resampling even in unmigrated CPU modes.
  * Dispatch a screen draw with its repeats and effects. Selected native RGB32
  * draws never retry on the CPU; unmigrated CPU work includes coherence time.
  */
@@ -685,7 +686,7 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     {
         return;
     }
-    if(!gpu_allow_cpu_operation(dest, GPU_OPERATION_SCREEN))
+    if(!gpu_allow_cpu_image_operation(dest, GPU_OPERATION_SCREEN, drawmethod))
     {
         return;
     }

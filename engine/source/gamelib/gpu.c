@@ -15,6 +15,11 @@
 static const gpu_backend *active_backend;
 static int native_required;
 static unsigned declined_operation_warnings;
+static unsigned declined_resample_warnings;
+static const char *const operation_names[GPU_OPERATION_COUNT] = {
+    "screen draw", "sprite draw", "rectangle draw", "line draw",
+    "pixel draw", "screen clear", "screen copy", "scene presentation"
+};
 
 /*
  * Damon V. Caskey
@@ -80,6 +85,7 @@ void gpu_unregister_backend(void)
  * Select the scene-rendering policy before attempting native initialization.
  * Only an explicitly unmigrated configuration may select CPU dispatch; failed
  * initialization and unregistering a backend never clear this requirement.
+ * Keep ordinary and explicit-resampling warnings bounded for that selection.
  */
 void gpu_set_native_required(int required)
 {
@@ -87,6 +93,7 @@ void gpu_set_native_required(int required)
     if(native_required != (required != 0))
     {
         declined_operation_warnings = 0;
+        declined_resample_warnings = 0;
     }
     native_required = required != 0;
 }
@@ -100,10 +107,6 @@ void gpu_set_native_required(int required)
  */
 int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
 {
-    static const char *const names[GPU_OPERATION_COUNT] = {
-        "screen draw", "sprite draw", "rectangle draw", "line draw",
-        "pixel draw", "screen clear", "screen copy", "scene presentation"
-    };
     unsigned warning;
 
     /* Invalid destinations cannot be rasterized by either implementation. */
@@ -126,10 +129,48 @@ int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
         {
             declined_operation_warnings |= warning;
             gpu_log("WARNING: Native %s unavailable or rejected; RGB32 operation skipped. CPU rendering retry is disabled.",
-                    names[operation]);
+                    operation_names[operation]);
         }
     }
     return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Explicit non-nearest image sampling is GPU-only, including unmigrated CPU
+ * output configurations and indexed destinations. Declined native draws must
+ * stop before synchronization, CPU globals or writes can approximate the request
+ * with nearest sampling. Disabled methods retain the ordinary default policy.
+ */
+int gpu_allow_cpu_image_operation(const s_screen *screen, gpu_operation operation,
+                                  const s_drawmethod *method)
+{
+    unsigned warning;
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        return 0;
+    }
+    if(method && (method->config & DRAWMETHOD_CONFIG_ENABLED) &&
+       method->resample != DC_RESAMPLE_NEAREST)
+    {
+        /* One record per operation survives missing callbacks and backend loss.
+         * This is independent of the RGB32-only native rendering requirement. */
+        if(operation >= 0 && operation < GPU_OPERATION_COUNT)
+        {
+            warning = 1u << operation;
+            if(!(declined_resample_warnings & warning))
+            {
+                declined_resample_warnings |= warning;
+                gpu_log("WARNING: GPU resampling for %s unavailable or rejected "
+                        "(resample=%d, target=%u); operation skipped. CPU resampling is unavailable.",
+                        operation_names[operation], (int)method->resample,
+                        (unsigned)screen->pixelformat);
+            }
+        }
+        return 0;
+    }
+    return gpu_allow_cpu_operation(screen, operation);
 }
 
 /*

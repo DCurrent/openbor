@@ -47,6 +47,8 @@ typedef enum
     DRAWMETHOD_PROPERTY_SUBSTITUTE_D,
     DRAWMETHOD_PROPERTY_SUBSTITUTE_E,
     DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED,
+    /* Damon V. Caskey, 2026-11-15: append without renumbering prior controls. */
+    DRAWMETHOD_PROPERTY_RESAMPLE,
 	DRAWMETHOD_PROPERTY_END,
 } e_drawmethod_properties;
 
@@ -63,6 +65,7 @@ typedef enum
 #define DM_SUBSTITUTE_D DRAWMETHOD_PROPERTY_SUBSTITUTE_D
 #define DM_SUBSTITUTE_E DRAWMETHOD_PROPERTY_SUBSTITUTE_E
 #define DM_SUBSTITUTE_ENABLED DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED
+#define DM_RESAMPLE DRAWMETHOD_PROPERTY_RESAMPLE
 #define DM_COLOR_MATCH 0
 #define DM_COLOR_SUBSTITUTE 1
 #define DM_COLOR_ENABLED 2
@@ -78,6 +81,8 @@ int drawmethod_color_property_set(s_drawmethod *method, int property,
                                  const ScriptVariant *const *values, int count);
 int drawmethod_color_property_get(const s_drawmethod *method, int property,
                                  int component, LONG *value);
+int drawmethod_resample_property_set(s_drawmethod *method,
+                                    const ScriptVariant *const *values, int count);
 
 HRESULT openbor_allocate_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
 HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);

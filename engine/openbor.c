@@ -95,6 +95,8 @@ const s_drawmethod plainmethod =
     .table      = NULL,
     .fillcolor  = 0,
     .config     = DRAWMETHOD_CONFIG_ENABLED,
+    /* Damon V. Caskey, 2026-11-15: filtering remains an explicit draw choice. */
+    .resample   = DC_RESAMPLE_NEAREST,
     .alpha      = BLEND_MODE_MODEL,
     .remap      = -1,
     .rotate     = 0,

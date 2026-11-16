@@ -689,6 +689,7 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
  * 2026-11-12
  * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
  * 2026-11-15 - Initialize CPU state only when the selected mode requires it.
+ * 2026-11-15 - Keep explicit non-nearest resampling GPU-only after rejection.
  * Dispatch a sprite and its repetitions through the selected renderer.
  * Native RGB32 failures stop without CPU retry, state changes or readbacks.
  */
@@ -711,7 +712,7 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
     {
         return;
     }
-    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SPRITE))
+    if(!gpu_allow_cpu_image_operation(screen, GPU_OPERATION_SPRITE, drawmethod))
     {
         return;
     }

@@ -15,6 +15,25 @@
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Share strict sampler validation between constant and named script APIs.
+ * Validate the complete call before mutation so failures preserve its method.
+ */
+int drawmethod_resample_property_set(s_drawmethod *method,
+                                    const ScriptVariant *const *values, int count)
+{
+    if(!method || method == &plainmethod || count != 1 ||
+       values[0]->vt != VT_INTEGER || values[0]->lVal < DC_RESAMPLE_NEAREST ||
+       values[0]->lVal >= DC_RESAMPLE_END)
+    {
+        return 0;
+    }
+    method->resample = (e_drawmethod_resample)values[0]->lVal;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Validate one packed RGB argument without accepting truncation or sentinels.
  */
@@ -155,6 +174,12 @@ int drawmethod_color_property_get(const s_drawmethod *method, int property,
     return 0;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Describe drawmethod properties for reads and dumps. Sampler writes pass
+ * through their validated setter rather than the generic numeric conversion.
+ */
 const s_property_access_map drawmethod_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
 {
 	s_property_access_map property_map;
@@ -457,6 +482,13 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
         property_map.type = VT_INTEGER;
         break;
 
+    case DRAWMETHOD_PROPERTY_RESAMPLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->resample;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_RESAMPLE";
+        property_map.type = VT_INTEGER;
+        break;
+
     case DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED:
         property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
         property_map.field = &acting_object->colors.substitute_enabled;
@@ -548,6 +580,7 @@ HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar
 * Return a property. Requires
 * a object pointer and property
 * constant to access.
+* Damon V. Caskey, 2026-11-15: the sampler is a scalar without color components.
 */
 HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
@@ -588,6 +621,13 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+
+    if(property_id_param == DM_RESAMPLE && paramCount != 2)
+    {
+        printf("\nScript error: the drawmethod resampler has no component argument.\n");
+        *pretvar = NULL;
+        return E_FAIL;
+    }
 
     /* Color pairs expose match, substitute, or enabled without mutable handles. */
     if(property_id_param >= DM_CHROMA_KEY_A && property_id_param <= DM_SUBSTITUTE_ENABLED)
@@ -652,6 +692,7 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 * Mutate a property. Requires
 * the object pointer, a property
 * id, and new value.
+* Damon V. Caskey, 2026-11-15: validate sampler IDs before any field changes.
 */
 HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
@@ -712,6 +753,19 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 	* appropriate data member, text name,
 	* read only, etc.
 	*/
+
+    if(property_id_param == DM_RESAMPLE)
+    {
+        *pretvar = NULL;
+        if(!drawmethod_resample_property_set((s_drawmethod *)acting_object,
+                                            (const ScriptVariant *const *)(varlist + ARG_VALUE),
+                                            paramCount - ARG_VALUE))
+        {
+            printf("\nScript error: drawmethod resample requires one defined DC_RESAMPLE integer.\n");
+            return E_FAIL;
+        }
+        return S_OK;
+    }
 
     if(property_id_param >= DM_CHROMA_KEY_A && property_id_param <= DM_SUBSTITUTE_ENABLED)
     {

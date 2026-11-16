@@ -95,6 +95,220 @@ static void near_value(double actual, double expected)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Evaluate a captured rectangle's interpolated source edges at a destination
+ * position, independently of the fragment shader's reconstruction kernel.
+ */
+static void quad_source_at(const captured_quad *quad, double x, double y,
+                           double *u, double *v)
+{
+    const gpu_vertex *vertices = quad->vertices;
+    double horizontal = (x - vertices[0].x) / (vertices[1].x - vertices[0].x);
+    double vertical = (y - vertices[0].y) / (vertices[3].y - vertices[0].y);
+
+    /* Each inverse transform is affine within its rectangle, including the
+     * constant Y used by one-row water, plane and native shear geometry. */
+    *u = vertices[0].u + horizontal * (vertices[1].u - vertices[0].u)
+                       + vertical * (vertices[3].u - vertices[0].u);
+    *v = vertices[0].v + horizontal * (vertices[1].v - vertices[0].v)
+                       + vertical * (vertices[3].v - vertices[0].v);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Check center-aligned scaling with an inexact 8.8 reciprocal, negative and
+ * reflected edges, and clipping that leaves the original source phase intact.
+ */
+static void test_resampled_scale_centers(void)
+{
+    gpu_transform_parameters p = {7, 5, 64, 64, 11, 13, 2, 1, 1};
+    s_drawmethod m = method();
+    capture_state full, clipped;
+    double u, v, clipped_u, clipped_v;
+
+    m.resample = DC_RESAMPLE_BILINEAR;
+    m.scalex = 384;
+    m.scaley = 320;
+    memset(&full, 0, sizeof(full));
+    assert(gpu_transform_draw(&p, &m, capture, &full) == GPU_TRANSFORM_DRAWN);
+    assert(full.count == 1 && full.quads[0].wrap == GPU_SAMPLE_FIXED8);
+    quad_source_at(&full.quads[0], 8.5, 12.5, &u, &v);
+    near_value(u, 1.0 / 3.0);
+    near_value(v, 0.6);
+    quad_source_at(&full.quads[0], 15.5, 17.5, &u, &v);
+    near_value(u, 5.0);
+    near_value(v, 4.6);
+
+    /* Both right and bottom clipping formerly participated in reciprocal
+     * phase selection. A surviving pixel must keep the same filter center. */
+    m.clipx = 10;
+    m.clipy = 13;
+    m.clipw = 5;
+    m.cliph = 4;
+    memset(&clipped, 0, sizeof(clipped));
+    assert(gpu_transform_draw(&p, &m, capture, &clipped) == GPU_TRANSFORM_DRAWN);
+    quad_source_at(&full.quads[0], 11.5, 14.5, &u, &v);
+    quad_source_at(&clipped.quads[0], 11.5, 14.5, &clipped_u, &clipped_v);
+    near_value(clipped_u, u);
+    near_value(clipped_v, v);
+
+    /* Reflection reverses the continuous mapping around source edges, while
+     * the existing snapped coverage remains responsible for visited pixels. */
+    m.clipw = m.cliph = 0;
+    m.config |= DRAWMETHOD_CONFIG_FLIP_X | DRAWMETHOD_CONFIG_FLIP_Y;
+    memset(&full, 0, sizeof(full));
+    assert(gpu_transform_draw(&p, &m, capture, &full) == GPU_TRANSFORM_DRAWN);
+    quad_source_at(&full.quads[0], 4.5, 8.5, &u, &v);
+    near_value(u, 19.0 / 3.0);
+    near_value(v, 4.6);
+
+    m.config &= ~(DRAWMETHOD_CONFIG_FLIP_X | DRAWMETHOD_CONFIG_FLIP_Y);
+    p.x = 1;
+    memset(&full, 0, sizeof(full));
+    assert(gpu_transform_draw(&p, &m, capture, &full) == GPU_TRANSFORM_DRAWN);
+    quad_source_at(&full.quads[0], 0.5, 12.5, &u, &v);
+    near_value(u, 5.0 / 3.0);
+    near_value(v, 0.6);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Verify that filtered rotation uses destination centers rather than the
+ * integer-position convention retained by the nearest rotation path.
+ */
+static void test_resampled_rotation_centers(void)
+{
+    gpu_transform_parameters p = {8, 4, 64, 64, 20, 30, 2, 1, 1};
+    s_drawmethod m = method();
+    capture_state state;
+    double u, v;
+
+    m.resample = DC_RESAMPLE_BILINEAR;
+    m.rotate = 90.0f;
+    m.scalex = 512;
+    m.scaley = 128;
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_DRAWN);
+    assert(state.count == 1 && state.quads[0].wrap == GPU_SAMPLE_CONTINUOUS);
+    quad_source_at(&state.quads[0], 20.5, 30.5, &u, &v);
+    near_value(u, 3.0);
+    near_value(v, 0.75);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Preserve filtered shear phase across bottom clipping with fractional row
+ * bounds, and verify the single-quad uniforms describe the same source point.
+ */
+static void test_resampled_shear_centers(void)
+{
+    gpu_transform_parameters p = {9, 5, 64, 64, 16, 17, 1, 1, 1};
+    s_drawmethod m = method();
+    gpu_shear_sampling sampling;
+    capture_state full, clipped, sampled;
+    double u, v, clipped_u, clipped_v, origin;
+
+    m.resample = DC_RESAMPLE_BILINEAR;
+    m.scalex = 384;
+    m.scaley = 341;
+    m.shiftx = 91;
+    memset(&full, 0, sizeof(full));
+    assert(gpu_transform_draw(&p, &m, capture, &full) == GPU_TRANSFORM_DRAWN);
+    assert(full.count == 6);
+    near_value(full.quads[2].vertices[0].y, 19.0);
+    quad_source_at(&full.quads[2], 18.5, 19.5, &u, &v);
+    near_value(u, 361.0 / 192.0);
+    near_value(v, 981.0 / 341.0);
+
+    /* The original bottom is 22 + 84/256, so clipping skips two full rows
+     * and a fractional legacy shear phase. Filtering must retain both axes. */
+    p.target_height = 20;
+    memset(&clipped, 0, sizeof(clipped));
+    assert(gpu_transform_draw(&p, &m, capture, &clipped) == GPU_TRANSFORM_DRAWN);
+    near_value(clipped.quads[0].vertices[0].y, 19.0);
+    quad_source_at(&clipped.quads[0], 18.5, 19.5, &clipped_u, &clipped_v);
+    near_value(clipped_u, u);
+    near_value(clipped_v, v);
+
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, &sampling, NULL, NULL,
+                                      capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(sampling.enabled && sampled.count == 1);
+    near_value(sampling.step[0], 2.0 / 3.0);
+    near_value(sampling.step[1], -256.0 / 341.0);
+    origin = sampling.origin[0] + sampling.origin[1] / 256.0;
+    near_value(sampling.source[0] + (18.5 - origin) * sampling.step[0], u);
+    near_value(sampling.source[1], v);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reuse a nearest-prepared plane map for filtering, preserving fractional Y
+ * through clipped rows and matching the native row geometry's source centers.
+ */
+static void test_resampled_plane_centers(void)
+{
+    gpu_transform_parameters p = {16, 12, 64, 64, 8, -3, 0, 0, 0};
+    s_drawmethod m = method();
+    gpu_plane_row rows[12];
+    gpu_plane_sampling plane;
+    capture_state native, sampled;
+    double u, v;
+
+    m.water.watermode = WATER_MODE_SHEAR;
+    m.water.beginsize = 0.75f;
+    m.water.endsize = 2.0f;
+    m.water.wavetime = 5;
+    m.water.perspective = WATER_PERSPECTIVE_STRETCH;
+    assert(sizeof(gpu_plane_row) == 4 * sizeof(float));
+    assert(gpu_transform_prepare_plane_rows(&p, &m, rows) == 12);
+    m.resample = DC_RESAMPLE_BILINEAR;
+    memset(&native, 0, sizeof(native));
+    assert(gpu_transform_draw(&p, &m, capture, &native) == GPU_TRANSFORM_DRAWN);
+    assert(native.count == 9 && native.quads[0].wrap == GPU_SAMPLE_TILE);
+    quad_source_at(&native.quads[0], 8.5, 0.5, &u, &v);
+    near_value(u, 13.0 - 23.5 * rows[3].step);
+    near_value(v, rows[3].source_y_continuous + 0.5 * rows[3].step_y);
+
+    /* Filter selection does not alter intrinsic cache identity or trigger a
+     * second row preparation. The renderer consumes the same four channels. */
+    memset(&plane, 0, sizeof(plane));
+    plane.rows = rows;
+    plane.valid_rows = 12;
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, NULL, NULL, &plane,
+                                      capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(plane.enabled && sampled.count == 1);
+    near_value(plane.origin[2] + (8.5 - plane.origin[0] - plane.info[0]) * rows[3].step, u);
+
+    /* A valid nearest first row can have an excessive filtered center when
+     * stretched vertical travel is enormous. Reject the entire filtered draw
+     * before emission while keeping that existing nearest prefix drawable. */
+    p.source_width = p.target_width = p.target_height = 1;
+    p.x = p.y = 0;
+    m.water.beginsize = m.water.endsize = 0x1p-29f;
+    m.resample = DC_RESAMPLE_NEAREST;
+    plane.valid_rows = gpu_transform_prepare_plane_rows(&p, &m, rows);
+    assert(plane.valid_rows == 1);
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, NULL, NULL, &plane,
+                                      capture, &sampled) == GPU_TRANSFORM_DRAWN);
+    assert(sampled.count == 1);
+    m.resample = DC_RESAMPLE_BILINEAR;
+    memset(&sampled, 0, sizeof(sampled));
+    assert(gpu_transform_draw_sampled(&p, &m, NULL, NULL, &plane,
+                                      capture, &sampled) == GPU_TRANSFORM_FAILED);
+    assert(!plane.enabled && sampled.count == 0);
+    assert(gpu_transform_draw(&p, &m, capture, &sampled) == GPU_TRANSFORM_FAILED);
+    assert(sampled.count == 0);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Mirror GLSL byte-domain arithmetic with 32-bit floats. Exhaustive comparisons
@@ -601,8 +815,13 @@ static void test_sampled_plane_contract(void)
         for(row = 0; row < p.source_height; ++row, size += factor)
         {
             float step = 1.0f / size;
+            float step_y = perspective == WATER_PERSPECTIVE_TILE ? step :
+                           perspective == WATER_PERSPECTIVE_STRETCH ?
+                           step * p.source_height / p.source_width : 1.0f;
             near_value(rows[row].step, step);
             near_value(rows[row].source_y, (int)source_y % p.source_height);
+            near_value(rows[row].source_y_continuous, fmodf(source_y, (float)p.source_height));
+            near_value(rows[row].step_y, step_y);
             source_y += perspective == WATER_PERSPECTIVE_TILE ? step :
                         perspective == WATER_PERSPECTIVE_STRETCH ?
                         step * p.source_height / p.source_width : 1.0f;
@@ -888,6 +1107,7 @@ static void test_affine_validation(void)
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Check compact plane rows and bounded sampled-water eligibility.
+ * 2026-11-15 - Check filtered centers, true reciprocals and clipping invariance.
  * 2026-11-14 - Exercise optional shear sampling and retained native rows.
  *
  * Run the standalone renderer arithmetic suite and report a concise result.
@@ -898,6 +1118,10 @@ int main(void)
      * paths to ensure invalid inputs cannot leave partially submitted work. */
     test_blends();
     test_scale_and_flip();
+    test_resampled_scale_centers();
+    test_resampled_rotation_centers();
+    test_resampled_shear_centers();
+    test_resampled_plane_centers();
     test_sampled_shear_contract();
     test_sampled_shear_limits();
     test_rotation();

@@ -5,12 +5,14 @@
  * Damon V. Caskey
  * 2026-11-14
  * Exercise production script entry points, constant lookup, and property maps.
+ * 2026-11-15: cover static resamplers through object, common and named APIs.
  */
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <math.h>
 #include "scriptcommon.h"
 
 #undef malloc
@@ -19,6 +21,7 @@
 
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
+    .resample = DC_RESAMPLE_NEAREST,
     .alpha = -1, .remap = -1,
     .scalex = 256, .scaley = 256, .xrepeat = 1, .yrepeat = 1,
     .channelr = 255, .channelg = 255, .channelb = 255,
@@ -34,13 +37,18 @@ animation_id_t *animidles, *animwalks, *animbackwalks, *animups, *animdowns;
 animation_id_t *animbackpains, *animbackfalls, *animbackdies, *animbackrises;
 animation_id_t *animbackriseattacks, *animblkpains, *animbackblkpains;
 
-enum color_script_api { COLOR_COMMON, COLOR_OBJECT, COLOR_LEGACY };
+enum color_script_api {
+    COLOR_COMMON, COLOR_OBJECT, COLOR_LEGACY,
+    COLOR_COMMON_OBJECT, COLOR_LEGACY_COMMON
+};
 static ScriptVariant color_arguments[8];
 static ScriptVariant *color_argument_ptrs[8];
 static s_drawmethod color_object;
 static entity color_owner;
 static unsigned color_sorted_searches;
 static unsigned color_atomic_rejections;
+static unsigned resample_atomic_rejections;
+static unsigned drawmethod_constant_checks;
 
 /*
  * Damon V. Caskey
@@ -125,6 +133,7 @@ static void color_script_pointer(int index, void *value)
  * Damon V. Caskey
  * 2026-11-14
  * Select the documented legacy spelling for the same public color property.
+ * 2026-11-15: include the independent scalar resample control.
  */
 static const char *color_script_name(int property)
 {
@@ -133,6 +142,10 @@ static const char *color_script_name(int property)
         "chromakeyenabled", "substitutea", "substituteb", "substitutec",
         "substituted", "substitutee", "substituteenabled"
     };
+    if(property == DM_RESAMPLE)
+    {
+        return "resample";
+    }
     assert(property >= DM_CHROMA_KEY_A && property <= DM_SUBSTITUTE_ENABLED);
     return names[property - DM_CHROMA_KEY_A];
 }
@@ -141,32 +154,52 @@ static const char *color_script_name(int property)
  * Damon V. Caskey
  * 2026-11-14
  * Prepare equivalent common, object, or legacy calls without emulating setters.
+ * 2026-11-15: distinguish convenience-object and named-common access paths.
  */
 static void color_script_prepare(enum color_script_api api, int property)
 {
     color_script_arguments();
-    if(api == COLOR_OBJECT) color_script_pointer(0, &color_object);
-    if(api == COLOR_LEGACY) color_script_pointer(0, &color_owner);
-    if(api == COLOR_LEGACY) color_script_string(1, color_script_name(property));
-    else color_script_integer(1, property);
+    if(api == COLOR_OBJECT || api == COLOR_COMMON_OBJECT)
+    {
+        color_script_pointer(0, &color_object);
+    }
+    if(api == COLOR_LEGACY)
+    {
+        color_script_pointer(0, &color_owner);
+    }
+    if(api == COLOR_LEGACY || api == COLOR_LEGACY_COMMON)
+    {
+        color_script_string(1, color_script_name(property));
+    }
+    else
+    {
+        color_script_integer(1, property);
+    }
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-14
  * Dispatch only to the production entry point under test.
+ * 2026-11-15: use the same entry points for all five ownership/access paths.
  */
 static HRESULT color_script_set(enum color_script_api api, int count)
 {
     ScriptVariant result = {0};
     ScriptVariant *result_pointer = &result;
     HRESULT status;
-    if(api == COLOR_COMMON)
+    if(api == COLOR_COMMON || api == COLOR_COMMON_OBJECT)
+    {
         status = openbor_set_draw_method(color_argument_ptrs, &result_pointer, count);
+    }
     else if(api == COLOR_OBJECT)
+    {
         status = openbor_set_drawmethod_property(color_argument_ptrs, &result_pointer, count);
+    }
     else
+    {
         status = openbor_changedrawmethod(color_argument_ptrs, &result_pointer, count);
+    }
     ScriptVariant_Clear(&result);
     return status;
 }
@@ -175,19 +208,26 @@ static HRESULT color_script_set(enum color_script_api api, int count)
  * Damon V. Caskey
  * 2026-11-14
  * Retrieve an integer through the actual getters and preserve error results.
+ * 2026-11-15: cover convenience-object and named-common reads as well.
  */
 static HRESULT color_script_get(enum color_script_api api, int count, LONG *value)
 {
     ScriptVariant result = {0};
     ScriptVariant *result_pointer = &result;
     HRESULT status;
-    if(api == COLOR_COMMON)
+    if(api == COLOR_COMMON || api == COLOR_COMMON_OBJECT)
+    {
         status = openbor_get_draw_method(color_argument_ptrs, &result_pointer, count);
+    }
     else if(api == COLOR_OBJECT)
+    {
         status = openbor_get_drawmethod_property(
             (const ScriptVariant *const *)color_argument_ptrs, &result_pointer, count);
+    }
     else
+    {
         status = openbor_getdrawmethod(color_argument_ptrs, &result_pointer, count);
+    }
     if(SUCCEEDED(status))
     {
         assert(result_pointer == &result && result.vt == VT_INTEGER);
@@ -250,11 +290,15 @@ static void color_script_rejected(enum color_script_api api, int count,
  * Damon V. Caskey
  * 2026-11-14
  * Reset via the engine's existing legacy reset operation, including common state.
+ * 2026-11-15: both global access forms address the same common method.
  */
 static void color_script_reset(enum color_script_api api)
 {
     color_script_arguments();
-    if(api != COLOR_COMMON) color_script_pointer(0, &color_owner);
+    if(api != COLOR_COMMON && api != COLOR_LEGACY_COMMON)
+    {
+        color_script_pointer(0, &color_owner);
+    }
     color_script_string(1, "reset");
     color_script_integer(2, 1);
     assert(color_script_set(COLOR_LEGACY, 3) == S_OK);
@@ -468,6 +512,7 @@ static void color_script_ordinary_and_reset(enum color_script_api api)
  * Damon V. Caskey
  * 2026-11-14
  * Verify the actual named constant translator, including long-form aliases.
+ * 2026-11-15: include every public built-in sampler and its property aliases.
  */
 static void color_script_constants(void)
 {
@@ -492,7 +537,17 @@ static void color_script_constants(void)
         COLOR_CONSTANT(DRAWMETHOD_PROPERTY_SUBSTITUTE_C),
         COLOR_CONSTANT(DRAWMETHOD_PROPERTY_SUBSTITUTE_D),
         COLOR_CONSTANT(DRAWMETHOD_PROPERTY_SUBSTITUTE_E),
-        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED)
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED),
+        COLOR_CONSTANT(DM_RESAMPLE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_RESAMPLE),
+        COLOR_CONSTANT(DC_RESAMPLE_NEAREST),
+        COLOR_CONSTANT(DC_RESAMPLE_BILINEAR),
+        COLOR_CONSTANT(DC_RESAMPLE_BICUBIC_CATMULL_ROM),
+        COLOR_CONSTANT(DC_RESAMPLE_BICUBIC_MITCHELL),
+        COLOR_CONSTANT(DC_RESAMPLE_BICUBIC_BSPLINE),
+        COLOR_CONSTANT(DC_RESAMPLE_LANCZOS_2),
+        COLOR_CONSTANT(DC_RESAMPLE_LANCZOS_3),
+        COLOR_CONSTANT(DC_RESAMPLE_MOVIE)
     };
 #undef COLOR_CONSTANT
     unsigned i;
@@ -505,6 +560,7 @@ static void color_script_constants(void)
         assert(openbor_transconst(color_argument_ptrs, &result_pointer, 1) == S_OK);
         assert(result_pointer == &result && result.vt == VT_INTEGER);
         assert(result.lVal == constants[i].value);
+        ++drawmethod_constant_checks;
         ScriptVariant_Clear(&result);
     }
 }
@@ -556,13 +612,240 @@ static void color_script_object_contract(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Round-trip all built-in kernels and verify reset restores explicit nearest.
+ * This selector belongs to the drawmethod, independent of its transform fields.
+ */
+static void resample_script_modes(enum color_script_api api)
+{
+    int mode;
+    color_script_reset(api);
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_NEAREST);
+    for(mode = DC_RESAMPLE_NEAREST; mode < DC_RESAMPLE_END; ++mode)
+    {
+        color_script_prepare(api, DM_RESAMPLE);
+        color_script_integer(2, mode);
+        assert(color_script_set(api, 3) == S_OK);
+        assert(color_script_read(api, DM_RESAMPLE, -1) == mode);
+    }
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_MOVIE);
+    assert(color_script_set(api, 3) == S_OK);
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_BILINEAR);
+    color_script_reset(api);
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_NEAREST);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Failed sampler updates must retain the sampler and all existing color rules.
+ * Compare the entire object too, including transform and object identity fields.
+ */
+static void resample_script_rejected(enum color_script_api api, int count,
+                                     const s_drawmethod *before,
+                                     const s_drawmethod_colors *colors_before)
+{
+    s_drawmethod_colors colors_after;
+    assert(FAILED(color_script_set(api, count)));
+    assert(memcmp(before, &color_object, sizeof(*before)) == 0);
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_LANCZOS_3);
+    colors_after = color_script_snapshot(api);
+    assert(memcmp(colors_before, &colors_after, sizeof(colors_after)) == 0);
+    ++resample_atomic_rejections;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Reject range violations, coercible values, alternate variant types and
+ * malformed argument counts through each real production setter.
+ */
+static void resample_script_invalid_updates(enum color_script_api api)
+{
+    static const LONG invalid_modes[] = {-1, DC_RESAMPLE_END, INT32_MIN, INT32_MAX};
+    static const DOUBLE invalid_decimals[] = {0.0, 1.0, 1.5, NAN, INFINITY};
+    static const char *const invalid_strings[] = {"1", "DC_RESAMPLE_BILINEAR"};
+    s_drawmethod before;
+    s_drawmethod_colors colors_before;
+    unsigned i;
+    LONG ignored;
+
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_LANCZOS_3);
+    assert(color_script_set(api, 3) == S_OK);
+    color_script_prepare(api, DM_CHROMA_KEY_A);
+    color_script_integer(2, 0x123456);
+    assert(color_script_set(api, 3) == S_OK);
+    memcpy(&before, &color_object, sizeof(before));
+    colors_before = color_script_snapshot(api);
+
+    for(i = 0; i < sizeof(invalid_modes) / sizeof(invalid_modes[0]); ++i)
+    {
+        color_script_prepare(api, DM_RESAMPLE);
+        color_script_integer(2, invalid_modes[i]);
+        resample_script_rejected(api, 3, &before, &colors_before);
+    }
+    for(i = 0; i < sizeof(invalid_decimals) / sizeof(invalid_decimals[0]); ++i)
+    {
+        color_script_prepare(api, DM_RESAMPLE);
+        ScriptVariant_ChangeType(&color_arguments[2], VT_DECIMAL);
+        color_arguments[2].dblVal = invalid_decimals[i];
+        resample_script_rejected(api, 3, &before, &colors_before);
+    }
+    for(i = 0; i < sizeof(invalid_strings) / sizeof(invalid_strings[0]); ++i)
+    {
+        color_script_prepare(api, DM_RESAMPLE);
+        color_script_string(2, invalid_strings[i]);
+        resample_script_rejected(api, 3, &before, &colors_before);
+    }
+
+    color_script_prepare(api, DM_RESAMPLE); /* NULL() cannot disable a sampler. */
+    resample_script_rejected(api, 3, &before, &colors_before);
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_pointer(2, NULL);
+    resample_script_rejected(api, 3, &before, &colors_before);
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_pointer(2, &color_object);
+    resample_script_rejected(api, 3, &before, &colors_before);
+
+    /* Match the existing property contract: selectors use VT_INTEGER exactly. */
+    color_script_prepare(api, DM_RESAMPLE);
+    ScriptVariant_ChangeType(&color_arguments[2], VT_INTEGER64);
+    color_arguments[2].llVal = DC_RESAMPLE_BILINEAR;
+    resample_script_rejected(api, 3, &before, &colors_before);
+    color_script_prepare(api, DM_RESAMPLE);
+    ScriptVariant_ChangeType(&color_arguments[2], VT_UINTEGER64);
+    color_arguments[2].ullVal = DC_RESAMPLE_BILINEAR;
+    resample_script_rejected(api, 3, &before, &colors_before);
+
+    color_script_prepare(api, DM_RESAMPLE);
+    resample_script_rejected(api, 2, &before, &colors_before);
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_BILINEAR);
+    color_script_integer(3, 0);
+    resample_script_rejected(api, 4, &before, &colors_before);
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_BILINEAR);
+    color_script_integer(3, 0);
+    color_script_integer(4, 0);
+    resample_script_rejected(api, 5, &before, &colors_before);
+
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DM_COLOR_MATCH);
+    assert(FAILED(color_script_get(api, 3, &ignored)));
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_LANCZOS_3);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Exercise the real copy entry point and retain a sampler after its source
+ * changes. Copying the shared default restores nearest without aliasing it.
+ */
+static void resample_script_copy(void)
+{
+    s_drawmethod copied = plainmethod;
+    s_drawmethod before;
+    ScriptVariant result = {0};
+    ScriptVariant *result_pointer = &result;
+    color_script_prepare(COLOR_OBJECT, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_BICUBIC_MITCHELL);
+    assert(color_script_set(COLOR_OBJECT, 3) == S_OK);
+    memcpy(&before, &color_object, sizeof(before));
+
+    color_script_arguments();
+    color_script_pointer(0, &copied);
+    color_script_pointer(1, &color_object);
+    assert(openbor_copy_drawmethod(color_argument_ptrs, &result_pointer, 2) == S_OK);
+    assert(memcmp(&before, &copied, sizeof(copied)) == 0);
+    color_script_prepare(COLOR_OBJECT, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_NEAREST);
+    assert(color_script_set(COLOR_OBJECT, 3) == S_OK);
+    assert(copied.resample == DC_RESAMPLE_BICUBIC_MITCHELL);
+
+    color_script_arguments();
+    color_script_pointer(0, &copied);
+    color_script_pointer(1, (void *)&plainmethod);
+    assert(openbor_copy_drawmethod(color_argument_ptrs, &result_pointer, 2) == S_OK);
+    assert(copied.resample == DC_RESAMPLE_NEAREST);
+    assert(memcmp(&copied, &plainmethod, sizeof(copied)) == 0);
+    ScriptVariant_Clear(&result);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Protect the shared default and invalid object pointers using sampler calls,
+ * then verify convenience and legacy global access share one stored selector.
+ */
+static void resample_script_object_contract(void)
+{
+    s_drawmethod before;
+    LONG ignored;
+    unsigned api;
+    memcpy(&before, &plainmethod, sizeof(before));
+    for(api = COLOR_COMMON; api <= COLOR_LEGACY; ++api)
+    {
+        color_script_prepare((enum color_script_api)api, DM_RESAMPLE);
+        if(api == COLOR_LEGACY)
+        {
+            color_owner.drawmethod = (s_drawmethod *)&plainmethod;
+        }
+        else
+        {
+            color_script_pointer(0, (void *)&plainmethod);
+        }
+        assert(color_script_get((enum color_script_api)api, 2, &ignored) == S_OK);
+        assert(ignored == DC_RESAMPLE_NEAREST);
+        color_script_integer(2, DC_RESAMPLE_BILINEAR);
+        assert(FAILED(color_script_set((enum color_script_api)api, 3)));
+        assert(memcmp(&before, &plainmethod, sizeof(before)) == 0);
+    }
+    color_owner.drawmethod = &color_object;
+
+    color_script_prepare(COLOR_OBJECT, DM_RESAMPLE);
+    color_script_pointer(0, NULL);
+    color_script_integer(2, DC_RESAMPLE_BILINEAR);
+    assert(FAILED(color_script_set(COLOR_OBJECT, 3)));
+    assert(FAILED(color_script_get(COLOR_OBJECT, 2, &ignored)));
+    color_object.object_type = 0;
+    color_script_prepare(COLOR_OBJECT, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_BILINEAR);
+    assert(FAILED(color_script_set(COLOR_OBJECT, 3)));
+    assert(FAILED(color_script_get(COLOR_OBJECT, 2, &ignored)));
+    color_object = plainmethod;
+
+    color_script_prepare(COLOR_COMMON, DM_RESAMPLE);
+    color_script_pointer(0, NULL);
+    color_script_integer(2, DC_RESAMPLE_BICUBIC_BSPLINE);
+    assert(color_script_set(COLOR_COMMON, 3) == S_OK);
+    assert(color_script_read(COLOR_LEGACY_COMMON, DM_RESAMPLE, -1) == DC_RESAMPLE_BICUBIC_BSPLINE);
+    color_script_prepare(COLOR_LEGACY_COMMON, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_LANCZOS_2);
+    assert(color_script_set(COLOR_LEGACY_COMMON, 3) == S_OK);
+    assert(color_script_read(COLOR_COMMON, DM_RESAMPLE, -1) == DC_RESAMPLE_LANCZOS_2);
+    color_script_reset(COLOR_LEGACY_COMMON);
+    assert(color_script_read(COLOR_COMMON, DM_RESAMPLE, -1) == DC_RESAMPLE_NEAREST);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Run the same behavioral contract through all three script-facing APIs.
+ * 2026-11-15: exercise all five resample access paths and fixed enum values.
  */
 int main(void)
 {
     unsigned api;
     assert(sizeof(void *) == 8);
+    assert(DC_RESAMPLE_NEAREST == 0 && DC_RESAMPLE_BILINEAR == 1);
+    assert(DC_RESAMPLE_BICUBIC_CATMULL_ROM == 2 && DC_RESAMPLE_BICUBIC_MITCHELL == 3);
+    assert(DC_RESAMPLE_BICUBIC_BSPLINE == 4 && DC_RESAMPLE_LANCZOS_2 == 5);
+    assert(DC_RESAMPLE_LANCZOS_3 == 6 && DC_RESAMPLE_END == 7);
+    assert(DC_RESAMPLE_MOVIE == DC_RESAMPLE_BILINEAR);
+    assert(DM_RESAMPLE == DRAWMETHOD_PROPERTY_RESAMPLE);
+    assert(plainmethod.resample == DC_RESAMPLE_NEAREST);
     color_object = plainmethod;
     color_owner.drawmethod = &color_object;
     color_script_arguments();
@@ -575,10 +858,20 @@ int main(void)
         color_script_ordinary_and_reset((enum color_script_api)api);
     }
     color_script_object_contract();
+    for(api = COLOR_COMMON; api <= COLOR_LEGACY_COMMON; ++api)
+    {
+        resample_script_modes((enum color_script_api)api);
+        resample_script_invalid_updates((enum color_script_api)api);
+    }
+    resample_script_copy();
+    resample_script_object_contract();
     assert(color_sorted_searches > 0 && color_atomic_rejections == 60);
+    assert(resample_atomic_rejections == 95 && drawmethod_constant_checks == 37);
     color_script_arguments();
     StrCache_Clear();
-    printf("drawmethod color script checks passed: 27 constants, 3 production APIs, "
-           "%u atomic rejections; legacy tables sorted\n", color_atomic_rejections);
+    printf("drawmethod color/resample script checks passed: %u constants, "
+           "3 production APIs, 5 resample access paths, %u color and %u resample "
+           "atomic rejections; copy/default/reset verified; legacy tables sorted\n",
+           drawmethod_constant_checks, color_atomic_rejections, resample_atomic_rejections);
     return 0;
 }

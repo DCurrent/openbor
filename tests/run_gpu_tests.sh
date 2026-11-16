@@ -261,6 +261,13 @@ done
     -o "$test_build_dir/test_gpu_colors"
 run_test "$test_build_dir/test_gpu_colors"
 
+# Reconstruct all static filters against independent kernel/mapping oracles,
+# including palette coverage, material operations and GPU-only source reuse.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_resample_tests.sh
+
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
     "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \
     engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/simple2x.c \

@@ -272,6 +272,27 @@ typedef enum e_drawmethod_config
     
 } e_drawmethod_config;
 
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Select one built-in reconstruction filter for the completed draw transform.
+ * Zero preserves nearest sampling for defaults and zero-initialized methods.
+ * MOVIE names the existing hardware movie's spatial filter only; movie color
+ * conversion remains independent of this selector.
+ */
+typedef enum e_drawmethod_resample
+{
+    DC_RESAMPLE_NEAREST = 0,
+    DC_RESAMPLE_BILINEAR = 1,
+    DC_RESAMPLE_BICUBIC_CATMULL_ROM = 2,
+    DC_RESAMPLE_BICUBIC_MITCHELL = 3,
+    DC_RESAMPLE_BICUBIC_BSPLINE = 4,
+    DC_RESAMPLE_LANCZOS_2 = 5,
+    DC_RESAMPLE_LANCZOS_3 = 6,
+    DC_RESAMPLE_END = 7,
+    DC_RESAMPLE_MOVIE = DC_RESAMPLE_BILINEAR
+} e_drawmethod_resample;
+
 typedef struct
 {
     union
@@ -374,6 +395,8 @@ typedef struct
 
     /* Inline storage gives queued draws immutable copies of color settings. */
     s_drawmethod_colors colors;
+    /* Damon V. Caskey, 2026-11-15: queued copies retain their sampler choice. */
+    e_drawmethod_resample resample;
 	int tag;				// ~~
     e_object_type object_type;
 } s_drawmethod;

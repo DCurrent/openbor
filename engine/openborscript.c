@@ -2816,6 +2816,8 @@ enum drawmethod_enum
     _dm_substituted,
     _dm_substitutee,
     _dm_substituteenabled,
+    /* Damon V. Caskey, 2026-11-15: keep existing numeric IDs stable. */
+    _dm_resample,
     _dm_the_end,
 };
 
@@ -14819,6 +14821,7 @@ clearscreen_error:
  * Damon V. Caskey
  * 2026-11-13
  * Resolve sorted property names without changing existing numeric property IDs.
+ * 2026-11-15: map the appended sampler ID through the same sorted name table.
  */
 int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
 {
@@ -14863,6 +14866,7 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "flipy",
         "perspective",
         "remap",
+        "resample",
         "reset",
         "rotate",
         "scalex",
@@ -14888,7 +14892,7 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "yspan",
     };
 
-    /* Sorted names map to stable numeric IDs, including appended color rules. */
+    /* Sorted names map to stable IDs, including appended colors and sampler. */
     static const int property_ids[] =
     {
         _dm_affine,
@@ -14927,6 +14931,7 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         _dm_flipy,
         _dm_perspective,
         _dm_remap,
+        _dm_resample,
         _dm_reset,
         _dm_rotate,
         _dm_scalex,
@@ -15066,6 +15071,7 @@ static int drawmethod_affine_value(ScriptVariant *value, float *result)
  * 2026-11-13
  * Update entity or script drawing state, validating complete affine matrices
  * before enabling them or changing any stored coefficient.
+ * 2026-11-15: use the shared atomic sampler setter for named resample access.
  */
 HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -15110,8 +15116,19 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         pmethod = &(drawmethod);
     }
 
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal == _dm_resample)
+    {
+        if(!drawmethod_resample_property_set(pmethod,
+            (const ScriptVariant *const *)(varlist + 2), paramCount - 2))
+        {
+            printf("\nScript error: drawmethod resample requires one defined DC_RESAMPLE integer.\n");
+            return E_FAIL;
+        }
+        return S_OK;
+    }
+
     if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_chromakeya &&
-       varlist[1]->lVal < _dm_the_end)
+       varlist[1]->lVal <= _dm_substituteenabled)
     {
         if(!drawmethod_color_property_set(pmethod,
             drawmethod_color_property_id((int)varlist[1]->lVal),
@@ -15488,6 +15505,7 @@ changedm_error:
  * 2013-11-09
  * Read current drawmethod settings for module scripts.
  * 2026-11-13: expose affine enable state and fractional matrix coefficients.
+ * 2026-11-15: read the sampler as a scalar without a color-component argument.
  */
 HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -15531,8 +15549,20 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal == _dm_resample)
+    {
+        if(!pmethod || paramCount != 2)
+        {
+            printf("\nScript error: getdrawmethod resample requires a method and no component.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        (*pretvar)->lVal = pmethod->resample;
+        return S_OK;
+    }
+
     if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_chromakeya &&
-       varlist[1]->lVal < _dm_the_end)
+       varlist[1]->lVal <= _dm_substituteenabled)
     {
         int component = DM_COLOR_MATCH;
         LONG value;

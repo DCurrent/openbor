@@ -14,6 +14,8 @@
  * selected for native rendering log and stop after failure; they never retry
  * through the CPU rasterizer. Unmigrated rendering configurations retain
  * explicit CPU dispatch and synchronized pixel access.
+ * Explicit non-nearest image filters require GPU drawing in every configuration;
+ * unsupported filtered draws log and stop before any CPU approximation.
  * Successful native writes leave GPU storage authoritative until a CPU reader
  * requests synchronization; presenting or sampling that texture needs no copy.
  *
@@ -66,6 +68,8 @@ void gpu_unregister_backend(void);
 int gpu_is_active(void);
 void gpu_set_native_required(int required);
 int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation);
+int gpu_allow_cpu_image_operation(const s_screen *screen, gpu_operation operation,
+                                  const s_drawmethod *method);
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method);
 int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method);
 int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned color, const s_drawmethod *method);

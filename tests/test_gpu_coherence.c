@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "gpu.h"
 #include "screen.h"
 #include "draw.h"
@@ -48,6 +49,7 @@ static int released_screens;
 static int released_sprites;
 static int invalidated_tables;
 static int reject_draws;
+static int rejected_sprite_draws;
 
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
@@ -296,6 +298,24 @@ static int mock_copy(s_screen *dest, s_screen *src)
 {
     /* Copy uses replacement at the origin, independent of global draw state. */
     return mock_screen(dest, src, 0, 0, NULL);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Distinguish an explicit sprite callback rejection from an absent callback
+ * while leaving both image ownership and pixel storage completely unchanged.
+ */
+static int mock_reject_sprite(s_screen *dest, s_sprite *sprite, int x, int y,
+                              const s_drawmethod *method)
+{
+    (void)dest;
+    (void)sprite;
+    (void)x;
+    (void)y;
+    (void)method;
+    ++rejected_sprite_draws;
+    return 0;
 }
 
 /*
@@ -555,6 +575,197 @@ static void test_native_required_dispatch(s_screen *source, s_sprite *sprite,
 
 /*
  * Damon V. Caskey
+ * 2026-11-15
+ * Inspect production PP_TEST diagnostics without replacing the logger or draw
+ * dispatch. Repeated failures emit one resampling record per image operation
+ * until an explicit rendering-policy change starts another selection.
+ */
+static void test_resample_warning_log(FILE *log, int saved_stdout)
+{
+    char line[1024];
+    unsigned screen_warnings = 0, sprite_warnings = 0, records = 0;
+    assert(fflush(stdout) == 0);
+    assert(dup2(saved_stdout, STDOUT_FILENO) >= 0);
+    assert(close(saved_stdout) == 0);
+    rewind(log);
+    while(fgets(line, sizeof(line), log))
+    {
+        ++records;
+        assert(strstr(line, "operation skipped. CPU resampling is unavailable."));
+        if(strstr(line, "GPU resampling for screen draw"))
+        {
+            ++screen_warnings;
+        }
+        if(strstr(line, "GPU resampling for sprite draw"))
+        {
+            ++sprite_warnings;
+        }
+    }
+    assert(!ferror(log));
+    assert(records == 4 && screen_warnings == 2 && sprite_warnings == 2);
+    assert(fclose(log) == 0);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-15
+ * Explicit filtered draws must never become nearest CPU draws, including an
+ * unmigrated rendering selection or indexed destination. Exercise real screen
+ * and sprite roots against rejected, missing and unavailable backend callbacks.
+ */
+static void test_resample_required_dispatch(s_screen *source, s_sprite *sprite,
+                                           s_screen *dest, s_screen *indexed)
+{
+    gpu_backend rejecting_backend = backend;
+    gpu_backend missing_callbacks = backend;
+    s_drawmethod requested = plainmethod;
+    s_drawmethod sentinel = plainmethod;
+    s_screen *indexed_dest = allocscreen(8, 8, PIXEL_x8);
+    mock_image *native_source, *native_dest;
+    unsigned source_before[MOCK_PIXEL_CAPACITY], dest_before[MOCK_PIXEL_CAPACITY];
+    unsigned native_source_before[MOCK_PIXEL_CAPACITY], native_dest_before[MOCK_PIXEL_CAPACITY];
+    unsigned char indexed_before[MOCK_PIXEL_CAPACITY];
+    unsigned globals_before[11], globals_after[11];
+    size_t source_bytes = (size_t)source->width * source->height * sizeof(unsigned);
+    size_t dest_bytes = (size_t)dest->width * dest->height * sizeof(unsigned);
+    FILE *log;
+    int saved_stdout, phase, mode, repeat, format, kind, selection;
+    int previous_downloads, previous_uploads, previous_draws, previous_rejections;
+    unsigned char indexed_format = indexed->pixelformat;
+
+    assert(indexed_dest);
+    memset(indexed->data, 1, (size_t)indexed->width * indexed->height);
+    memset(indexed_dest->data, 0x5a, sizeof(indexed_before));
+    memcpy(indexed_before, indexed_dest->data, sizeof(indexed_before));
+    rejecting_backend.draw_sprite = mock_reject_sprite;
+    missing_callbacks.draw_screen = NULL;
+    missing_callbacks.draw_sprite = NULL;
+    gpu_register_backend(&rejecting_backend);
+    gpu_set_native_required(0);
+
+    /* Both images have stale CPU shadows, making any hidden readback visible. */
+    putbox(0, 0, source->width, source->height, 0x2468AC, source, NULL);
+    putbox(0, 0, dest->width, dest->height, 0x13579B, dest, NULL);
+    native_source = mock_find(source, 0);
+    native_dest = mock_find(dest, 0);
+    assert(native_source && native_dest && native_source->gpu_dirty && native_dest->gpu_dirty);
+    memcpy(source_before, source->data, source_bytes);
+    memcpy(dest_before, dest->data, dest_bytes);
+    memcpy(native_source_before, native_source->pixels, source_bytes);
+    memcpy(native_dest_before, native_dest->pixels, dest_bytes);
+    sentinel.channelr = 17;
+    sentinel.channelg = 29;
+    sentinel.channelb = 43;
+    sentinel.clipx = 2;
+    sentinel.clipy = 1;
+    sentinel.clipw = 3;
+    sentinel.cliph = 4;
+    drawmethod_global_init(&sentinel);
+    test_draw_globals(globals_before);
+    previous_downloads = downloads;
+    previous_uploads = uploads;
+    previous_draws = native_draws;
+    previous_rejections = rejected_sprite_draws;
+    reject_draws = 1;
+
+    log = tmpfile();
+    assert(log && fflush(stdout) == 0);
+    saved_stdout = dup(STDOUT_FILENO);
+    assert(saved_stdout >= 0 && dup2(fileno(log), STDOUT_FILENO) >= 0);
+
+    for(phase = 0; phase < 3; ++phase)
+    {
+        if(phase == 1)
+        {
+            /* Teardown does not reset warning state or enable CPU filtering. */
+            gpu_unregister_backend();
+        }
+        else if(phase == 2)
+        {
+            /* Registration selects native mode; explicitly restore this fixture's
+             * unmigrated mode and verify missing callbacks under that policy. */
+            gpu_register_backend(&missing_callbacks);
+            gpu_set_native_required(0);
+        }
+        for(mode = DC_RESAMPLE_BILINEAR; mode < DC_RESAMPLE_END; ++mode)
+        {
+            requested.resample = (e_drawmethod_resample)mode;
+            for(repeat = 0; repeat < 2; ++repeat)
+            {
+                assert(!gpu_draw_screen(dest, source, 0, 0, &requested));
+                assert(!gpu_draw_sprite(dest, sprite, 0, 0, &requested));
+                putscreen(dest, source, 0, 0, &requested);
+                putsprite(0, 0, sprite, dest, &requested);
+                for(format = 0; format < 2; ++format)
+                {
+                    indexed_dest->pixelformat = format ? PIXEL_x8 : PIXEL_8;
+                    putscreen(indexed_dest, indexed, 0, 0, &requested);
+                    putsprite(0, 0, sprite, indexed_dest, &requested);
+                }
+            }
+        }
+        test_draw_globals(globals_after);
+        assert(!memcmp(globals_before, globals_after, sizeof(globals_before)));
+        assert(!memcmp(source_before, source->data, source_bytes));
+        assert(!memcmp(dest_before, dest->data, dest_bytes));
+        assert(!memcmp(native_source_before, native_source->pixels, source_bytes));
+        assert(!memcmp(native_dest_before, native_dest->pixels, dest_bytes));
+        assert(!memcmp(indexed_before, indexed_dest->data, sizeof(indexed_before)));
+        assert(downloads == previous_downloads && uploads == previous_uploads);
+        assert(native_draws == previous_draws);
+        assert(native_source->gpu_dirty && !native_source->cpu_dirty);
+        assert(native_dest->gpu_dirty && !native_dest->cpu_dirty);
+    }
+    assert(rejected_sprite_draws > previous_rejections);
+    test_resample_warning_log(log, saved_stdout);
+
+    /* Nearest, disabled drawmethods and absent drawmethods retain the existing
+     * CPU results when that rendering configuration was selected explicitly. */
+    gpu_register_backend(&rejecting_backend);
+    gpu_set_native_required(0);
+    indexed_dest->pixelformat = PIXEL_8;
+    indexed->pixelformat = PIXEL_8;
+    for(selection = 0; selection < 3; ++selection)
+    {
+        requested = plainmethod;
+        if(selection == 1)
+        {
+            requested.config = DRAWMETHOD_CONFIG_NONE;
+            requested.resample = DC_RESAMPLE_LANCZOS_3;
+        }
+        for(kind = 0; kind < 2; ++kind)
+        {
+            s_drawmethod *method = selection == 2 ? NULL : &requested;
+            gpu_prepare_cpu_write(dest);
+            memset(dest->data, 0, dest_bytes);
+            memset(indexed_dest->data, 0x5a, sizeof(indexed_before));
+            if(kind == 0)
+            {
+                putscreen(dest, source, 0, 0, method);
+                putscreen(indexed_dest, indexed, 0, 0, method);
+                assert(((unsigned *)dest->data)[0] == 0x2468AC);
+            }
+            else
+            {
+                putsprite(0, 0, sprite, dest, method);
+                putsprite(0, 0, sprite, indexed_dest, method);
+                assert(((unsigned *)dest->data)[0] == 0x456789);
+            }
+            assert(indexed_dest->data[0] == 1);
+            assert(indexed_dest->data[indexed_dest->width * indexed_dest->height - 1] == 0x5a);
+        }
+    }
+
+    reject_draws = 0;
+    indexed->pixelformat = indexed_format;
+    gpu_register_backend(&backend);
+    gpu_set_native_required(0);
+    drawmethod_global_init(NULL);
+    freescreen(&indexed_dest);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-13
  * Check representable repeat instances and visible affine cancellation of
  * extreme integer draw positions in both screen and sprite fallbacks.
@@ -655,6 +866,7 @@ static void test_affine_repeat_limits(s_screen *source, s_sprite *sprite, s_scre
  * 2026-11-13 - Include affine fallback repeat boundaries under sanitizers.
  * 2026-11-15 - Verify native-only dispatch independently of CPU references.
  * 2026-11-15 - Reject removed image formats before allocation or drawing.
+ * 2026-11-15 - Keep requested GPU resampling out of every CPU fallback path.
  * Cover native dispatch, synchronous CPU access, software fallback, direct
  * low-level calls, queue capture/replay, and resource lifetime together.
  */
@@ -746,6 +958,7 @@ int main(void)
     encodesprite(0, 0, bitmap, sprite);
     assert(released_sprites == previous_sprites + 1);
     test_native_required_dispatch(small, sprite, large, indexed);
+    test_resample_required_dispatch(small, sprite, large, indexed);
     putbox(0, 0, 8, 8, 0x212121, large, NULL);
     putsprite(0, 0, sprite, large, NULL);
     assert(((unsigned *)large->data)[0] == 0x456789);
@@ -798,7 +1011,7 @@ int main(void)
     freescreen(&small);
     freescreen(&large);
     freescreen(&capture);
-    assert(released_screens == 4);
+    assert(released_screens == 5);
     for(i = 0; i < MOCK_SCREEN_CAPACITY; ++i)
     {
         assert(!images[i].screen);

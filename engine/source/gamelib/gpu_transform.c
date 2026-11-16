@@ -63,7 +63,7 @@ static int gpu_affine_digits(double value, float digits[8])
         digits[index] = (float)whole;
         value = (value - whole) * 256.0;
     }
-    /* Unsupported precision selects software; never silently quantize it. */
+    /* Reject unsupported precision before drawing; never silently quantize it. */
     return value == 0.0;
 }
 
@@ -196,7 +196,7 @@ int gpu_transform_draw_affine(const gpu_transform_parameters *p, const s_drawmet
         float digits_x[8], digits_y[8];
         /* Bound approximate-quotient error below one texel, even after
          * cancellation. Byte-carry residuals then correct at most one step.
-         * Extreme mappings remain atomic software operations. */
+         * Reject extreme mappings atomically before any destination writes. */
         double extent = index == 0 ? fmax(1.0, extent_x) : index == 1 ? fmax(1.0, extent_y) : 1;
         if(!gpu_finite(numerator_x[index]) || !gpu_finite(numerator_y[index])
            || fabs(numerator_x[index]) * extent > 262144.0
@@ -247,7 +247,8 @@ int gpu_transform_draw_affine(const gpu_transform_parameters *p, const s_drawmet
  * 2026-11-15
  * Prepare the plane's reciprocal scale and accumulated vertical sample once.
  * Keep a valid prefix when an invalid later row lies outside a clipped draw;
- * callers own the source_height records and their GPU/cache lifetime.
+ * callers own the source_height records and their GPU/cache lifetime. Retain
+ * continuous Y and its local increment in the same cache entry for filtering.
  */
 int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *p,
                                      const s_drawmethod *m, gpu_plane_row *rows)
@@ -290,7 +291,6 @@ int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *p,
         }
         rows[row].step = step;
         rows[row].source_y = (float)source_y;
-        rows[row].reserved[0] = rows[row].reserved[1] = 0.0f;
 
         if(m->water.perspective == WATER_PERSPECTIVE_TILE)
         {
@@ -304,6 +304,15 @@ int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *p,
         {
             y_step = 1.0f;
         }
+        /* Both sampling policies share this row map. Keep the legacy integer
+         * row unchanged and preserve the fraction before wrapping; averaging
+         * already selected rows would lose the original vertical recurrence. */
+        rows[row].source_y_continuous = fmodf(sy, (float)p->source_height);
+        if(rows[row].source_y_continuous < 0.0f)
+        {
+            rows[row].source_y_continuous += p->source_height;
+        }
+        rows[row].step_y = y_step;
         sy += y_step;
     }
     return row;
@@ -313,6 +322,8 @@ int gpu_transform_prepare_plane_rows(const gpu_transform_parameters *p,
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Use cached row mapping and one quad when shader sampling is available.
+ * 2026-11-15 - Preserve continuous source centers for reconstruction filters.
+ * 2026-11-15 - Periodize filtered scrolling before adding fractional row offsets.
  * Reproduce the existing plane's row-wise scale and accumulated vertical
  * sampling. Tile/stretch/no-perspective retain their established meanings,
  * including wavetime texture scrolling.
@@ -330,6 +341,7 @@ static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod 
     float end = m->water.endsize;
     float factor, size, center, origin_u;
     float sy = 0.0f;
+    double filtered_origin_u = 0.0;
     const double coordinate_limit = (double)INT_MAX / 2.0;
     int row, rows;
 
@@ -384,6 +396,19 @@ static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod 
                (double)fabsf(u_right) > coordinate_limit)
             {
                 return GPU_TRANSFORM_FAILED;
+            }
+            if(m->resample != DC_RESAMPLE_NEAREST)
+            {
+                const gpu_plane_row *mapping = &plane->rows[endpoint ? rows - 1 : 0];
+                double source_bound = p->source_height + 0.5 * mapping->step_y;
+                /* Local Y steps have the same monotonic extrema as X. Bound
+                 * every wrapped center by source height plus half the step;
+                 * wrapped Y itself need not be monotonic. Nearest keeps its
+                 * valid prefix and the intrinsic cache key stays unchanged. */
+                if(!gpu_finite(source_bound) || source_bound > coordinate_limit)
+                {
+                    return GPU_TRANSFORM_FAILED;
+                }
             }
             if(fabsf(u_left) > 1048576.0f || fabsf(u_right) > 1048576.0f)
             {
@@ -450,12 +475,31 @@ static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod 
         {
             return GPU_TRANSFORM_FAILED;
         }
+        if(m->resample != DC_RESAMPLE_NEAREST)
+        {
+            double source_bound = p->source_height + 0.5 * y_step;
+            if(!gpu_finite(source_bound) || source_bound > coordinate_limit)
+            {
+                return GPU_TRANSFORM_FAILED;
+            }
+        }
         sy += y_step;
     }
 
     /* Replay the validated recurrence and submit only visible rows. Horizontal
      * texels interpolate across each quad; the chosen source row stays constant
      * across its height, preserving the plane's row-based vertical sampling. */
+    if(m->resample != DC_RESAMPLE_NEAREST)
+    {
+        /* Remove whole texture periods before combining scrolling with the
+         * fractional inverse map. Large scroll times must not round away the
+         * reconstruction phase before the shader wraps individual taps. */
+        filtered_origin_u = fmod((double)origin_u, (double)p->source_width);
+        if(filtered_origin_u < 0.0)
+        {
+            filtered_origin_u += p->source_width;
+        }
+    }
     sy = 0.0f;
     size = begin;
     for(row = 0; row < rows; ++row, size += factor)
@@ -485,13 +529,32 @@ static int gpu_draw_plane(const gpu_transform_parameters *p, const s_drawmethod 
         }
         if(top >= 0.0f)
         {
-            /* Interpolation runs through destination pixel centers. Offset
-             * the quad's source edge by half a step so each center receives
-             * the plane sampler's intended integer-destination-x sample. */
-            u -= 0.5f * step;
+            float v = (float)source_y;
+            float u_end;
+            if(m->resample == DC_RESAMPLE_NEAREST)
+            {
+                /* Nearest retains integer-destination sampling. Its source
+                 * edge is offset so interpolation selects the existing texel. */
+                u -= 0.5f * step;
+                u_end = u + (right - left) * step;
+            }
+            else
+            {
+                /* Filtering evaluates the continuous recurrence at pixel
+                 * centers. Plane taps wrap later, including both row seams. */
+                double midpoint = p->target_width / 2.0;
+                u = (float)(filtered_origin_u + ((double)left - midpoint) * step);
+                u_end = (float)(filtered_origin_u + ((double)right - midpoint) * step);
+                v = fmodf(sy, (float)p->source_height);
+                if(v < 0.0f)
+                {
+                    v += p->source_height;
+                }
+                v += 0.5f * y_step;
+            }
             if(gpu_emit_rect(left, top, right, top + 1.0f,
-                             u, (float)source_y, u + (right - left) * step,
-                             (float)source_y, 1, emit, userdata) == GPU_TRANSFORM_FAILED)
+                             u, v, u_end,
+                             v, GPU_SAMPLE_TILE, emit, userdata) == GPU_TRANSFORM_FAILED)
             {
                 return GPU_TRANSFORM_FAILED;
             }
@@ -638,6 +701,7 @@ static int gpu_draw_water(const gpu_transform_parameters *p, const s_drawmethod 
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-15 - Filtered rotation evaluates the inverse map at pixel centers.
  *
  * Emit one inverse-mapped rectangle for rotation. The established transform
  * scales in destination axes after rotation and uses flip-dependent angle
@@ -656,6 +720,7 @@ static int gpu_draw_rotate(const gpu_transform_parameters *p, const s_drawmethod
     double miny = DBL_MAX;
     double maxx = -DBL_MAX;
     double maxy = -DBL_MAX;
+    double sample_offset = m->resample == DC_RESAMPLE_NEAREST ? 0.5 : 0.0;
     gpu_vertex vertices[4];
     int index;
     int degrees = (int)fmod(m->rotate, 360.0f);
@@ -730,10 +795,12 @@ static int gpu_draw_rotate(const gpu_transform_parameters *p, const s_drawmethod
         double y = index >= 2 ? maxy : miny;
         vertices[index].x = (float)x;
         vertices[index].y = (float)y;
-        /* Subtract half a destination pixel before mapping so rasterized
-         * pixel centers reproduce integer-position source sampling. */
-        vertices[index].u = (float)(cx + ax * (x - p->x - 0.5) + bx * (y - p->y - 0.5));
-        vertices[index].v = (float)(cy + ay * (x - p->x - 0.5) + by * (y - p->y - 0.5));
+        /* Nearest reproduces integer-position sampling. Filtering maps the
+         * actual destination center to source edges before kernel placement. */
+        vertices[index].u = (float)(cx + ax * (x - p->x - sample_offset)
+                                     + bx * (y - p->y - sample_offset));
+        vertices[index].v = (float)(cy + ay * (x - p->x - sample_offset)
+                                     + by * (y - p->y - sample_offset));
     }
     return emit(vertices, GPU_SAMPLE_CONTINUOUS, userdata) ? GPU_TRANSFORM_DRAWN : GPU_TRANSFORM_FAILED;
 }
@@ -756,6 +823,8 @@ typedef struct gpu_shear_setup
 {
     int64_t origin_x, width, clip_left, clip_right, bottom, rows, shift;
     int64_t source_x, source_y, step_x, step_y;
+    int resampled;
+    double filtered_source[2], filtered_step[2];
 } gpu_shear_setup;
 
 /*
@@ -773,6 +842,7 @@ static int64_t gpu_floor_divide(int64_t numerator, int64_t divisor)
 /*
  * Damon V. Caskey
  * 2026-11-14
+ * 2026-11-15 - Retain continuous source centers without changing row coverage.
  * Replace a legacy row walk with bounded shader sampling parameters. Exact
  * whole/byte pairs preserve snapped coverage and clipping-dependent phase.
  * Unsupported precision retains the existing native row geometry.
@@ -833,6 +903,18 @@ static int gpu_prepare_shear(const gpu_transform_parameters *parameters,
     width_whole = gpu_fixed_floor(setup->width);
     shift_whole = gpu_fixed_floor(setup->shift);
 
+    /* Filtered coordinates share the bounded coverage domain, while their
+     * true reciprocal steps retain fractional source positions. Extremely
+     * displaced phases keep native row geometry instead of losing fractions
+     * in a shader addition with a large source origin. */
+    if(setup->resampled &&
+       (fabs(setup->filtered_source[0]) > 1048576.0 ||
+        fabs(setup->filtered_source[1] + first * setup->filtered_step[1]) > 1048576.0 ||
+        fabs(setup->filtered_source[1] + last * setup->filtered_step[1]) > 1048576.0))
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+
     /* Bound a single destination rectangle around all surviving row spans.
      * The shader rejects staircase gaps using each row's original clipped
      * fixed-point coverage, rather than continuously skewing the artwork. */
@@ -856,10 +938,20 @@ static int gpu_prepare_shear(const gpu_transform_parameters *parameters,
     sampling->extent[2] = (float)rows;
     sampling->shift[0] = (float)shift_whole;
     sampling->shift[1] = (float)(setup->shift - shift_whole * 256);
-    sampling->source[0] = (float)setup->source_x;
-    sampling->source[1] = (float)source_y;
-    sampling->step[0] = (float)setup->step_x;
-    sampling->step[1] = (float)setup->step_y;
+    if(setup->resampled)
+    {
+        sampling->source[0] = (float)setup->filtered_source[0];
+        sampling->source[1] = (float)(setup->filtered_source[1] + first * setup->filtered_step[1]);
+        sampling->step[0] = (float)setup->filtered_step[0];
+        sampling->step[1] = (float)setup->filtered_step[1];
+    }
+    else
+    {
+        sampling->source[0] = (float)setup->source_x;
+        sampling->source[1] = (float)source_y;
+        sampling->step[0] = (float)setup->step_x;
+        sampling->step[1] = (float)setup->step_y;
+    }
     sampling->clip[0] = (float)(setup->clip_left / 256);
     sampling->clip[1] = (float)(setup->clip_right / 256);
     sampling->enabled = 1;
@@ -918,6 +1010,7 @@ static int gpu_scale_span(int64_t dx, int64_t width, int64_t xmin, int64_t xmax,
  * 2026-11-12
  *
  * 2026-11-14 - Supply exact shear sampling when the native shader supports it.
+ * 2026-11-15 - Filter true inverse coordinates independently of legacy coverage.
  * Keep existing fixed-point scale/flip sampling instead of shifting downscaled
  * artwork to a different texel. Ordinary scaling remains one GPU quad. Shear
  * uses one shader-sampled quad or retains its established row geometry when
@@ -940,6 +1033,9 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
     int64_t dx, dy, step_x, step_y, source_x, source_y;
     int64_t shift = m->shiftx;
     int64_t begin_y, end_y, rows, row;
+    int64_t unclipped_origin, unclipped_bottom;
+    double filtered_source[2] = {0.0, 0.0};
+    double filtered_step[2] = {0.0, 0.0};
     float left, right, u0, u1;
 
     /* Positions, extents and pivots are in 8.8 fixed-point units here. Wider
@@ -992,6 +1088,8 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
         shift = -shift;
     }
     dx += gpu_fixed_floor((dy + height - y) * shift);
+    unclipped_origin = dx;
+    unclipped_bottom = gpu_fixed_floor(dy + height);
 
     /* Reciprocal scale becomes an 8.8 source step: 256 * 256 / scale.
      * Its sign follows the right-to-left, bottom-to-top traversal. Starting
@@ -1030,6 +1128,26 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
         source_y += gpu_fixed_floor(step_y * (dy + height - end_y));
     }
 
+    if(m->resample != DC_RESAMPLE_NEAREST)
+    {
+        int64_t bottom = gpu_fixed_floor(end_y);
+        int64_t row_origin = unclipped_origin - (unclipped_bottom - bottom) * shift;
+        double edge_y = m->config & DRAWMETHOD_CONFIG_FLIP_Y ? p->source_height : 0.0;
+
+        /* Keep the exact authored inverse scale instead of rounding its
+         * reciprocal onto the legacy 8.8 grid. X advances left-to-right;
+         * Y follows the existing bottom-to-top row traversal. */
+        filtered_step[0] = (m->config & DRAWMETHOD_CONFIG_FLIP_X ? -256.0 : 256.0) / m->scalex;
+        filtered_step[1] = (m->config & DRAWMETHOD_CONFIG_FLIP_Y ? 256.0 : -256.0) / m->scaley;
+        filtered_source[0] = m->config & DRAWMETHOD_CONFIG_FLIP_X ? p->source_width : 0.0;
+        filtered_source[1] = edge_y - (bottom - 0.5 - dy / 256.0) * filtered_step[1];
+
+        /* Bottom clipping changes the legacy shear origin when its original
+         * bottom has fractional bits. Coverage remains unchanged, but source
+         * phase stays anchored to the unclipped fixed-row recurrence. */
+        filtered_source[0] += ((dx - row_origin) / 256.0) * filtered_step[0];
+    }
+
     if(!shift)
     {
         /* With no shear, every row shares horizontal coverage. One quad can
@@ -1042,6 +1160,20 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
         {
             return GPU_TRANSFORM_EMPTY;
         }
+        if(m->resample != DC_RESAMPLE_NEAREST)
+        {
+            double edge_y = m->config & DRAWMETHOD_CONFIG_FLIP_Y ? p->source_height : 0.0;
+            float v1;
+            /* Geometry retains the established snapped extent. Mapping each
+             * surviving edge from the original origin prevents clipping from
+             * shifting the filter's position within the source image. */
+            u0 = (float)(filtered_source[0] + (left - dx / 256.0) * filtered_step[0]);
+            u1 = (float)(filtered_source[0] + (right - dx / 256.0) * filtered_step[0]);
+            v0 = (float)(edge_y - (bottom - rows - dy / 256.0) * filtered_step[1]);
+            v1 = (float)(edge_y - (bottom - dy / 256.0) * filtered_step[1]);
+            return gpu_emit_rect(left, bottom - rows, right, bottom,
+                                 u0, v0, u1, v1, GPU_SAMPLE_FIXED8, emit, userdata);
+        }
         return gpu_emit_rect(left, bottom - rows, right, bottom,
                              u0, v0, u1, v0 + rows * delta, GPU_SAMPLE_FIXED8, emit, userdata);
     }
@@ -1049,7 +1181,10 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
     if(shear)
     {
         gpu_shear_setup setup = {dx, width, xmin, xmax, gpu_fixed_floor(end_y),
-                                rows, shift, source_x, source_y, step_x, step_y};
+                                rows, shift, source_x, source_y, step_x, step_y,
+                                m->resample != DC_RESAMPLE_NEAREST,
+                                {filtered_source[0], filtered_source[1]},
+                                {filtered_step[0], filtered_step[1]}};
         float rectangle[4];
         int result = gpu_prepare_shear(p, &setup, shear, rectangle);
         if(result == GPU_TRANSFORM_EMPTY) return result;
@@ -1072,6 +1207,15 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
                           &left, &right, &u0, &u1))
         {
             float v = (float)source_y / 256.0f;
+            if(m->resample != DC_RESAMPLE_NEAREST)
+            {
+                /* The row geometry representation carries the same source
+                 * centers as the single-quad shader path, including its
+                 * fractional fixed row origin and unclipped source phase. */
+                u0 = (float)(filtered_source[0] + (left - dx / 256.0) * filtered_step[0]);
+                u1 = (float)(filtered_source[0] + (right - dx / 256.0) * filtered_step[0]);
+                v = (float)(filtered_source[1] + row * filtered_step[1]);
+            }
             if(gpu_emit_rect(left, top, right, top + 1.0f, u0, v, u1, v,
                              GPU_SAMPLE_FIXED8, emit, userdata) == GPU_TRANSFORM_FAILED)
             {
