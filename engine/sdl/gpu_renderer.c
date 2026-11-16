@@ -46,6 +46,12 @@
 #define GPU_PLANE_MAX_ROWS 16384
 #define GPU_POSITION_ATTRIBUTE 0
 #define GPU_TEXCOORD_ATTRIBUTE 1
+#define GPU_LAUNCHER_GLYPH_WIDTH 5
+#define GPU_LAUNCHER_GLYPH_HEIGHT 10
+#define GPU_LAUNCHER_GLYPHS 160
+#define GPU_LAUNCHER_ATLAS_COLUMNS 16
+#define GPU_LAUNCHER_ATLAS_WIDTH (GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_WIDTH)
+#define GPU_LAUNCHER_ATLAS_HEIGHT (GPU_LAUNCHER_GLYPHS / GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_HEIGHT)
 #define GPU_QUERY_CAPACITY 256
 #define GPU_QUERY_TOKEN_BITS 9
 #define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
@@ -265,6 +271,10 @@ static GLuint output_filter_program, output_filter_texture, output_filter_frameb
 static gpu_output_filter_uniforms output_filter_uniforms;
 static int output_filter_width, output_filter_height;
 static int output_filter_program_attempted, output_filter_warning;
+/* Font pixels are immutable source data, outside the CPU-backed screen cache. */
+static gpu_image launcher_font_image;
+static const unsigned char *launcher_font_rows;
+static int launcher_text_warning;
 
 /* Private declarations keep optional timer entry points independent from the
  * GL 2.1 presentation loader and from newer typedefs in platform GL headers. */
@@ -3416,6 +3426,188 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
 /*
  * Damon V. Caskey
  * 2026-11-16
+ * Expand the immutable launcher bitmap once per font/context into a compact
+ * indexed atlas. Index zero is background; index one retains opaque black ink.
+ * Failed replacement leaves the previous atlas intact and touches no screen.
+ */
+static int gpu_launcher_font_ready(const unsigned char *font_rows)
+{
+    unsigned char pixels[GPU_LAUNCHER_ATLAS_WIDTH * GPU_LAUNCHER_ATLAS_HEIGHT];
+    GLuint texture;
+    int glyph, row, column;
+    if(launcher_font_image.texture && launcher_font_rows == font_rows) return 1;
+    for(glyph = 0; glyph < GPU_LAUNCHER_GLYPHS; ++glyph)
+    {
+        int left = glyph % GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_WIDTH;
+        int top = glyph / GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_HEIGHT;
+        for(row = 0; row < GPU_LAUNCHER_GLYPH_HEIGHT; ++row)
+        {
+            unsigned bits = font_rows[glyph * GPU_LAUNCHER_GLYPH_HEIGHT + row];
+            for(column = 0; column < GPU_LAUNCHER_GLYPH_WIDTH; ++column)
+            {
+                pixels[(top + row) * GPU_LAUNCHER_ATLAS_WIDTH + left + column] =
+                    (unsigned char)((bits >> column) & 1u);
+            }
+        }
+    }
+    texture = gpu_new_texture(GPU_LAUNCHER_ATLAS_WIDTH, GPU_LAUNCHER_ATLAS_HEIGHT,
+                               GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+    if(!texture) return 0;
+
+    /* Publish only complete source storage. Text color lives in the existing
+     * palette cache, so foreground/background changes never rebuild the atlas. */
+    gpu_gl_invalidate_state();
+    if(launcher_font_image.texture) glDeleteTextures(1, &launcher_font_image.texture);
+    memset(&launcher_font_image, 0, sizeof(launcher_font_image));
+    launcher_font_image.owner = font_rows;
+    launcher_font_image.sprite = 1;
+    launcher_font_image.width = GPU_LAUNCHER_ATLAS_WIDTH;
+    launcher_font_image.height = GPU_LAUNCHER_ATLAS_HEIGHT;
+    launcher_font_image.format = PIXEL_x8;
+    launcher_font_image.texture = texture;
+    launcher_font_rows = font_rows;
+    ++stats.launcher_font_uploads;
+    ++stats.uploads;
+    stats.launcher_font_resources = 1;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Discard recreatable font storage before its GL context is destroyed. Font
+ * pixels have no destination ownership and never require a screen readback.
+ */
+static void gpu_launcher_font_shutdown(void)
+{
+    gpu_gl_invalidate_state();
+    if(launcher_font_image.texture) glDeleteTextures(1, &launcher_font_image.texture);
+    memset(&launcher_font_image, 0, sizeof(launcher_font_image));
+    launcher_font_rows = NULL;
+    launcher_text_warning = 0;
+    stats.launcher_font_resources = 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Draw fixed launcher cells through the indexed material shader in one ordered
+ * batch. Validate the complete run, then clip in wide integer coordinates before
+ * emitting geometry or preparing resources. No CPU screen synchronization occurs.
+ */
+int gpu_gl_draw_launcher_text(s_screen *screen, int x, int y,
+                              unsigned foreground, unsigned background, int fill,
+                              const unsigned char *glyphs, size_t count,
+                              const unsigned char *font_rows, size_t font_glyph_count)
+{
+    gpu_image *target;
+    uint32_t palette[GPU_PALETTE_COLORS] = {0};
+    s_drawmethod method = {0};
+    size_t index, first, end;
+    int64_t top, bottom, right;
+    ep_scope geometry_scope;
+    const char *failure = "launcher text resources unavailable";
+    native_failure = EP_FALLBACK_OTHER;
+    if(!initialized || !gpu_is_active() || !screen || screen->pixelformat != PIXEL_32 ||
+       screen->width <= 0 || screen->height <= 0 ||
+       screen->width > maximum_texture_size || screen->height > maximum_texture_size)
+    {
+        failure = "native RGB32 target unavailable or invalid";
+        native_failure = EP_FALLBACK_TARGET_FORMAT;
+        goto failed;
+    }
+    if(!count) return 1;
+    /* Only wide pen arithmetic bounds the input run. Visible cells are clipped
+     * to the screen before geometry allocation, so the whole span need not fit int. */
+    if(!glyphs || !font_rows || font_glyph_count != GPU_LAUNCHER_GLYPHS ||
+       count > (size_t)((INT64_MAX - INT_MAX) / GPU_LAUNCHER_GLYPH_WIDTH))
+    {
+        failure = "invalid launcher font or glyph run";
+        goto failed;
+    }
+    for(index = 0; index < count; ++index)
+    {
+        if(glyphs[index] >= GPU_LAUNCHER_GLYPHS)
+        {
+            failure = "launcher glyph index exceeds the immutable font";
+            goto failed;
+        }
+    }
+
+    /* Offscreen text succeeds before atlas creation or source upload. Use
+     * int64_t for pen positions so extreme signed coordinates cannot wrap. */
+    top = y > 0 ? y : 0;
+    bottom = (int64_t)y + GPU_LAUNCHER_GLYPH_HEIGHT;
+    if(bottom > screen->height) bottom = screen->height;
+    right = (int64_t)x + (int64_t)count * GPU_LAUNCHER_GLYPH_WIDTH;
+    if(bottom <= top || x >= screen->width || right <= 0) return 1;
+    first = x < 0 ? (size_t)(-(int64_t)x / GPU_LAUNCHER_GLYPH_WIDTH) : 0;
+    end = (size_t)(((int64_t)screen->width - x + GPU_LAUNCHER_GLYPH_WIDTH - 1) /
+                   GPU_LAUNCHER_GLYPH_WIDTH);
+    if(end > count) end = count;
+    quad_count = 0;
+    geometry_scope = engine_profile_span_begin();
+    for(index = first; index < end; ++index)
+    {
+        int glyph = glyphs[index];
+        int64_t left = (int64_t)x + (int64_t)index * GPU_LAUNCHER_GLYPH_WIDTH;
+        int64_t clipped_left = left > 0 ? left : 0;
+        int64_t clipped_right = left + GPU_LAUNCHER_GLYPH_WIDTH;
+        int atlas_x = glyph % GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_WIDTH;
+        int atlas_y = glyph / GPU_LAUNCHER_ATLAS_COLUMNS * GPU_LAUNCHER_GLYPH_HEIGHT;
+        float source_left = (float)(atlas_x + clipped_left - left);
+        float source_top = (float)(atlas_y + top - y);
+        gpu_vertex vertices[4];
+        if(clipped_right > screen->width) clipped_right = screen->width;
+        vertices[0] = (gpu_vertex){(float)clipped_left, (float)top, source_left, source_top};
+        vertices[1] = (gpu_vertex){(float)clipped_right, (float)top,
+            source_left + (float)(clipped_right - clipped_left), source_top};
+        vertices[2] = (gpu_vertex){(float)clipped_right, (float)bottom,
+            vertices[1].u, source_top + (float)(bottom - top)};
+        vertices[3] = (gpu_vertex){(float)clipped_left, (float)bottom, source_left, vertices[2].v};
+        if(!gpu_collect_quad(vertices, 0, NULL))
+        {
+            engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+            goto failed;
+        }
+    }
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    if(!quad_count) return 1;
+    if(!gpu_launcher_font_ready(font_rows)) goto failed;
+    target = gpu_screen_image(screen, 1);
+    if(!target) goto failed;
+
+    /* Launcher colors are direct opaque RGB. Explicit neutral material state
+     * ignores ambient drawmethods, opacity, clips and optional color rules.
+     * Palette index zero is keyed before lookup only for transparent text. */
+    palette[0] = fill ? background & 0x00ffffffu : 0;
+    palette[1] = foreground & 0x00ffffffu;
+    method.config = DRAWMETHOD_CONFIG_ENABLED;
+    method.alpha = 0;
+    method.remap = -1;
+    method.scalex = method.scaley = 256;
+    method.xrepeat = method.yrepeat = 1;
+    method.channelr = method.channelg = method.channelb = 255;
+    method.resample = DC_RESAMPLE_NEAREST;
+    if(!gpu_render_quads(target, &launcher_font_image, NULL, (const unsigned char *)palette,
+                         &method, !fill, 0, 0, NULL, NULL, NULL, NULL, 0)) goto failed;
+    ++stats.launcher_text_draws;
+    stats.launcher_text_glyphs += quad_count;
+    return 1;
+failed:
+    if(!launcher_text_warning)
+    {
+        gpu_log("WARNING: Native launcher text rejected: %s; no CPU retry.", failure);
+        launcher_text_warning = 1;
+    }
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-16
  * Compile the common output-filter equations only when an active filter is
  * presented. Failure disables this pass without retiring scene resources.
  */
@@ -4027,6 +4219,7 @@ static int gpu_probe_rgb32_target(void)
  * 2026-11-15 - Report water sampling and compact plane recurrence support.
  * 2026-11-15 - Report shared movie reconstruction and lazy shader validation.
  * 2026-11-16 - Report shared RGB8 output filters and their GPU-only intermediate.
+ * 2026-11-16 - Report native launcher text and its immutable indexed atlas.
  * Close every startup capability report with its actual drawing path and
  * performance consequences, independently of optional profiling records.
  */
@@ -4108,6 +4301,15 @@ static void gpu_log_capability_result(int native_available)
             "\tReduction:                         Fixed support; no mipmap/area prefilter\n"
             "\tSoftware implementation:           None; unavailable filtered draws logged and skipped\n",
             native_available ? "NATIVE - available" : "UNAVAILABLE");
+    gpu_log("Launcher Bitmap Text\n"
+            "\tRendering path:                    %s\n"
+            "\tFont atlas:                        160 glyphs, 5x10 pixels; 80x100 LUMINANCE8\n"
+            "\tAtlas lifetime:                    Uploaded on first visible text run; reused until context retirement\n"
+            "\tSubmission:                        One ordered native batch per visible text run\n"
+            "\tColors and coverage:               Opaque RGB foreground; optional background fill; screen-bound clipping\n"
+            "\tScene pixel processing/readback:   None on CPU\n"
+            "\tSoftware implementation:           None on native paths; rejected text logged and skipped\n",
+            native_available ? "NATIVE - shared indexed material shader" : "UNAVAILABLE");
     gpu_log("Output Filters\n"
             "\tRendering path:                    %s\n"
             "\tShader validation:                 Compiled and linked on first filtered presentation\n"
@@ -4191,6 +4393,7 @@ int gpu_gl_init(void)
     water_supported = plane_supported = 0;
     plane_cache_warning = plane_upload_warning = 0;
     output_filter_warning = 0;
+    launcher_text_warning = 0;
     maximum_texture_size = 0;
     gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
@@ -4592,6 +4795,7 @@ failed:
  * 2026-11-12
  * 2026-11-15 - Retire context-owned plane maps with the other native resources.
  * 2026-11-16 - Discard private output-filter storage without a screen readback.
+ * 2026-11-16 - Discard the immutable launcher font atlas with its context.
  * Preserve live screen contents before destroying a graphics context. This
  * infrequent readback keeps pause buffers, scripted targets and mode changes
  * functional without maintaining a CPU copy after every rendered frame.
@@ -4638,6 +4842,7 @@ void gpu_gl_shutdown(void)
     gpu_gl_prepare_present();
     gpu_movie_shutdown();
     gpu_output_filter_shutdown();
+    gpu_launcher_font_shutdown();
     gpu_DeleteProgram(program);
     glDeleteTextures(1, &white_texture);
     glDeleteTextures(1, &palette_texture);

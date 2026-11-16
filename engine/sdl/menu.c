@@ -13,7 +13,11 @@
 #include "soundmix.h"
 #include "packfile.h"
 #include "gfx.h"
+#if defined(ANDROID)
 #include "hankaku.h"
+#else
+#include "launcher_text.h"
+#endif
 #include "stristr.h"
 #include "stringptr.h"
 #include "gpu.h"
@@ -201,10 +205,12 @@ static int findPaks(void)
 	return i;
 }
 
+#if defined(ANDROID)
 /*
  * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Keep launcher glyph writes exclusively in its RGB32 format.
+ * 2026-11-16 - Isolate this existing path until the Android launcher is removed.
  * Draw launcher-menu text into the screen's CPU pixel storage. Preserve any
  * native-rendered image beneath the text before writing glyph rows, then
  * leave the screen marked for upload when presentation next uses it.
@@ -284,6 +290,25 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 		x+=5;
 	}
 }
+#else
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Draw desktop development-launcher labels in the existing native scene.
+ * Formatting and font mapping do not transfer the destination back to the CPU.
+ */
+static void printText(int x, int y, int col, int backcol, int fill, const char *format, ...)
+{
+	va_list args;
+
+	/* Submit at the original call site so previews and later labels retain
+	 * their established overlap order. Native failure only logs and skips. */
+	va_start(args, format);
+	launcher_text_vprintf(vscreen, x, y, (unsigned)col, (unsigned)backcol,
+	                     fill, format, args);
+	va_end(args);
+}
+#endif
 
 static s_screen *getPreview(char *filename)
 {
@@ -688,6 +713,11 @@ static void drawBGMPlayer()
 	blit_video_menu(vscreen);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-16
+ * Keep copied log lines terminated before passing them to the label formatter.
+ */
 static void drawLogs()
 {
 	int i=which_logfile, j, k, l, done=0;
@@ -717,7 +747,8 @@ static void drawLogs()
 				if(l<LOG_SCREEN_END)
 				{
 					char textpad[480] = {""};
-					for(k=0; k<480; k++)
+					/* Reserve the final byte even when a log line fills the buffer. */
+					for(k=0; k<(int)sizeof(textpad)-1; k++)
 					{
 						if(!logfile[i].buf->ptr[logfile[i].pos[j]+k]) break;
 						textpad[k] = logfile[i].buf->ptr[logfile[i].pos[j]+k];

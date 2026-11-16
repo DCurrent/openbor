@@ -275,6 +275,13 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_gpu_output_filter_tests.sh
 
+# Keep the desktop development launcher's bitmap text GPU-resident while
+# preserving its byte repertoire, formatting, clipping and native draw order.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_launcher_text_tests.sh
+
 # Preserve movie color conversion, per-plane reconstruction, opaque clipping,
 # resident source caching and native ownership across real context replacement.
 OPENBOR_TEST_BUILD_DIR="$test_build_dir" \

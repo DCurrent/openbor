@@ -64,6 +64,7 @@ formats.
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
+| Desktop development-launcher text | Resident bitmap atlas, native indexed glyph batches and existing RGB32 scene order; no CPU glyph fallback |
 | Native geometry submission | Contiguous vertex uploads and cached triangle indices; draw order and material boundaries retained |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
@@ -524,6 +525,47 @@ loading, not eliminate a transfer currently repeated on every draw. Discarding
 the CPU source would require a separate lifetime/restoration design and is not
 part of state caching.
 
+## Desktop development-launcher text
+
+The pack launcher's bitmap text now uses the native renderer on Windows,
+Linux and macOS. This covers the module list, music player and log viewer.
+The launcher is retained as a desktop development option; its planned removal
+from Android is separate. No Android launcher GPU adapter is added. Its
+existing text implementation is isolated behind the Android build guard and
+is absent from desktop binaries.
+
+The original 160-glyph font retains its five-by-ten-pixel cells, five-pixel
+advance and bit-exact nearest sampling. One private 80-by-100 index texture
+stores all glyphs. The renderer uploads it on first use, reuses it across
+labels and color changes, and releases it when its context is destroyed.
+The ordinary resident palette mechanism supplies foreground and background
+colors without changing the glyph texture.
+
+Each label submits its visible glyphs in one indexed native batch, directly
+at the original `printText()` call site. Existing backgrounds, previews and
+later labels therefore retain their overlap order. Text does not read back
+the destination, write CPU pixels or upload a modified scene. Transparent
+background cells leave earlier pixels untouched; filled cells use the supplied
+background color. Black foreground remains opaque. Launcher text uses its
+fixed bitmap appearance independently of gameplay drawmethods.
+
+CPU work formats the string, maps character bytes and prepares glyph geometry.
+Short labels use stack storage; longer formatted log lines allocate their
+measured size instead of overflowing or truncating the old 128-byte buffer.
+Drawing stops at the first NUL and clips every screen edge. Only actual string
+cells are filled. Supported byte ranges remain `0x20..0x7f` and `0xa0..0xdf`.
+Other nonzero bytes occupy blank cells, including the previously out-of-range
+`0xe0..0xff` values. Newline and tab bytes retain one blank cell rather than
+introducing layout rules.
+
+Validation or resource rejection before submission logs and skips the label
+without entering a desktop CPU glyph path. Driver errors after submission
+retain the native renderer's existing fatal-error policy. This change makes
+launcher rendering consistent with native scene composition; no launcher
+FPS improvement is claimed. The regression fixture compares complete RGB8
+images with an independent bitmap reference and checks atlas reuse, ordering,
+clipping, safe formatting, failure recovery and context replacement.
+
 ## Screen ownership and synchronization
 
 Screens retain their CPU allocation as a migration shadow. The copy in system
@@ -772,6 +814,11 @@ The suites cover:
 - Reuse of validated affine repeat data, full-copy upload elision, and partial
   copies preserving the destination border.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
+- Desktop launcher glyphs against the original bitmap data, exact RGB8 colors,
+  filled/transparent cells, unsupported bytes, long formatted strings, screen
+  clipping and overlap with previews; no text-induced readback or scene upload.
+- Launcher atlas reuse across labels/colors, failed allocation/upload recovery,
+  invalid-run atomicity and fresh residency after context replacement.
 - Exact RGB8 output-filter images against an independent scalar oracle,
   including every byte value, tiny/odd dimensions, explicit borders and all
   Scale2x equality branches; no scene readback during filtering.
@@ -790,7 +837,9 @@ platform build results remain release gates for further renderer migration.
 Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
 The retained CPU implementations still support required renderer paths,
 explicit image operations, and reference tests. Remaining work includes
-Android native scene/GLES integration, launcher text and additional batching.
+Android native scene/GLES integration and additional batching. Desktop launcher
+text now uses native glyph batches; the Android pack launcher is planned for
+removal instead of a separate GPU port.
 Output filtering has moved to the GPU on desktop and Android. Remove
 CPU rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing
