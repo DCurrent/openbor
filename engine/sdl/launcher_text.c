@@ -8,7 +8,7 @@
 #include "launcher_text.h"
 #include "hankaku.h"
 #include "gpu.h"
-#if defined(ANDROID) || defined(OPENBOR_ANDROID_LAUNCHER_TEST)
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_SCENE_TEST)
 #include "video.h"
 #elif defined(OPENGL)
 #include "gpu_renderer.h"
@@ -65,7 +65,7 @@ int launcher_text_vprintf(s_screen *screen, int x, int y,
     va_list copy;
     int length, result = 0;
     size_t count;
-#if !defined(OPENGL) && !defined(ANDROID) && !defined(OPENBOR_ANDROID_LAUNCHER_TEST)
+#if !defined(OPENGL) && !defined(ANDROID) && !defined(OPENBOR_ANDROID_SCENE_TEST)
     static int unavailable_logged;
 #endif
 
@@ -107,9 +107,9 @@ int launcher_text_vprintf(s_screen *screen, int x, int y,
     /* Mapping stops at the first NUL, including one produced by %c. Blank
      * glyphs inside the mapped run are ordinary cells, not terminators. */
     count = launcher_text_map(text, (size_t)length);
-#if defined(ANDROID) || defined(OPENBOR_ANDROID_LAUNCHER_TEST)
-    /* Android composes the complete launcher in its scoped GLES target. Its
-     * video adapter retains frame ordering and owns presentation eligibility. */
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_SCENE_TEST)
+    /* Android shares native scene storage with gameplay. Its video adapter
+     * retains whole-frame eligibility when a launcher command is rejected. */
     result = video_launcher_text(screen, x, y, foreground, background, fill,
                                  text, count, hankaku_font10, LAUNCHER_FONT_GLYPHS);
 #elif defined(OPENGL)

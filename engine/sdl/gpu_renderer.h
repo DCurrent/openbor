@@ -20,6 +20,20 @@
 /* Logical image row zero is texture row zero, matching the old upload path. */
 int gpu_gl_init(void);
 void gpu_gl_shutdown(void);
+/* Android installs its render-thread lifecycle guard before using shared
+ * screens. Suspension preserves newer GPU contents while the context exists.
+ * Abandonment makes no GL calls and returns zero if authoritative pixels were
+ * lost; that failure must stop recovery rather than expose stale CPU shadows. */
+void gpu_gl_set_context_guard(int (*guard)(void));
+int gpu_gl_suspend(void);
+int gpu_gl_abandon(void);
+/* Evict a private, reconstructible target after context loss with no GL calls.
+ * Its CPU owner may survive recovery, but its discarded contents are invalid
+ * until completely reconstructed and must not be presented before that redraw.
+ * Surviving script screens use the preservation/abandonment contract above. */
+void gpu_gl_discard_screen(s_screen *screen);
+/* Successful replacement changes this value even if SDL reuses its handle. */
+uint64_t gpu_gl_get_context_generation(void);
 /* Borrowed textures remain renderer-owned. External consumers must restore
  * their NEAREST/CLAMP sampling policy before native drawing resumes. */
 int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, int *height);
@@ -35,6 +49,8 @@ int gpu_gl_draw_launcher_text(s_screen *screen, int x, int y,
                               unsigned foreground, unsigned background, int fill,
                               const unsigned char *glyphs, size_t count,
                               const unsigned char *font_rows, size_t font_glyph_count);
+/* Restore presentation state only within the current owning context. This
+ * never invokes the platform recovery guard after a texture was borrowed. */
 void gpu_gl_prepare_present(void);
 /* Movie presentation retains the native scene backend and source planes. */
 int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,

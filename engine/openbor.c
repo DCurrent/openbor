@@ -56228,8 +56228,13 @@ void menu_options_video()
             char *filterName;
             if (savedata.hwscale == 1.0 && !savedata.fullscreen)
                 filterName = "Disabled";
+#ifndef ANDROID
+            /* Damon V. Caskey - 2026-11-20
+             * Android's native presenter retains its nearest/bilinear switch;
+             * the desktop presenter uses its fixed high-quality formula. */
             else if (opengl)
                 filterName = "High Quality";
+#endif
             else if (savedata.hwfilter)
                 filterName = "Simple";
             else

@@ -360,7 +360,7 @@ int video_copy_screen(s_screen *src)
  * Damon V. Caskey
  * 2026-11-16
  * Start desktop launcher composition in its ordinary native RGB32 screen.
- * The shared menu uses this same boundary for Android's private GPU target.
+ * Android uses the same screen storage through its native video boundary.
  */
 int video_launcher_begin(s_screen *target)
 {

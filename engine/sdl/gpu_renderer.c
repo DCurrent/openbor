@@ -3,7 +3,7 @@
  * All rights reserved, see LICENSE in OpenBOR root for details.
  * Copyright (c) OpenBOR Team
  */
-#if defined(OPENGL) && !defined(ANDROID)
+#if defined(OPENGL) || defined(ANDROID) || defined(OPENBOR_GLES)
 
 #include <limits.h>
 #include <inttypes.h>
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "SDL.h"
-#include "loadgl.h"
+#include "gpu_gl_api.h"
 #include "gpu.h"
 #include "gpu_shader.h"
 #include "gpu_transform.h"
@@ -38,7 +38,11 @@
 #define GPU_WATER_COMPONENTS 16
 #define GPU_PLANE_COMPONENTS 16
 #define GPU_MATERIAL_COMPONENTS 64
+#if defined(OPENBOR_GLES)
+#define GPU_FIXED_RASTER_CALLS 5
+#else
 #define GPU_FIXED_RASTER_CALLS 6
+#endif
 #define GPU_GEOMETRY_STATE_CALLS 6
 #define GPU_STREAM_INITIAL_QUADS 1024
 #define GPU_AFFINE_PREPARED_LIMIT 8192
@@ -61,10 +65,22 @@
 #ifndef GL_RGBA32F
 #define GL_RGBA32F 0x8814
 #endif
+#if defined(OPENBOR_GLES)
+/* GLES transfers engine RGBX bytes directly. Red-only textures carry indexed
+ * art, masks, lookup tables and decoder planes; shaders already sample .r. */
+#define GPU_PACKED_FORMAT GL_RGBA
+#define GPU_PACKED_TYPE GL_UNSIGNED_BYTE
+#define GPU_INDEX_FORMAT GL_RED
+#define GPU_INDEX_INTERNAL_FORMAT GL_R8
+#else
 #if REVERSE_COLOR
 #define GPU_PACKED_FORMAT GL_BGRA
 #else
 #define GPU_PACKED_FORMAT GL_RGBA
+#endif
+#define GPU_PACKED_TYPE GL_UNSIGNED_INT_8_8_8_8_REV
+#define GPU_INDEX_FORMAT GL_LUMINANCE
+#define GPU_INDEX_INTERNAL_FORMAT GL_LUMINANCE8
 #endif
 
 /* Use private entry points so the presentation backend's ARB shader loader
@@ -235,6 +251,9 @@ typedef struct gpu_plane_map
 } gpu_plane_map;
 
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
+/* Owners are detached immediately, but paused contexts may defer GL deletion.
+ * These lists hold no source pointers and are discarded on context loss. */
+static gpu_image *retired_images;
 static gpu_vertex *vertex_buffer;
 static int *quad_wraps;
 static size_t quad_count, quad_capacity;
@@ -252,6 +271,12 @@ static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
 static int initialized, tables_dirty = 1, table_mask, affine_supported, color_rules_supported, shear_supported;
+static SDL_GLContext renderer_context;
+/* SDL/EGL handles can reuse addresses after replacement. Generation, unlike
+ * the handle value, distinguishes every successfully initialized lifetime. */
+static uint64_t renderer_generation;
+static int (*context_guard)(void);
+static int context_guard_busy, context_warning;
 static int water_supported, plane_supported;
 static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
 static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
@@ -262,6 +287,7 @@ static int palette_selected_slot = GPU_PALETTE_NO_SLOT;
 static const unsigned char *table_pointers[MAX_BLENDINGS];
 static ep_fallback native_failure = EP_FALLBACK_OTHER;
 static gpu_movie_source *movie_sources;
+static gpu_movie_source *retired_movie_sources;
 static GLuint movie_program;
 static gpu_movie_uniforms movie_uniforms;
 static int movie_program_attempted, movie_present_warning;
@@ -315,6 +341,43 @@ static unsigned query_free_count, query_pending_head, query_pending_count;
 static int query_objects_created;
 static uint64_t query_generation;
 static gpu_query_stats query_stats;
+static void gpu_release_retired_resources(void);
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Let the platform restore or reject its owning context before scene work.
+ * Preservation and teardown suppress recursive recovery while they walk live
+ * screens; the original context must still be current for those operations.
+ */
+void gpu_gl_set_context_guard(int (*guard)(void))
+{
+    context_guard = guard;
+}
+
+static int gpu_context_ready(void)
+{
+    if(context_guard && !context_guard_busy)
+    {
+        int ready;
+        context_guard_busy = 1;
+        ready = context_guard();
+        context_guard_busy = 0;
+        if(!ready) return 0;
+    }
+    if(!initialized || !renderer_context ||
+       SDL_GL_GetCurrentContext() != renderer_context)
+    {
+        if(!context_warning)
+        {
+            context_warning = 1;
+            gpu_log("WARNING: Native scene operation rejected: its owning graphics context is unavailable.");
+        }
+        return 0;
+    }
+    gpu_release_retired_resources();
+    return 1;
+}
 
 /*
  * Damon V. Caskey
@@ -505,6 +568,15 @@ static void gpu_query_init(void)
                            engine_profile_enabled() ? "OPENBOR_PROFILE_GPU=0" : "OPENBOR_PROFILE=0");
         return;
     }
+#if defined(OPENBOR_GLES)
+    /* Timestamp queries are a desktop diagnostic. GLES rendering remains
+     * fully available without assuming a timer extension or ignoring its
+     * disjoint-clock rules. CPU profiling retains all ordinary counters. */
+    engine_profile_log("GPU Timing\n"
+                       "\tStatus:                            Unavailable\n"
+                       "\tReason:                            GLES timestamp profiling is not enabled");
+    return;
+#endif
     version = (const char *)glGetString(GL_VERSION);
     if(version)
     {
@@ -730,7 +802,7 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
 {
     GLuint shader = gpu_CreateShader(type);
     GLint success = 0;
-    char message[4096], defines[192];
+    char message[4096], defines[512];
     const char *parts[2];
     if(!shader)
     {
@@ -739,11 +811,22 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
         return 0;
     }
 
-    /* Both internal sources start with the same version directive. Insert
-     * capability defines after it, retaining GLSL's required first line. */
+    /* Both APIs compile the same equations. Only language declarations change;
+     * GLES3 supplies explicit high precision and fragment output semantics. */
+#if defined(OPENBOR_GLES)
+    snprintf(defines, sizeof(defines),
+             "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n"
+             "%s#define texture2D texture\n"
+             "#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n#define GPU_SHEAR %d\n#define GPU_WATER %d\n#define GPU_PLANE %d\n",
+             type == GL_VERTEX_SHADER ? "#define attribute in\n#define varying out\n" :
+             "#define varying in\nout highp vec4 openborFragment;\n#define gl_FragColor openborFragment\n",
+             affine_supported, color_rules_supported, shear_supported,
+             water_supported, plane_supported);
+#else
     snprintf(defines, sizeof(defines), "#version 120\n#define GPU_AFFINE %d\n#define GPU_COLOR_RULES %d\n#define GPU_SHEAR %d\n#define GPU_WATER %d\n#define GPU_PLANE %d\n",
              affine_supported, color_rules_supported, shear_supported,
              water_supported, plane_supported);
+#endif
     parts[0] = defines;
     parts[1] = strchr(source, '\n') + 1;
     gpu_ShaderSource(shader, 2, parts, NULL);
@@ -1117,7 +1200,9 @@ static void gpu_set_draw_raster(void)
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+#if !defined(OPENBOR_GLES)
     glDisable(GL_ALPHA_TEST);
+#endif
     glDisable(GL_STENCIL_TEST);
     glDisable(GL_DITHER);
     gl_state.raster_valid = 1;
@@ -1275,7 +1360,7 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
     {
         engine_profile_count(EP_COUNT_IMAGE_UPLOADS, 1);
         engine_profile_count(EP_COUNT_IMAGE_UPLOAD_BYTES,
-                             (uint64_t)width * height * (format == GL_LUMINANCE ? 1 : 4));
+                             (uint64_t)width * height * (format == GPU_INDEX_FORMAT ? 1 : 4));
     }
     return texture;
 }
@@ -1353,7 +1438,7 @@ static gpu_plane_map *gpu_prepare_plane_map(const gpu_transform_parameters *para
            candidate->source_height == parameters->source_height &&
            candidate->begin == method->water.beginsize &&
            candidate->end == method->water.endsize &&
-           candidate->perspective == method->water.perspective)
+           candidate->perspective == (int)method->water.perspective)
         {
             candidate->last_used = ++plane_map_clock;
             ++stats.plane_map_reuses;
@@ -1517,6 +1602,31 @@ static void gpu_delete_image(gpu_image *image)
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Drain ownerless resources only after the platform verifies this context.
+ * This preserves prompt identity eviction during suspension without leaking
+ * GPU allocations across repeated pause/free/resume cycles.
+ */
+static void gpu_release_retired_resources(void)
+{
+    while(retired_images)
+    {
+        gpu_image *entry = retired_images;
+        retired_images = entry->next;
+        gpu_delete_image(entry);
+    }
+    while(retired_movie_sources)
+    {
+        gpu_movie_source *entry = retired_movie_sources;
+        retired_movie_sources = entry->next;
+        gpu_gl_invalidate_state();
+        glDeleteTextures(3, entry->texture);
+        free(entry);
+    }
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Detach an image before its owner address can be reused for another object.
  */
@@ -1530,8 +1640,23 @@ static void gpu_forget_image(const void *owner, int sprite)
         {
             /* Updating the incoming link also handles the bucket head. The
              * remaining collision chain stays reachable after this removal. */
+            SDL_GLContext owner_context = renderer_context;
+            uint64_t owner_generation = renderer_generation;
             *link = image->next;
-            gpu_delete_image(image);
+            /* Remove identity before recovery can preserve other owners.
+             * The freed object never needs readback. Old numeric names must
+             * not be deleted after a guard creates a replacement context. */
+            if(gpu_context_ready() && renderer_context == owner_context &&
+               renderer_generation == owner_generation)
+                gpu_delete_image(image);
+            else if(renderer_context == owner_context && renderer_generation == owner_generation)
+            {
+                image->owner = NULL;
+                image->next = retired_images;
+                retired_images = image;
+            }
+            else
+                free(image);
             return;
         }
         link = &image->next;
@@ -1546,8 +1671,8 @@ static void gpu_forget_image(const void *owner, int sprite)
  */
 static int gpu_upload_screen(gpu_image *image, s_screen *screen)
 {
-    GLenum format = image->format == PIXEL_32 ? GPU_PACKED_FORMAT : GL_LUMINANCE;
-    GLenum type = image->format == PIXEL_32 ? GL_UNSIGNED_INT_8_8_8_8_REV : GL_UNSIGNED_BYTE;
+    GLenum format = image->format == PIXEL_32 ? GPU_PACKED_FORMAT : GPU_INDEX_FORMAT;
+    GLenum type = image->format == PIXEL_32 ? GPU_PACKED_TYPE : GL_UNSIGNED_BYTE;
     ep_scope upload_scope;
     if(!image->cpu_dirty)
     {
@@ -1625,8 +1750,8 @@ static gpu_image *gpu_screen_image(s_screen *screen, int upload)
         image->format = screen->pixelformat;
         image->cpu_dirty = 1;
         image->texture = gpu_new_texture(image->width, image->height,
-            image->format == PIXEL_32 ? GL_RGBA8 : GL_LUMINANCE8,
-            image->format == PIXEL_32 ? GL_RGBA : GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+            image->format == PIXEL_32 ? GL_RGBA8 : GPU_INDEX_INTERNAL_FORMAT,
+            image->format == PIXEL_32 ? GL_RGBA : GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, NULL);
         if(!image->texture)
         {
             gpu_delete_image(image);
@@ -1732,8 +1857,8 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
     image->width = sprite->width;
     image->height = sprite->height;
     image->format = PIXEL_x8;
-    image->texture = gpu_new_texture(image->width, image->height, GL_LUMINANCE8,
-                                     GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+    image->texture = gpu_new_texture(image->width, image->height, GPU_INDEX_INTERNAL_FORMAT,
+                                     GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, pixels);
     free(pixels);
     if(!image->texture)
     {
@@ -1755,7 +1880,7 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
  * Read a newer GPU screen back exactly once for explicit CPU access. The
  * unused packed alpha byte is cleared to retain the engine's RGB contract.
  */
-static int gpu_read_screen(s_screen *screen)
+static int gpu_read_screen_body(s_screen *screen)
 {
     gpu_image *image = gpu_find_image(screen, 0);
     size_t i, count;
@@ -1775,7 +1900,7 @@ static int gpu_read_screen(s_screen *screen)
     glPixelStorei(GL_PACK_SKIP_ROWS, 0);
     glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
     glReadPixels(0, 0, image->width, image->height, GPU_PACKED_FORMAT,
-                 GL_UNSIGNED_INT_8_8_8_8_REV, screen->data);
+                 GPU_PACKED_TYPE, screen->data);
     if(glGetError() != GL_NO_ERROR)
     {
         engine_profile_span_end(readback_scope, EP_SPAN_READBACK);
@@ -1796,6 +1921,21 @@ static int gpu_read_screen(s_screen *screen)
     image->gpu_dirty = 0;
     stats.readbacks++;
     return 1;
+}
+
+static int gpu_read_screen(s_screen *screen)
+{
+    gpu_image *image = gpu_find_image(screen, 0);
+    int result;
+    /* The current CPU shadow needs no context, including while suspended after
+     * its lifecycle checkpoint. Never retain this cache pointer across the
+     * guard: recovery can replace the entire cache before a required read. */
+    if(!image || !image->gpu_dirty) return 1;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_read_screen_body(screen);
+    --context_guard_busy;
+    return result;
 }
 
 /*
@@ -1831,6 +1971,31 @@ static void gpu_free_screen(s_screen *screen)
 static void gpu_free_sprite(s_sprite *sprite)
 {
     gpu_forget_image(sprite, 1);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Remove a disposable private target before abandoning a lost context. Its
+ * pixels can be regenerated from retained sources, so neither preservation nor
+ * GL deletion is appropriate. Its CPU owner may remain allocated, but callers
+ * must reconstruct all discarded contents before publishing another frame.
+ */
+void gpu_gl_discard_screen(s_screen *screen)
+{
+    gpu_image **link = &image_cache[gpu_image_bucket(screen)];
+    while(*link)
+    {
+        gpu_image *entry = *link;
+        if(!entry->sprite && entry->owner == screen)
+        {
+            *link = entry->next;
+            free(entry);
+            gpu_gl_invalidate_state();
+            return;
+        }
+        link = &entry->next;
+    }
 }
 
 /*
@@ -2069,7 +2234,7 @@ static int gpu_set_palette(const unsigned char *palette)
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, slot, GPU_PALETTE_COLORS, 1, GPU_PACKED_FORMAT,
-                   GL_UNSIGNED_INT_8_8_8_8_REV, palette);
+                   GPU_PACKED_TYPE, palette);
     if(glGetError() != GL_NO_ERROR)
     {
         engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
@@ -2148,7 +2313,7 @@ static int gpu_set_tables(void)
         if(blendtables[i])
         {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, i * 256, 256, 256,
-                           GL_LUMINANCE, GL_UNSIGNED_BYTE, blendtables[i]);
+                           GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, blendtables[i]);
             if(glGetError() != GL_NO_ERROR)
             {
                 engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
@@ -2963,7 +3128,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
  * Draw one screen through the native RGB target path. Unsupported operations
  * return before writes, allowing dispatch to report the rejected request.
  */
-static int gpu_screen_draw_internal(s_screen *dest, s_screen *src, int x, int y,
+static int gpu_screen_draw_internal_body(s_screen *dest, s_screen *src, int x, int y,
                                     const s_drawmethod *method, int discard_destination)
 {
     gpu_image *target, *source;
@@ -3002,6 +3167,17 @@ fallback:
     return 0;
 }
 
+static int gpu_screen_draw_internal(s_screen *dest, s_screen *src, int x, int y,
+                                    const s_drawmethod *method, int discard_destination)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_screen_draw_internal_body(dest, src, x, y, method, discard_destination);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-15
@@ -3020,7 +3196,7 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y,
  * Draw a cached indexed sprite with its current palette, pivot and optional
  * independent opacity mask. Cached uploads are reused across frames.
  */
-static int gpu_sprite_draw(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
+static int gpu_sprite_draw_body(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
 {
     gpu_image *target, *source, *mask = NULL;
     const unsigned char *palette;
@@ -3069,6 +3245,16 @@ fallback:
     return 0;
 }
 
+static int gpu_sprite_draw(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_sprite_draw_body(dest, sprite, x, y, method);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-12
@@ -3091,7 +3277,7 @@ static int gpu_collect_rectangle(float x, float y, float width, float height)
  * Render box and dot primitives in target pixel coordinates, retaining
  * their existing clipping, tint and destination-blend behavior.
  */
-static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
+static int gpu_box_draw_body(s_screen *dest, int x, int y, int width, int height,
                         unsigned color, const s_drawmethod *drawmethod)
 {
     gpu_image *target;
@@ -3127,6 +3313,17 @@ fallback:
     engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
+}
+
+static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
+                        unsigned color, const s_drawmethod *drawmethod)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_box_draw_body(dest, x, y, width, height, color, drawmethod);
+    --context_guard_busy;
+    return result;
 }
 
 /*
@@ -3243,7 +3440,7 @@ static int gpu_clip_line(int *x1, int *y1, int *x2, int *y2, int width, int heig
  * Axis-aligned lines use inclusive rectangles; slopes retain visible points.
  * Material processing and framebuffer access remain on the GPU.
  */
-static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
+static int gpu_line_draw_body(s_screen *dest, int sx, int sy, int ex, int ey,
                          unsigned color, const s_drawmethod *drawmethod)
 {
     gpu_image *target;
@@ -3346,13 +3543,24 @@ fallback:
     return 0;
 }
 
+static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
+                         unsigned color, const s_drawmethod *drawmethod)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_line_draw_body(dest, sx, sy, ex, ey, color, drawmethod);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-12
  * Clear a native screen without uploading the old image or reading it back.
  * RGB black remains opaque; color-key transparency is a draw-time option.
  */
-static int gpu_screen_clear(s_screen *screen)
+static int gpu_screen_clear_body(s_screen *screen)
 {
     gpu_image *target;
     uint64_t previous_state_changes = stats.state_changes;
@@ -3394,6 +3602,16 @@ static int gpu_screen_clear(s_screen *screen)
     return 1;
 }
 
+static int gpu_screen_clear(s_screen *screen)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_screen_clear_body(screen);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-12
@@ -3401,7 +3619,7 @@ static int gpu_screen_clear(s_screen *screen)
  * Copy the overlapping screen area with replacement semantics, independent
  * of any previously selected drawing method or clipping globals.
  */
-static int gpu_screen_copy(s_screen *dest, s_screen *src)
+static int gpu_screen_copy_body(s_screen *dest, s_screen *src)
 {
     s_drawmethod method = plainmethod;
     if(!dest || !src || dest->pixelformat != src->pixelformat)
@@ -3421,6 +3639,16 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
                                     dest->pixelformat == PIXEL_32 &&
                                     src->width >= dest->width &&
                                     src->height >= dest->height);
+}
+
+static int gpu_screen_copy(s_screen *dest, s_screen *src)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_screen_copy_body(dest, src);
+    --context_guard_busy;
+    return result;
 }
 
 /*
@@ -3451,7 +3679,7 @@ static int gpu_launcher_font_ready(const unsigned char *font_rows)
         }
     }
     texture = gpu_new_texture(GPU_LAUNCHER_ATLAS_WIDTH, GPU_LAUNCHER_ATLAS_HEIGHT,
-                               GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+                               GPU_INDEX_INTERNAL_FORMAT, GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, pixels);
     if(!texture) return 0;
 
     /* Publish only complete source storage. Text color lives in the existing
@@ -3495,7 +3723,7 @@ static void gpu_launcher_font_shutdown(void)
  * batch. Validate the complete run, then clip in wide integer coordinates before
  * emitting geometry or preparing resources. No CPU screen synchronization occurs.
  */
-int gpu_gl_draw_launcher_text(s_screen *screen, int x, int y,
+static int gpu_gl_draw_launcher_text_body(s_screen *screen, int x, int y,
                               unsigned foreground, unsigned background, int fill,
                               const unsigned char *glyphs, size_t count,
                               const unsigned char *font_rows, size_t font_glyph_count)
@@ -3603,6 +3831,19 @@ failed:
     engine_profile_fallback(native_failure);
     ++stats.fallback_draws;
     return 0;
+}
+
+int gpu_gl_draw_launcher_text(s_screen *screen, int x, int y,
+                              unsigned foreground, unsigned background, int fill,
+                              const unsigned char *glyphs, size_t count,
+                              const unsigned char *font_rows, size_t font_glyph_count)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gl_draw_launcher_text_body(screen, x, y, foreground, background, fill, glyphs, count, font_rows, font_glyph_count);
+    --context_guard_busy;
+    return result;
 }
 
 /*
@@ -3801,11 +4042,27 @@ static void gpu_movie_release(const void *owner)
         gpu_movie_source *entry = *link;
         if(entry->owner == owner)
         {
+            SDL_GLContext owner_context = renderer_context;
+            uint64_t owner_generation = renderer_generation;
             *link = entry->next;
             gpu_gl_invalidate_state();
-            glDeleteTextures(3, entry->texture);
-            free(entry);
-            --stats.movie_resources;
+            if(gpu_context_ready() && renderer_context == owner_context &&
+               renderer_generation == owner_generation)
+            {
+                glDeleteTextures(3, entry->texture);
+                free(entry);
+            }
+            else if(renderer_context == owner_context && renderer_generation == owner_generation)
+            {
+                entry->owner = NULL;
+                entry->next = retired_movie_sources;
+                retired_movie_sources = entry;
+            }
+            else
+                free(entry);
+            if(renderer_context == owner_context && renderer_generation == owner_generation &&
+               stats.movie_resources)
+                --stats.movie_resources;
             return;
         }
         link = &entry->next;
@@ -3860,8 +4117,8 @@ static gpu_movie_source *gpu_movie_upload(const gpu_yuv_source *source)
         {
             int width = source->width / (plane ? 2 : 1);
             int height = source->height / (plane ? 2 : 1);
-            entry->texture[plane] = gpu_new_texture(width, height, GL_LUMINANCE8,
-                                                    GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+            entry->texture[plane] = gpu_new_texture(width, height, GPU_INDEX_INTERNAL_FORMAT,
+                                                    GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, NULL);
             if(!entry->texture[plane]) break;
             /* Linear plane filtering is the original hardware movie policy.
              * Other kernels sample exact centers through this same storage. */
@@ -3901,7 +4158,7 @@ static gpu_movie_source *gpu_movie_upload(const gpu_yuv_source *source)
         int height = source->height / (plane ? 2 : 1);
         gpu_edit_texture(plane, entry->texture[plane]);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
-                       GL_LUMINANCE, GL_UNSIGNED_BYTE, planes[plane]);
+                       GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, planes[plane]);
         if(glGetError() != GL_NO_ERROR)
         {
             engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
@@ -4123,11 +4380,22 @@ failed:
  * Preserve caller-owned screen layering: only the clipped movie rectangle
  * changes, with no global drawmethod, implicit clear, or CPU pixel access.
  */
-static int gpu_movie_draw_screen(s_screen *destination, const gpu_yuv_source *source,
+static int gpu_movie_draw_screen_body(s_screen *destination, const gpu_yuv_source *source,
                                   const gpu_movie_draw *draw)
 {
     if(!destination) return 0;
     return gpu_movie_render(destination, source, draw, destination->width, destination->height);
+}
+
+static int gpu_movie_draw_screen(s_screen *destination, const gpu_yuv_source *source,
+                                  const gpu_movie_draw *draw)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_movie_draw_screen_body(destination, source, draw);
+    --context_guard_busy;
+    return result;
 }
 
 /*
@@ -4136,7 +4404,7 @@ static int gpu_movie_draw_screen(s_screen *destination, const gpu_yuv_source *so
  * Present at the window's native resolution while keeping scene rendering
  * active. Border clearing occurs only after all required setup succeeds.
  */
-int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,
+static int gpu_gl_present_yuv_body(const gpu_yuv_source *source, const gpu_movie_draw *draw,
                        int viewport_width, int viewport_height)
 {
     int result;
@@ -4147,6 +4415,17 @@ int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,
         movie_present_warning = 1;
         gpu_log("WARNING: Native movie presentation unavailable or rejected; presentation skipped without CPU retry.");
     }
+    return result;
+}
+
+int gpu_gl_present_yuv(const gpu_yuv_source *source, const gpu_movie_draw *draw,
+                       int viewport_width, int viewport_height)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gl_present_yuv_body(source, draw, viewport_width, viewport_height);
+    --context_guard_busy;
     return result;
 }
 
@@ -4303,7 +4582,7 @@ static void gpu_log_capability_result(int native_available)
             native_available ? "NATIVE - available" : "UNAVAILABLE");
     gpu_log("Launcher Bitmap Text\n"
             "\tRendering path:                    %s\n"
-            "\tFont atlas:                        160 glyphs, 5x10 pixels; 80x100 LUMINANCE8\n"
+            "\tFont atlas:                        160 glyphs, 5x10 pixels; 80x100 one-byte indexed\n"
             "\tAtlas lifetime:                    Uploaded on first visible text run; reused until context retirement\n"
             "\tSubmission:                        One ordered native batch per visible text run\n"
             "\tColors and coverage:               Opaque RGB foreground; optional background fill; screen-bound clipping\n"
@@ -4384,7 +4663,7 @@ int gpu_gl_init(void)
     gpu_set_native_required(1);
     if(initialized)
     {
-        return 1;
+        return gpu_context_ready();
     }
     /* State and object names from a previous context must never influence
      * setup of its replacement, including initialization failure retries. */
@@ -4418,6 +4697,18 @@ int gpu_gl_init(void)
     device = (const char *)glGetString(GL_RENDERER);
     version = (const char *)glGetString(GL_VERSION);
     shader_version = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
+#if defined(OPENBOR_GLES)
+    {
+        int major = 0, minor = 0;
+        if(!version || sscanf(version, "OpenGL ES %d.%d", &major, &minor) != 2 || major < 3)
+        {
+            gpu_log("ERROR: Android native scene drawing requires OpenGL ES 3.0 or newer; received %s.",
+                    version ? version : "no version string");
+            gpu_log_capability_result(0);
+            return 0;
+        }
+    }
+#endif
     gpu_log("Driver\n"
             "\tVendor:                            %s\n"
             "\tRenderer:                          %s\n"
@@ -4590,7 +4881,7 @@ compile_scene_shader:
      * become resident lazily, while the allocation stays fixed at 1 MiB. */
     palette_texture = gpu_new_texture(GPU_PALETTE_COLORS, GPU_PALETTE_CACHE_CAPACITY,
                                       GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    table_texture = gpu_new_texture(256, 1536, GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+    table_texture = gpu_new_texture(256, 1536, GPU_INDEX_INTERNAL_FORMAT, GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, NULL);
     if(!white_texture || !palette_texture || !table_texture)
     {
         gpu_log("WARNING: Native shared texture allocation failed.\n"
@@ -4685,6 +4976,11 @@ compile_scene_shader:
 
     /* Publish the backend only after shader linking and shared allocation
      * succeed. Image resources remain lazy and follow their owners' lifetime. */
+    if(renderer_generation == UINT64_MAX)
+    {
+        gpu_log("ERROR: Native graphics context generation exhausted.");
+        goto failed;
+    }
     gpu_DeleteShader(vertex);
     gpu_DeleteShader(fragment);
     memset(&stats, 0, sizeof(stats));
@@ -4692,6 +4988,9 @@ compile_scene_shader:
     gpu_reset_palette_cache();
     tables_dirty = 1;
     table_mask = 0;
+    ++renderer_generation;
+    renderer_context = SDL_GL_GetCurrentContext();
+    context_warning = 0;
     initialized = 1;
     gpu_register_backend(&renderer_backend);
     gpu_gl_prepare_present();
@@ -4792,22 +5091,147 @@ failed:
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Retire context-owned plane maps with the other native resources.
- * 2026-11-16 - Discard private output-filter storage without a screen readback.
- * 2026-11-16 - Discard the immutable launcher font atlas with its context.
- * Preserve live screen contents before destroying a graphics context. This
- * infrequent readback keeps pause buffers, scripted targets and mode changes
- * functional without maintaining a CPU copy after every rendered frame.
+ * 2026-11-20
+ * Preserve live screen contents at a controlled lifecycle boundary. Only
+ * GPU-newer screens read back; ordinary frames never pay this transfer cost.
+ */
+int gpu_gl_suspend(void)
+{
+    size_t bucket;
+    int previous_guard = context_guard_busy;
+    if(!initialized) return 1;
+    if(SDL_GL_GetCurrentContext() != renderer_context)
+    {
+        gpu_log("ERROR: Cannot preserve native screens after their graphics context was lost.");
+        return 0;
+    }
+    /* Mobile lifecycle notifications can precede another draw. Preserve only
+     * newer GPU screens now, without asking the platform to reenter recovery. */
+    context_guard_busy = 1;
+    for(bucket = 0; bucket < GPU_CACHE_BUCKETS; ++bucket)
+    {
+        gpu_image *entry;
+        for(entry = image_cache[bucket]; entry; entry = entry->next)
+        {
+            if(!entry->sprite && entry->gpu_dirty &&
+               !gpu_read_screen((s_screen *)entry->owner))
+            {
+                context_guard_busy = previous_guard;
+                gpu_log("ERROR: Unable to preserve a native screen before suspension.");
+                return 0;
+            }
+        }
+    }
+    context_guard_busy = previous_guard;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Retire a lost context without deleting names or reading an unrelated target.
+ * Surviving screens are restorable only when their CPU shadows were current.
+ * Return that fact explicitly so the platform cannot silently lose script
+ * render-target contents. Asset, movie and font textures are reconstructible.
+ */
+int gpu_gl_abandon(void)
+{
+    size_t bucket;
+    int preserved = 1;
+    gpu_unregister_backend();
+    engine_profile_set_gpu_backend(NULL);
+    query_stats.enabled = 0;
+    query_stats.abandoned += query_stats.pending;
+    query_stats.pending = 0;
+    query_objects_created = 0;
+    query_free_count = query_pending_head = query_pending_count = 0;
+    memset(query_pairs, 0, sizeof(query_pairs));
+    for(bucket = 0; bucket < GPU_CACHE_BUCKETS; ++bucket)
+    {
+        gpu_image *entry = image_cache[bucket];
+        while(entry)
+        {
+            gpu_image *next = entry->next;
+            if(!entry->sprite && entry->gpu_dirty) preserved = 0;
+            free(entry);
+            entry = next;
+        }
+        image_cache[bucket] = NULL;
+    }
+    while(movie_sources)
+    {
+        gpu_movie_source *next = movie_sources->next;
+        free(movie_sources);
+        movie_sources = next;
+    }
+    while(retired_images)
+    {
+        gpu_image *next = retired_images->next;
+        free(retired_images);
+        retired_images = next;
+    }
+    while(retired_movie_sources)
+    {
+        gpu_movie_source *next = retired_movie_sources->next;
+        free(retired_movie_sources);
+        retired_movie_sources = next;
+    }
+    for(bucket = 0; bucket < GPU_PLANE_CACHE_CAPACITY; ++bucket)
+        free(plane_maps[bucket].rows);
+    memset(plane_maps, 0, sizeof(plane_maps));
+    plane_map_clock = 0;
+    free(vertex_buffer);
+    free(quad_wraps);
+    free(affine_preparations);
+    vertex_buffer = NULL;
+    quad_wraps = NULL;
+    affine_preparations = NULL;
+    quad_count = quad_capacity = affine_preparation_capacity = 0;
+    vertex_buffer_object = index_buffer_object = 0;
+    stream_capacity = index_capacity = stream_cursor = 0;
+    program = white_texture = palette_texture = table_texture = 0;
+    movie_program = 0;
+    movie_program_attempted = movie_present_warning = 0;
+    memset(&movie_uniforms, 0, sizeof(movie_uniforms));
+    output_filter_program = output_filter_texture = output_filter_framebuffer = 0;
+    output_filter_width = output_filter_height = 0;
+    output_filter_program_attempted = output_filter_warning = 0;
+    memset(&output_filter_uniforms, 0, sizeof(output_filter_uniforms));
+    memset(&launcher_font_image, 0, sizeof(launcher_font_image));
+    launcher_font_rows = NULL;
+    launcher_text_warning = 0;
+    stats.movie_resources = stats.output_filter_resources = stats.launcher_font_resources = 0;
+    gpu_reset_palette_cache();
+    gpu_gl_invalidate_state();
+    initialized = 0;
+    renderer_context = NULL;
+    if(!preserved)
+        gpu_log("ERROR: Graphics context was lost with newer GPU-only screen contents; recovery would expose stale pixels and is refused.");
+    return preserved;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Preserve live screens during a controlled teardown of the owning context.
+ * Lost contexts take the no-GL abandonment path and cannot return stale data.
  */
 void gpu_gl_shutdown(void)
 {
     size_t bucket;
+    int previous_guard = context_guard_busy;
     gpu_gl_invalidate_state();
     if(!initialized)
     {
         return;
     }
+    if(SDL_GL_GetCurrentContext() != renderer_context)
+    {
+        if(!gpu_gl_abandon()) gpu_fatal("lost context shutdown");
+        return;
+    }
+    context_guard_busy = 1;
+    gpu_release_retired_resources();
 
     /* Timestamp collection must stop before context teardown. Polling here
      * accepts only ready samples; normal screen preservation below retains its
@@ -4860,6 +5284,8 @@ void gpu_gl_shutdown(void)
     program = white_texture = palette_texture = table_texture = 0;
     gpu_reset_palette_cache();
     initialized = 0;
+    renderer_context = NULL;
+    context_guard_busy = previous_guard;
 }
 
 /*
@@ -4868,7 +5294,7 @@ void gpu_gl_shutdown(void)
  * Expose a completed screen texture to presentation without downloading its
  * pixels. CPU-authored screens are uploaded only when their version changed.
  */
-int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, int *height)
+static int gpu_gl_get_screen_texture_body(s_screen *screen, unsigned *texture, int *width, int *height)
 {
     gpu_image *image;
     if(!initialized || !screen || screen->pixelformat != PIXEL_32)
@@ -4886,6 +5312,16 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
     return 1;
 }
 
+int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, int *height)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gl_get_screen_texture_body(screen, texture, width, height);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-16
@@ -4893,7 +5329,7 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
  * Borrowed results retain source row orientation and are ready for the normal
  * window scaling/color-correction pass. Failed work never publishes a texture.
  */
-int gpu_gl_get_filtered_screen_texture(s_screen *screen, int filter,
+static int gpu_gl_get_filtered_screen_texture_body(s_screen *screen, int filter,
                                        unsigned *texture, int *width, int *height)
 {
     gpu_image *source;
@@ -5024,6 +5460,17 @@ failed:
     return 0;
 }
 
+int gpu_gl_get_filtered_screen_texture(s_screen *screen, int filter,
+                                       unsigned *texture, int *width, int *height)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gl_get_filtered_screen_texture_body(screen, filter, texture, width, height);
+    --context_guard_busy;
+    return result;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-12
@@ -5038,7 +5485,12 @@ void gpu_gl_prepare_present(void)
     /* The external owner may change any shared binding, raster value or
      * program. Forget assumptions now, before its first raw GL operation. */
     gpu_gl_invalidate_state();
-    if(!initialized)
+    /* The caller may already hold a borrowed texture name. Recovery here
+     * could retire that name and reuse it for an unrelated image. Presentation
+     * therefore verifies ownership without invoking the platform guard; all
+     * restoration must finish before the caller obtains its source texture. */
+    if(!initialized || !renderer_context ||
+       SDL_GL_GetCurrentContext() != renderer_context)
     {
         return;
     }
@@ -5054,7 +5506,9 @@ void gpu_gl_prepare_present(void)
     glDisable(GL_SCISSOR_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
+#if !defined(OPENBOR_GLES)
     glDisable(GL_ALPHA_TEST);
+#endif
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     /* Reset every texture unit used by scene rendering. Descending order
@@ -5064,9 +5518,13 @@ void gpu_gl_prepare_present(void)
     {
         gpu_ActiveTexture(GL_TEXTURE0 + unit);
         glBindTexture(GL_TEXTURE_2D, 0);
+#if !defined(OPENBOR_GLES)
         glDisable(GL_TEXTURE_2D);
+#endif
     }
+#if !defined(OPENBOR_GLES)
     glEnable(GL_TEXTURE_2D);
+#endif
 }
 
 /*
@@ -5078,6 +5536,17 @@ void gpu_gl_prepare_present(void)
 const gpu_renderer_stats *gpu_gl_get_stats(void)
 {
     return &stats;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Identify the logical resource lifetime independently of reusable SDL/EGL
+ * context handles. Zero means that no initialized native lifetime exists.
+ */
+uint64_t gpu_gl_get_context_generation(void)
+{
+    return initialized ? renderer_generation : 0;
 }
 
 /*

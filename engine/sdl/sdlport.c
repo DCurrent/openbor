@@ -58,6 +58,7 @@ char* AndroidRoot(char *relPath)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-20 - Release Android's owned GLES context before SDL shutdown.
  * End the platform session after native rendering has released its resources.
  * SDL must remain available until the renderer has synchronized live screens
  * and destroyed the graphics context that owns their texture storage.
@@ -70,7 +71,11 @@ void borExit(int reset)
 	SDL_Delay(1000);
 
 	/* Drain native drawing while its SDL window and GL context remain valid. */
+#ifdef ANDROID
+    video_shutdown();
+#else
 	video_gl_shutdown();
+#endif
 
 	/* All context-dependent cleanup is complete before SDL shuts down its devices. */
 	SDL_Quit(); // call this instead of atexit(SDL_Quit); It's best practice!

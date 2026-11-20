@@ -160,19 +160,17 @@ screen/fullscreen contracts, capture, and platform availability.
 
 ## Availability and limits
 
-The desktop native OpenGL scene renderer implements these formulas for RGB32
-destinations, indexed sprites, indexed source screens and RGB32 source
-screens. GPU-produced screens are sampled directly without CPU readback.
+The shared desktop OpenGL and Android GLES3 scene renderer implements these
+formulas for RGB32 destinations, indexed sprites, indexed source screens and
+RGB32 source screens. GPU-produced screens are sampled directly without CPU readback.
 No new software resampler is provided.
 
 Explicit filtered draws that cannot execute natively are logged and skipped.
 They do not silently become nearest or fall back to CPU pixel processing.
-This includes the unmigrated Android scene renderer, whose existing nearest
-behavior remains available until scene drawing moves to GLES. Startup capability
-logging reports native resampling availability. Video
-[output filters](gpu-output-filters.md) already run on the GPU on desktop and
+Startup capability logging reports native resampling availability on both
+desktop and Android. Video [output filters](gpu-output-filters.md) run on the GPU on desktop and
 Android; they operate after scene composition and do not change this per-draw
-availability or select a CPU desktop renderer.
+availability or select a CPU scene renderer.
 
 These are fixed-support reconstruction filters. Strong reduction can still
 alias; footprint-aware area filtering, mipmaps and anisotropic sampling are

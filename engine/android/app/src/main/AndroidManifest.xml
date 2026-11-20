@@ -4,7 +4,7 @@
             android:installLocation="preferExternal">
 
     <!-- OpenGL ES 3.0 -->
-    <uses-feature android:glEsVersion="0x00030000" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <!-- Touchscreen support -->
     <uses-feature
         android:name="android.hardware.touchscreen"

@@ -98,7 +98,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SRC_FILES += SDL_android_main.cpp
 
-LOCAL_LDLIBS := -ldl -lGLESv2 -llog
+LOCAL_LDLIBS := -ldl -lGLESv3 -llog
 
 LOCAL_STATIC_LIBRARIES := png vorbisidec SDL2 vpx libhidapi
 

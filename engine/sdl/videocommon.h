@@ -11,14 +11,6 @@
 
 #include "types.h"
 
-typedef struct {
-	int width;
-	int height;
-	int pitch;
-	void *data;
-} s_videosurface;
-
 s_videomodes setupPreBlitProcessing(s_videomodes videomodes);
-s_videosurface *getVideoSurface(s_screen *src);
 
 #endif

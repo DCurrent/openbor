@@ -24,7 +24,11 @@ static void APIENTRY movie_fail_upload(GLenum target, GLint level, GLint x, GLin
                                        GLsizei width, GLsizei height,
                                        GLenum format, GLenum type, const GLvoid *pixels)
 {
+#if defined(OPENBOR_GLES)
+    if(format == GL_RED)
+#else
     if(format == GL_LUMINANCE)
+#endif
     {
         ++movie_failure_uploads;
         if(movie_failure_plane && movie_failure_uploads == movie_failure_plane)
@@ -202,7 +206,7 @@ int main(void)
     SDL_Window *window;
     SDL_GLContext context;
     if(SDL_Init(SDL_INIT_VIDEO) != 0) return 77;
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR movie failure tests", 0, 0, 64, 64,
                                SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;

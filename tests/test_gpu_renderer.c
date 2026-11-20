@@ -27,7 +27,7 @@
 #include "gpu.h"
 #include "gpu_renderer.h"
 #include "gpu_shader.h"
-#include "loadgl.h"
+#include "gpu_test_context.h"
 
 /* Exercise the production queue's filtering, offsets, locking and sort. */
 #include "../engine/source/gamelib/spriteq.c"
@@ -1081,7 +1081,13 @@ static void test_row_self_feedback(void)
         gpu_sync_cpu(target);
         for(pixel = 0; pixel < 16 * 8; ++pixel)
         {
-            assert(test_pixel(target, pixel % 16, pixel / 16) == expected[pixel]);
+            if(test_pixel(target, pixel % 16, pixel / 16) != expected[pixel])
+            {
+                fprintf(stderr, "Row self feedback effect %d pixel (%d,%d): got %06x expected %06x\n",
+                        effect, pixel % 16, pixel / 16,
+                        test_pixel(target, pixel % 16, pixel / 16), expected[pixel]);
+                abort();
+            }
         }
     }
     release_test_screen(target);
@@ -1794,7 +1800,7 @@ int main(void)
         fprintf(stderr, "SKIP: SDL video unavailable: %s\n", SDL_GetError());
         return 77;
     }
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR GPU tests", 0, 0, 64, 64, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;
     if(!context)

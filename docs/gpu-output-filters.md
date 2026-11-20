@@ -156,7 +156,7 @@ uniform-array indexing or a CPU-generated pattern image.
 
 ## GPU ownership and platform boundaries
 
-Desktop `gpu_gl_get_filtered_screen_texture()` borrows the completed native
+Shared desktop/GLES `gpu_gl_get_filtered_screen_texture()` borrows the completed native
 scene texture. Active filters render one quad into one private 2x RGBA8 texture
 and framebuffer. Success returns the borrowed filtered texture and its true
 dimensions for normal window presentation. Source screenshots or explicit
@@ -175,22 +175,13 @@ readback when needed before losing their graphics context. Filter output adds
 no readback to that process. Context recreation compiles the filter shader and
 allocates its target again on first use.
 
-Android gameplay still uses its existing CPU scene composition. Its presentation path
-uploads that complete RGB32 frame once, runs the same equations through a
-dedicated GLES2 pass, and gives the filtered texture back to SDL for final
-display. Native SDL 32-bit RGBX textures match the engine's existing RGB byte
-order, so this upload needs no CPU color-conversion surface. Their GL storage
-retains eight bits per channel, and the filter writes opaque RGBA output.
-This step removes CPU output filtering and reduced-color conversion;
-porting Android scene drawing to a native GLES backend remains separate work.
+Android gameplay and launcher composition use the same native screen storage
+and filter pass as desktop. Its owned GLES3 presenter consumes the resident
+texture directly, applies display scaling/color correction, then draws touch
+controls. There is no completed CPU scene upload or SDL renderer bridge.
+See [Android GPU rendering](android-gpu-rendering.md) for lifecycle handling.
 
-The Android pack launcher supplies its resident GPU composition target directly
-to the same output-filter pass, so launcher presentation has no CPU scene
-upload. Filtered launcher frames retain the normal brightness, aspect and touch
-overlay order. See [launcher composition](gpu-renderer-migration.md#launcher-text-and-composition)
-for its scoped target, failure handling and reset recovery.
-
-Desktop GLSL 1.20 and GLES GLSL ES 1.00 sources come from one body in
+Desktop GLSL 1.20 and GLES GLSL ES 3.00 sources come from one body in
 [`gpu_shader.c`](../engine/source/gamelib/gpu_shader.c). GLES uses high precision
 for floating-point arithmetic, integers and texture samples. The shared shader
 uses no derivatives or uniform arrays. Both backends retain logical row zero
@@ -222,24 +213,20 @@ are checked before multiplication and allocation. Failure leaves the caller's
 returned texture/dimensions unchanged and leaves scene pixels coherent.
 There is no CPU filter implementation or rendering retry.
 
-Android requires SDL's GLES2 renderer with render-target textures, a native
-`SDL_PIXELFORMAT_BGR888` RGBX format and high-precision shader support. It
-checks doubled dimensions against the texture limit before target allocation,
-then creates the filter program and target during video-mode setup. Setup
-rejects unavailable resources. Failed runtime filtering logs the rejection
-and skips the frame. The adapter restores SDL's renderer state on success and
-failure, and rejects source textures that do not match its dimensions, native
-RGB32 storage contract or normalized unit texture-coordinate scale.
+Android requires a GLES3 context and the shared native renderer. It uses the
+same filter validation, lazy program creation, doubled-dimension checks and
+transactional target allocation as desktop. Failed runtime filtering logs the
+rejection and skips presentation. No separate GLES2 filter adapter remains.
 
 The shader has a separate program lifetime from scene drawing. Filter shader
-failure cannot retire a working desktop scene backend. Replacing a target is
+failure cannot retire a working scene backend. Replacing a target is
 transactional, so an allocation failure cannot publish an incomplete target.
 Rejected filter submissions affect only the private intermediate and skip
 that presentation instead of displaying partial output.
 
 Startup reports identify GPU output filtering, available filters, full RGB8
 precision, private target storage and the absence of CPU processing/readback.
-The desktop shader's actual successful first-use compilation is logged as
+The shader's actual successful first-use compilation is logged as
 well. Diagnostic statistics expose completed filter draws, successful target
 allocations and the number of live targets, which is zero or one.
 
@@ -267,18 +254,17 @@ The full `bash tests/run_gpu_tests.sh` suite also exercises production window
 presentation, orientation, filter activity transitions, native drawing after
 filter changes and movie coexistence.
 
-The Android adapter has a separate host GLES2 suite:
+The shared filter oracle also runs in a real GLES3 context:
 
 ```sh
-OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_android_output_filter_tests.sh
+OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_gles_scene_tests.sh
 ```
 
-Its real OpenGL ES 2.0 Mesa run passes 73 complete-image comparisons totaling
-75,288 pixels with exact RGB8 agreement. Coverage includes all six formulas,
-ordinary SDL target composition, row orientation, preserved renderer state,
-and injected missing-function, shader and draw failures with recovery. It
-asserts that filtering adds neither readbacks nor pixel uploads beyond the
-existing source upload.
+The same independent RGB8 expectations cover all six formulas, bypass, edges,
+orientation, resource reuse and failure behavior. Production Android
+presentation, color correction, touch controls and context lifecycle are
+covered by `tests/run_android_scene_tests.sh`. These replace the retired SDL
+GLES2 adapter fixtures. Filtering does not introduce readbacks or scene uploads.
 
 Offscreen Mesa execution checks shader results and resource handling;
 performance and supported-device driver behavior still require physical GPU

@@ -51,6 +51,12 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 	SDL_Event ev;
 	while(SDL_PollEvent(&ev))
 	{
+#ifdef ANDROID
+        /* Damon V. Caskey - 2026-11-20
+         * Preserve native screen contents on the rendering thread before SDL
+         * suspends the Android surface, and restore presentation on resume. */
+        video_handle_event(&ev);
+#endif
 		switch(ev.type)
 		{
 			case SDL_KEYDOWN:

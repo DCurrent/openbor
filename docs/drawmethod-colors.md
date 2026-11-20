@@ -235,10 +235,10 @@ a separate **Color Rules** section in `Logs/OpenBorLog.txt`. It states whether
 chroma and Substitute are native, their five-slot capacities, RGB32 destination
 scope, and matching order. Read these rows alongside the general scene/affine
 result; the existing `NATIVE` result line alone does not establish native
-color-rule availability. Normal desktop RGB32 modes require native scene
-initialization; failure does not select the software renderer. Required CPU
-paths, including Android before GLES integration and active output filters,
-continue to ignore these shader-only controls.
+color-rule availability. Desktop and Android RGB32 modes require native scene
+initialization; failure does not select the software renderer. GPU output
+filters preserve native color rules. Indexed asset operations and independent
+CPU reference paths continue to ignore these shader-only controls.
 
 The renderer attempts supported combined and individual shader variants.
 If the combined program cannot initialize, it prefers retaining existing

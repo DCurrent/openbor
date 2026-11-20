@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-16
+Date: 2026-11-20
 
 ## Scope
 
@@ -13,9 +13,10 @@ retired ports is outside this migration's scope. The branch also adds opt-in,
 general-purpose affine transforms for sprites and screens, plus drawmethod
 chroma keys and final-color Substitute.
 
-Normal desktop RGB32 scene modes require the native OpenGL renderer, including
-when an older configuration saved SDL presentation as its preference. Failure
-to initialize the required renderer fails that video mode. `OPENBOR_GPU=0`
+Normal RGB32 scene modes require the native renderer: OpenGL on desktop and
+OpenGL ES 3.0 on Android. Desktop also requires it when an older configuration
+saved SDL presentation as its preference. Failure to initialize the required
+renderer fails that video mode. `OPENBOR_GPU=0`
 disables native initialization and therefore fails a required native mode; it
 no longer selects a software comparison renderer.
 
@@ -23,13 +24,13 @@ Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
 warning and returns without a CPU rendering retry, readback, or software-state
 setup. Warnings are bounded to one per operation type for that mode selection.
 Losing or unregistering the native backend does not restore CPU eligibility.
-Android still composes gameplay scenes on the CPU until the native scene backend is
-ported to GLES. Its completed RGB32 game scene is uploaded once and output filters
-run on GLES2. Desktop output filters consume the resident scene texture without
-readback. Filter selection never makes desktop scene rendering select the CPU.
-Desktop movie composition and fullscreen output share the native GPU YUV renderer.
-The pack launcher now composes on the GPU on every platform, including Android's
-scoped GLES target; launcher presentation does not upload a CPU scene.
+Android and desktop share the scene renderer, including arbitrary RGB32
+subscreens, material operations, transforms, filters, glyphs and YUV movies.
+Output filters consume resident scene textures without readback. Filter
+selection never selects CPU scene rendering. Gameplay and launcher presentation
+no longer upload a CPU-composited frame on any supported platform. Android owns
+its GLES context and final display/touch pass; see [Android GPU rendering](android-gpu-rendering.md)
+for its resource lifecycle and device requirements.
 
 `PIXEL_32` is the scene target format. Indexed artwork remains supported as
 `PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
@@ -76,7 +77,7 @@ formats.
 | Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
 | Indexed asset processing | Existing image operations; scene composition uses RGB32 |
 | Output filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
-| Android gameplay | Existing CPU scene composition retained; completed RGB32 image uploaded once and output filters executed on GLES2 |
+| Android gameplay | Shared native scene renderer on GLES 3.0, resident RGB32 screens and direct GPU presentation |
 | Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
 
 The affine contract from the separate transform experiment is available through
@@ -86,7 +87,8 @@ separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
 for opt-in chroma coverage and final-output substitutions. Color rules execute
 only on supported native RGB32 draws. Software draws and unsupported native
 color capabilities ignore those settings while retaining ordinary drawing.
-No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
+Engine frame delays, game ticks and input scheduling remain unchanged. Android's
+native presenter now requests VSync when the existing FPS-limit setting selects it.
 
 One master `DM_RESAMPLE` selection now controls image reconstruction after the
 selected transform. See [the resampling guide](drawmethod-resampling.md) for
@@ -94,8 +96,8 @@ formulas, script examples, coverage rules and fixed-support reduction limits.
 `DC_RESAMPLE_MOVIE` aliases bilinear and is the default movie filter. See
 [GPU movie playback](gpu-movie-playback.md) for shared rendering and
 `MOVIE_PROPERTY_RESAMPLE`. Explicit filtered draws have no software implementation and
-are logged/skipped when native execution is unavailable, including the
-unmigrated Android scene renderer. Default nearest behavior is unchanged.
+are logged/skipped when native execution is unavailable. Android implements
+the same formulas through the shared renderer. Default nearest behavior is unchanged.
 
 Output filters are a separate final-scene selection. See
 [GPU output filters](gpu-output-filters.md) for stable menu IDs, integer channel
@@ -259,11 +261,11 @@ than retrying over a partially rendered result.
 `gpu.c`/`gpu.h` provide window-system-independent dispatch and synchronization.
 The public gamelib drawing entry points attempt native drawing first. Native
 RGB32 rejection returns before CPU pixel synchronization or raster setup.
-The retained CPU branches run only for required renderer paths or indexed image
-operations, rather than serving as automatic RGB32 retries. Backend
+The retained CPU branches support indexed image operations and reference tests,
+rather than serving as automatic RGB32 retries. Backend
 registration selects the native requirement; backend removal preserves it.
 
-`engine/sdl/gpu_renderer.c` owns the desktop resources, shaders, native draws,
+`engine/sdl/gpu_renderer.c` owns shared desktop/GLES resources, shaders, native draws,
 and GPU/CPU transfer boundaries. `gpu_transform.c` prepares transform geometry;
 it does not run the source-pixel/color blending loop. Bounded water effects
 evaluate displacement directly in the shader. Plane effects prepare their
@@ -271,12 +273,11 @@ sequential row recurrence into a reusable map, then perform horizontal sampling
 and wrapping in the shader. Expanded row geometry remains only where optional
 sampling is unavailable or a particular input exceeds its numerical bounds.
 
-Desktop `video_copy_screen()` presents the native scene texture directly or
+Every supported `video_copy_screen()` presents the native scene texture directly or
 passes it through the selected GPU output filter. Failed presentation returns
-without requesting a CPU frame. Android's existing CPU scene composition still
-requires a tightly packed RGB32 upload, followed by the same filter equations
-on GLES2. Its upload boundary remains explicit and is separate from native
-desktop scene rendering.
+without requesting a CPU frame. Android's owned GLES3 presentation pass retains
+display scaling, color correction and touch overlays without SDL renderer
+texture uploads or a separate launcher/filter compositor.
 
 Enabled output filters preserve their original IDs and 2x output patterns.
 They now retain all eight bits of each color channel, and Advance Mame2x uses
@@ -328,12 +329,9 @@ attempt rebuilds the buffer stores. Shutdown releases both buffers while their
 context exists, and presentation clears vertex-array enables and buffer
 bindings. Context recreation initializes fresh storage.
 
-This uses the existing desktop OpenGL baseline without requiring vertex array
-objects, persistent mapping or a new context type. The explicit attributes
-and triangle representation are also suitable for a future GLES backend;
-Android retains its existing scene renderer and uses GLES2 for the output
-filter pass. Hardware profiling is
-still needed to establish the frame-time benefit.
+Desktop retains its existing OpenGL baseline. Android uses GLES3 with the same
+explicit vertex attributes, indexed triangles and streaming policy. Hardware
+profiling is still needed to establish the frame-time benefit.
 
 ## Stage 4: avoid redundant preparation and uploads
 
@@ -521,8 +519,8 @@ Separate resident palettes preserve cheap color swaps, and opacity masks use
 their own cached index textures.
 
 The GPU copy lasts until sprite release, re-encoding, or native context
-shutdown. The CPU source supports explicitly retained CPU modes and rebuilding
-resources after context changes. Eager upload would move first-use work into
+shutdown. The CPU source supports asset access and rebuilding resources after
+context changes. Eager upload would move first-use work into
 loading, not eliminate a transfer currently repeated on every draw. Discarding
 the CPU source would require a separate lifetime/restoration design and is not
 part of state caching.
@@ -538,9 +536,8 @@ The original 160-glyph font retains its five-by-ten-pixel cells, five-pixel
 advance and bit-exact nearest sampling. One private 80-by-100 index texture
 stores all glyphs. The renderer uploads it on first use, reuses it across
 labels and color changes, and releases it when its context is destroyed.
-Desktop supplies text colors through the ordinary resident palette mechanism;
-Android supplies foreground and background shader values. Color changes do not
-rebuild either glyph atlas.
+Every platform supplies text colors through the ordinary resident palette
+mechanism. Color changes do not rebuild the glyph atlas.
 
 Each label submits its visible glyphs in one native batch, directly
 at the original `printText()` call site. Existing backgrounds, previews and
@@ -561,46 +558,35 @@ introducing layout rules.
 
 ### Android composition and presentation
 
-Android owns one private RGB32 SDL target for the active launcher screen. Each
+Android uses ordinary native RGB32 screen storage for the launcher. Each
 composition begins with a GPU clear, then submits backgrounds, glyphs, previews
-and boxes in their original order. RGB32 source images upload directly; indexed
-previews use a GPU index texture and palette lookup, including opaque palette
-index zero. Source uploads are consumed during each call, so the menu can free
-a preview immediately afterward. File decoding and existing preview asset
-preparation remain CPU work.
+and boxes in their original order. Indexed previews use the shared index texture
+and palette lookup, including opaque palette index zero. Source data is consumed
+during the draw, so previews can be freed immediately afterward. File decoding
+and existing preview asset preparation remain CPU work.
 
 The completed target passes through the existing GPU output filter, aspect
 handling, brightness and touch overlays. Idle presentation reuses it without
 uploading a CPU scene. The logo similarly composes once and retains its GPU
-frame. This is scoped launcher storage, not a general Android screen backend:
-the launcher has no CPU pixel readers, and its screen allocation is not treated
-as a synchronized copy of the GPU target. Gameplay still uses its existing
-scene path until the broader Android native renderer port.
-
-The launcher and output-filter adapters share SDL/GLES state preservation.
-They restore program, vertex attributes, buffers, texture units, viewport,
-raster state, unpack alignment, clear color and SDL target/scale/clip state
-before the next SDL operation. This also preserves SDL 2.0.10's internal state
-assumptions after raw GLES calls.
+frame. The shared screen synchronization contract now applies to launcher,
+gameplay and scripted screens alike. The separate GLES2 launcher/filter adapters
+and their SDL renderer state bridge have been removed. The native presenter
+invalidates cached scene state at its ownership boundaries.
 
 ### Failure and context lifecycle
 
 The menu records every composition result, including formatting failures that
 occur before a GPU call. Incomplete frames are not presented. Failures log and
 request a new composition from the current menu state without CPU rasterization
-or a stale CPU-screen upload. Ordinary desktop driver errors after submission
+or a stale CPU-screen upload. Driver errors after partial native submission
 retain the native renderer's existing fatal error policy.
 
-Initial launcher GPU setup must succeed before the control loop starts.
-Failed Android compositor creation is latched until the mode or context is
-recreated, avoiding repeated shader compilation and diagnostic floods.
-
-Android's SDL reset watch only records an atomic flag. Drawing and idle
-presentation reject invalidated targets. The next composition abandons old
-private GL names, recreates SDL presentation resources, and redraws the current
-view from its assets. Context replacement restores the font, output filter and
-touch resources without waiting for user input. Normal mode teardown releases
-launcher ownership before the screen allocation is freed.
+Initial native GPU setup must succeed before the control loop starts. Android
+handles application lifecycle events on the rendering thread and preserves live
+screen contents before controlled context replacement or suspension. Reset
+notifications do no GL work on the notifying thread. Preserved CPU shadows can
+rebuild resources after loss; inaccessible newer GPU pixels cannot be silently
+replaced by stale shadows. See the [Android lifecycle contract](android-gpu-rendering.md#context-lifecycle).
 
 These changes make launcher rendering consistent across supported platforms;
 no launcher FPS improvement is claimed. Desktop and GLES regression fixtures
@@ -791,7 +777,8 @@ preserves exact rational boundaries, including 3x scale, and real fractional
 translations immediately beside a half pixel. It avoids both interpolated UV
 drift and pre-rounded reciprocal steps. These comparisons also avoid relying
 on compensated float expressions that shader compilers may reassociate.
-GLSL 1.20 remains the required language baseline.
+Desktop uses GLSL 1.20; Android compiles the same equations as GLSL ES 3.00 with
+explicit high precision.
 
 Preflight bounds each scaled numerator contribution, including its full target
 extent, to 2^18. The largest absolute pixel offset from draw position on each
@@ -861,9 +848,9 @@ The suites cover:
   clipping and overlap with previews; no text-induced readback or scene upload.
 - Launcher atlas reuse across labels/colors, failed allocation/upload recovery,
   invalid-run atomicity and fresh residency after context replacement.
-- Android launcher RGB32/indexed source composition, original font pixels,
-  source reuse and immediate preview disposal, frame rejection before display,
-  SDL state restoration, output filters, brightness/touch and renderer resets.
+- Android native gameplay and launcher presentation, original font pixels,
+  all shared sampling/material/movie oracles on GLES3, source lifetime,
+  complete-frame rejection, filters, color correction/touch and context recovery.
 - Exact RGB8 output-filter images against an independent scalar oracle,
   including every byte value, tiny/odd dimensions, explicit borders and all
   Scale2x equality branches; no scene readback during filtering.
@@ -879,14 +866,13 @@ platform build results remain release gates for further renderer migration.
 
 ## Follow-on migration work
 
-Normal desktop RGB32 scene dispatch no longer uses software as a fallback.
-The retained CPU implementations still support required renderer paths,
-explicit image operations, and reference tests. Remaining work includes
-Android native gameplay scene/GLES integration and additional batching. Launcher
-composition now uses the GPU on every platform. Reconsidering the Android pack
-launcher's availability is separate from this rendering migration.
-Output filtering has moved to the GPU on desktop and Android. Remove
-CPU rendering implementations as their required functionality moves to the GPU;
+Normal RGB32 scene dispatch no longer uses software as a fallback on any
+supported platform. Remaining work includes animated-GIF palette/frame
+composition, optional GPU preview resizing, sloped-line geometry and additional
+batching. Retained software rasterizers should be removed from production after
+separating required asset operations and independent test references. Launcher
+availability on Android remains a separate product decision. Remove CPU
+rendering implementations as their required functionality moves to the GPU;
 retired-port compatibility is not a reason to keep them. Preserving drawing
 capabilities on the supported platforms remains the migration goal.
 

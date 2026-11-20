@@ -2,11 +2,10 @@
 
 The drawmethod supports an opt-in, six-coefficient affine transform for sprites
 and screens. The native renderer draws supported affine operations directly
-on the GPU. OpenBOR scene targets use RGB32 only. Normal desktop scenes require
-this renderer; unsupported affine draws are logged and skipped without a CPU
-rendering retry. Required CPU paths, including Android before GLES integration
-and active output filters, retain their existing implementation. No intermediate
-screen is required just to apply an affine transform.
+on the GPU. OpenBOR scene targets use RGB32 only. Desktop and Android scenes
+require the native renderer; unsupported affine draws are logged and skipped
+without a CPU rendering retry. GPU output filters do not change that policy.
+No intermediate screen is required just to apply an affine transform.
 
 Hardware capability warnings appear in the ordinary engine log during video
 initialization, even when profiling is disabled. If native affine support is
@@ -115,8 +114,8 @@ snapshots for overlapping blends and self-drawing. Larger grids or unavailable
 cache storage retain preflight and recomputation while rendering pixels on the
 GPU. The cache changes preparation work, not the affine API or sampling rules.
 
-The retained CPU implementation serves required CPU paths and independent
-reference checks. It inverse-maps destination pixel centers into the source,
+The retained CPU implementation serves independent reference checks. It
+inverse-maps destination pixel centers into the source,
 clips transformed bounds before scanning, and evaluates each source sample
 directly in double precision. Direct evaluation avoids accumulated coordinate
 drift at exact texel boundaries without snapping nearby authored translations.

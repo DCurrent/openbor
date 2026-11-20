@@ -21,37 +21,33 @@
 #include "gfx.h"
 #include "videocommon.h"
 #include "gpu.h"
-#include "gpu_output_filter_android.h"
-#include "gpu_launcher_android.h"
+#include "gpu_renderer.h"
+#include "gpu_gl_api.h"
 
 #include "pngdec.h"
 
 extern int videoMode;
 
 SDL_Window *window = NULL;
-SDL_Renderer *renderer = NULL;
-SDL_Texture *texture = NULL;
-SDL_Texture *texture_base = NULL;
-/* Android retains its accelerated SDL fullscreen presenter until the shared
- * native scene renderer is ported. Movie storage is separate from game output. */
-static SDL_Texture *movie_texture;
-static e_drawmethod_resample movie_resample = DC_RESAMPLE_MOVIE;
-static const void *movie_owner;
-static uint64_t movie_generation;
-static gpu_output_filter_android *output_filter;
-static gpu_launcher_android *launcher;
+static SDL_GLContext video_context;
+static GLuint video_program, video_vertices;
+static GLint video_target_uniform, video_source_uniform, video_color_uniform;
+static GLint video_textured_uniform, video_correction_uniform;
+static GLint video_gamma_uniform, video_brightness_uniform;
+static SDL_atomic_t video_reset_pending;
+static int video_watch_installed, video_mode_ready, video_suspended;
+static int video_transition, video_recovering, video_failed, video_warning;
+static SDL_GLContext video_failed_context;
 static const s_screen *launcher_owner;
-static SDL_GLContext launcher_context;
-static SDL_atomic_t launcher_reset_pending;
-static int launcher_watch_installed;
 static int launcher_frame_valid;
-static int launcher_init_failed;
 static int launcher_warning;
-static int launcher_rebuild_pending;
-static int video_mode_ready;
+static s_screen *movie_screen;
+static int movie_frame_valid;
 
-//For Android - Textures and a surface for the buttons
-SDL_Texture *buttons = NULL;
+/* Touch artwork is immutable GPU source storage, rebuilt after context loss. */
+static GLuint buttons;
+static int buttons_width, buttons_height;
+static int video_upload_buttons(SDL_Surface *surface);
 
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
@@ -65,6 +61,7 @@ int nativeWidth, nativeHeight;           // resolution of device screen
 static int textureWidth, textureHeight;  // dimensions of game screen and texture
 
 int brightness = 0;
+static int video_gamma;
 
 #include "button_png_800x480.h" // default button skin
 
@@ -282,7 +279,7 @@ static int setup_touch_txt()
                     if(buffer_pakfile(GET_ARG(1), &pngb, &pngs))
                     {
                         ts = pngToSurface(pngb);
-                        if(!ts || !(buttons = SDL_CreateTextureFromSurface(renderer, ts)))
+                        if(!ts || !video_upload_buttons(ts))
                         {
                             printf("error: %s\n", SDL_GetError());
                         }
@@ -359,37 +356,503 @@ static void setup_touch()
 }
 //End of touch control UI code
 
-/* Android launcher GPU presentation boundary. */
+/* Android native GPU presentation boundary. */
+
+enum
+{
+    VIDEO_PRESENT_TOUCH = 0,
+    VIDEO_PRESENT_SCENE = 1,
+    VIDEO_PRESENT_MOVIE = 2
+};
 
 /*
  * Damon V. Caskey
- * 2026-11-16
- * SDL can announce renderer loss from another thread. Record only an atomic
- * notification here; the render thread retires resources and starts a new
- * composition before any launcher pixels can be presented again.
+ * 2026-11-20
+ * Android owns one GLES3 context. Scene targets, palettes, glyphs, transforms,
+ * movies and output filters use the shared renderer. This final pass owns only
+ * the window quad and immutable touch artwork; it never uploads scene pixels.
  */
-static int SDLCALL video_launcher_watch(void *unused, SDL_Event *event)
+static const char *video_vertex_source =
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "in vec2 position; in vec2 texcoord;\n"
+    "uniform vec2 targetSize; out vec2 uv;\n"
+    "void main(){ uv=texcoord; gl_Position=vec4(position.x*2.0/targetSize.x-1.0,"
+    "1.0-position.y*2.0/targetSize.y,0.0,1.0); }\n";
+static const char *video_fragment_source =
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "precision highp sampler2D;\n"
+    "uniform sampler2D sourceTexture; uniform vec4 modulation;\n"
+    "uniform int textured; uniform int correction;\n"
+    "uniform float gammaValue; uniform float brightnessValue;\n"
+    "in vec2 uv; out vec4 outputColor;\n"
+    "void main(){ vec4 c=textured!=0?texture(sourceTexture,uv)*modulation:modulation;\n"
+    "if(correction==1){\n"
+    "if(gammaValue>0.0) c.rgb=1.0-((1.0-c.rgb)*(1.0-c.rgb*gammaValue));\n"
+    "else c.rgb=c.rgb*(1.0-((1.0-c.rgb)*-gammaValue));\n"
+    "if(brightnessValue>0.0) c.rgb=mix(c.rgb,vec3(1.0),brightnessValue);\n"
+    "else c.rgb=mix(c.rgb,vec3(0.0),-brightnessValue); }\n"
+    "if(correction!=0) c.a=1.0;\n"
+    "outputColor=c; }\n";
+
+/* Damon V. Caskey - 2026-11-20: bound repeated presentation diagnostics. */
+static int video_reject(const char *reason)
+{
+    if(!video_warning)
+    {
+        gpu_log("WARNING: Android native video failed at %s; output skipped without CPU retry.", reason);
+        video_warning = 1;
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * An unexpected context loss cannot reconstruct arbitrary script-authored
+ * pixels from source assets. Stop explicitly rather than expose stale shadows.
+ */
+static void video_lost_contents(void)
+{
+    gpu_log("ERROR: Android graphics context was lost with unsynchronized GPU screen contents. "
+            "Stopping rather than restoring stale pixels or selecting CPU rendering.");
+    fprintf(stderr, "Android GPU screen contents were lost; rendering cannot safely continue.\n");
+    abort();
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * SDL may report device reset from another thread. Only publish an atomic flag;
+ * all preservation, reconstruction and GL work runs on the engine thread.
+ */
+static int SDLCALL video_native_watch(void *unused, SDL_Event *event)
 {
     (void)unused;
     if(event && (event->type == SDL_RENDER_TARGETS_RESET ||
                  event->type == SDL_RENDER_DEVICE_RESET))
+        SDL_AtomicSet(&video_reset_pending, 1);
+    return 1;
+}
+
+/* Damon V. Caskey - 2026-11-20: compile the small GLES3 window shader. */
+static GLuint video_compile_shader(GLenum type, const char *source)
+{
+    GLuint shader = glCreateShader(type);
+    GLint compiled = 0;
+    char message[2048] = {0};
+    if(!shader) return 0;
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if(!compiled)
     {
-        SDL_AtomicSet(&launcher_reset_pending, 1);
+        GLsizei length = 0;
+        glGetShaderInfoLog(shader, sizeof(message), &length, message);
+        message[sizeof(message) - 1] = 0;
+        gpu_log("ERROR: Android presentation shader failed: %s.", message);
+        glDeleteShader(shader);
+        return 0;
     }
+    return shader;
+}
+
+/* Damon V. Caskey - 2026-11-20: release only names belonging to this context. */
+static void video_destroy_presenter(int context_lost)
+{
+    if(!context_lost)
+    {
+        if(buttons) glDeleteTextures(1, &buttons);
+        if(video_vertices) glDeleteBuffers(1, &video_vertices);
+        if(video_program) glDeleteProgram(video_program);
+    }
+    buttons = video_vertices = video_program = 0;
+    buttons_width = buttons_height = 0;
+}
+
+/* Damon V. Caskey - 2026-11-20: initialize buffered final composition. */
+static int video_create_presenter(void)
+{
+    GLuint vertex = video_compile_shader(GL_VERTEX_SHADER, video_vertex_source);
+    GLuint fragment = video_compile_shader(GL_FRAGMENT_SHADER, video_fragment_source);
+    GLint linked = 0;
+    if(!vertex || !fragment)
+    {
+        if(vertex) glDeleteShader(vertex);
+        if(fragment) glDeleteShader(fragment);
+        return 0;
+    }
+    video_program = glCreateProgram();
+    if(video_program)
+    {
+        glAttachShader(video_program, vertex);
+        glAttachShader(video_program, fragment);
+        glBindAttribLocation(video_program, 0, "position");
+        glBindAttribLocation(video_program, 1, "texcoord");
+        glLinkProgram(video_program);
+        glGetProgramiv(video_program, GL_LINK_STATUS, &linked);
+    }
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+    if(!linked)
+    {
+        char message[2048] = {0};
+        if(video_program) glGetProgramInfoLog(video_program, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = 0;
+        gpu_log("ERROR: Android presentation program failed: %s.", message);
+        return 0;
+    }
+    video_target_uniform = glGetUniformLocation(video_program, "targetSize");
+    video_source_uniform = glGetUniformLocation(video_program, "sourceTexture");
+    video_color_uniform = glGetUniformLocation(video_program, "modulation");
+    video_textured_uniform = glGetUniformLocation(video_program, "textured");
+    video_correction_uniform = glGetUniformLocation(video_program, "correction");
+    video_gamma_uniform = glGetUniformLocation(video_program, "gammaValue");
+    video_brightness_uniform = glGetUniformLocation(video_program, "brightnessValue");
+    glGenBuffers(1, &video_vertices);
+    return video_vertices && video_target_uniform >= 0 && video_source_uniform >= 0 &&
+        video_color_uniform >= 0 && video_textured_uniform >= 0 &&
+        video_correction_uniform >= 0 && video_gamma_uniform >= 0 &&
+        video_brightness_uniform >= 0 && glGetError() == GL_NO_ERROR;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Decode/normalize touch artwork once, then keep its RGBA pixels resident.
+ * This is asset upload, independent of all screen composition and readback.
+ */
+static int video_upload_buttons(SDL_Surface *surface)
+{
+    SDL_Surface *rgba;
+    GLuint replacement = 0;
+    int row;
+    if(!surface || surface->w <= 0 || surface->w > INT_MAX / 4 || surface->h <= 0) return 0;
+    rgba = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
+    if(!rgba) return 0;
+    if(SDL_MUSTLOCK(rgba) && SDL_LockSurface(rgba) < 0)
+    {
+        SDL_FreeSurface(rgba);
+        return 0;
+    }
+    gpu_gl_invalidate_state();
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &replacement);
+    glBindTexture(GL_TEXTURE_2D, replacement);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if(rgba->pitch == rgba->w * 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rgba->w, rgba->h, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, rgba->pixels);
+    else
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rgba->w, rgba->h, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        for(row = 0; row < rgba->h; ++row)
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, row, rgba->w, 1, GL_RGBA,
+                            GL_UNSIGNED_BYTE, (const unsigned char *)rgba->pixels + (size_t)row * rgba->pitch);
+    }
+    if(SDL_MUSTLOCK(rgba)) SDL_UnlockSurface(rgba);
+    if(!replacement || glGetError() != GL_NO_ERROR)
+    {
+        if(replacement) glDeleteTextures(1, &replacement);
+        SDL_FreeSurface(rgba);
+        return 0;
+    }
+    if(buttons) glDeleteTextures(1, &buttons);
+    buttons = replacement;
+    buttons_width = rgba->w;
+    buttons_height = rgba->h;
+    SDL_FreeSurface(rgba);
     return 1;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-16
- * Failed launcher work poisons this frame, including idle re-presentation.
- * Keep its owner registered so stale CPU screen pixels cannot become a retry.
- * Rearm diagnostics only after a complete frame is successfully presented.
+ * 2026-11-20
+ * Preserve native screen owners before controlled destruction. Lost GL names
+ * are abandoned without deletion, and only preserved CPU shadows can recover.
  */
+static void video_release_resources(int context_lost)
+{
+    gpu_gl_set_context_guard(NULL);
+    /* Fullscreen movie storage is derived from retained decoder planes, never
+     * a script-visible owner. Discard it before preserving genuine screens;
+     * lost contexts must not delete numeric names that may already be reused. */
+    if(movie_screen)
+    {
+        if(context_lost || video_recovering) gpu_gl_discard_screen(movie_screen);
+        /* A backend guard can arrive with this screen already passed as its
+         * destination. Keep the owner allocation alive until that call returns;
+         * its discarded pixels cannot be presented until preparation completes
+         * entirely within the new context generation. */
+        if(!video_recovering) freescreen(&movie_screen);
+    }
+    if(context_lost)
+    {
+        if(!gpu_gl_abandon()) video_lost_contents();
+    }
+    else gpu_gl_shutdown();
+    video_destroy_presenter(context_lost);
+    movie_frame_valid = 0;
+    launcher_frame_valid = 0;
+    video_mode_ready = 0;
+    opengl = 0;
+}
+
+/* Damon V. Caskey - 2026-11-20: create all resources before enabling drawing. */
+static int video_create_resources(void)
+{
+    s_screen *probe = NULL;
+    unsigned filtered_texture;
+    int filtered_width, filtered_height, major = 0, profile = 0;
+    if(SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major) < 0 ||
+       SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &profile) < 0 ||
+       major < 3 || !(profile & SDL_GL_CONTEXT_PROFILE_ES))
+    {
+        gpu_log("ERROR: Android requires an OpenGL ES 3.0 or newer context.");
+        return 0;
+    }
+    SDL_GL_GetDrawableSize(window, &nativeWidth, &nativeHeight);
+    if(nativeWidth <= 0 || nativeHeight <= 0 || !gpu_gl_init() || !video_create_presenter())
+        return 0;
+    /* Validate the selected filter before accepting a mode, not on its first
+     * visible frame. The probe has no retained owner and is never presented. */
+    if(savedata.swfilter)
+    {
+        probe = allocscreen(textureWidth, textureHeight, PIXEL_32);
+        if(!probe || !gpu_clear_screen(probe) ||
+           !gpu_gl_get_filtered_screen_texture(probe, savedata.swfilter,
+                &filtered_texture, &filtered_width, &filtered_height))
+        {
+            if(probe) freescreen(&probe);
+            return 0;
+        }
+        freescreen(&probe);
+    }
+    setup_touch();
+    if(!buttons)
+    {
+        SDL_Surface *surface = pngToSurface(buttonpng);
+        int uploaded = surface && video_upload_buttons(surface);
+        if(surface) SDL_FreeSurface(surface);
+        if(!uploaded) return 0;
+    }
+    if(SDL_GL_SetSwapInterval(savedata.fpslimit == 1 ? 1 : 0) < 0)
+        gpu_log("WARNING: Android could not apply the requested swap interval: %s.", SDL_GetError());
+    video_mode_ready = 1;
+    video_failed = 0;
+    video_warning = 0;
+    video_failed_context = NULL;
+    opengl = 1;
+    savedata.usegl = 1;
+    gpu_gl_set_context_guard(video_ensure_context);
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * The backend checks this boundary before any scene access. SDL can create a
+ * replacement context during resume; adopt it only after old names have been
+ * abandoned. Failed initialization stays latched until a new context/reset or
+ * explicit mode change, preventing repeated compile/allocation/log work.
+ */
+int video_ensure_context(void)
+{
+    SDL_GLContext current = SDL_GL_GetCurrentContext();
+    SDL_GLContext previous;
+    int reset = SDL_AtomicGet(&video_reset_pending);
+    if(video_transition) return current && current == video_context;
+    if(video_suspended) return 0;
+    if(!window || stored_videomodes.hRes <= 0 || stored_videomodes.vRes <= 0) return 0;
+    if(!current && video_context && !reset &&
+       SDL_GL_MakeCurrent(window, video_context) == 0)
+        current = SDL_GL_GetCurrentContext();
+    if(video_mode_ready && current && current == video_context && !reset && gpu_is_active())
+        return 1;
+    if(video_failed && current == video_failed_context && !reset) return 0;
+
+    video_transition = 1;
+    video_recovering = 1;
+    previous = video_context;
+    SDL_AtomicSet(&video_reset_pending, 0);
+    video_release_resources(reset || current != previous);
+    /* SDL owns an automatically created replacement until the app adopts it.
+     * Do not delete stale GL object names or destroy that replacement context. */
+    if(current && current != previous)
+    {
+        video_context = current;
+        /* SDL's Android restore creates a replacement without destroying the
+         * failed EGL context. Retire that handle after abandoning its GL names;
+         * SDL leaves the distinct current replacement bound. */
+        if(previous) SDL_GL_DeleteContext(previous);
+    }
+    else
+    {
+        if(previous) SDL_GL_DeleteContext(previous);
+        video_context = SDL_GL_CreateContext(window);
+    }
+    if(!video_context || SDL_GL_MakeCurrent(window, video_context) < 0 ||
+       !video_create_resources())
+    {
+        video_release_resources(SDL_GL_GetCurrentContext() != video_context);
+        video_failed = 1;
+        video_failed_context = SDL_GL_GetCurrentContext();
+        video_recovering = 0;
+        video_transition = 0;
+        return video_reject("context restoration");
+    }
+    video_recovering = 0;
+    video_transition = 0;
+    gpu_log("Android native GPU context restored from preserved screen contents.");
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Lifecycle events are processed on the render thread before SDL's Android
+ * pump detaches and pauses the context. Snapshot live screens once here, never
+ * per frame. Foreground restoration then reuses or safely recreates residency.
+ */
+void video_handle_event(const SDL_Event *event)
+{
+    if(!event) return;
+    if(event->type == SDL_APP_WILLENTERBACKGROUND)
+    {
+        if(video_mode_ready && !video_suspended)
+        {
+            if(!video_ensure_context()) video_lost_contents();
+            /* Decoder planes remain available, so fullscreen output need not
+             * add a drawable-sized readback to the genuine screen checkpoint. */
+            if(movie_screen) freescreen(&movie_screen);
+            movie_frame_valid = 0;
+            if(!gpu_gl_suspend()) video_lost_contents();
+        }
+        video_suspended = 1;
+    }
+    else if(event->type == SDL_APP_DIDENTERFOREGROUND)
+    {
+        video_suspended = 0;
+        if(stored_videomodes.hRes > 0) video_ensure_context();
+    }
+    else if((event->type == SDL_RENDER_TARGETS_RESET ||
+             event->type == SDL_RENDER_DEVICE_RESET) &&
+            SDL_AtomicGet(&video_reset_pending) && !video_suspended)
+    {
+        /* The event watch already recorded this notification. A reset consumed
+         * during foreground restoration must not rebuild the new context twice. */
+        video_ensure_context();
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Required GLES scene initialization is atomic from the caller's perspective.
+ * Every supported scene remains RGB32; initialization failure never enables
+ * CPU rasterization. Ordinary mode changes preserve all surviving screen data.
+ */
+int video_set_mode(s_videomodes mode)
+{
+    int shutdown = mode.hRes == 0 && mode.vRes == 0;
+    SDL_GLContext current;
+    if(!shutdown && (mode.pixel != 4 || mode.hRes <= 0 || mode.vRes <= 0 ||
+       savedata.swfilter < BLITTER_NONE || savedata.swfilter >= BLITTER_MAX))
+    {
+        gpu_log("ERROR: Android video mode requires valid RGB32 dimensions and a supported GPU output filter.");
+        return 0;
+    }
+    gpu_set_native_required(1);
+    video_transition = 1;
+    current = SDL_GL_GetCurrentContext();
+    if(video_context || gpu_is_active())
+    {
+        int lost = SDL_AtomicGet(&video_reset_pending) || current != video_context;
+        if(!current && video_context && !SDL_AtomicGet(&video_reset_pending) &&
+           SDL_GL_MakeCurrent(window, video_context) == 0)
+        {
+            lost = 0;
+            current = SDL_GL_GetCurrentContext();
+        }
+        video_release_resources(lost);
+        /* A queued Android reset may have installed a distinct SDL context
+         * before explicit mode teardown. Both handles belong to this video
+         * lifetime; no replacement may be left alive and unowned. */
+        if(current && current != video_context) SDL_GL_DeleteContext(current);
+        if(video_context) SDL_GL_DeleteContext(video_context);
+        video_context = NULL;
+    }
+    launcher_owner = NULL;
+    launcher_frame_valid = launcher_warning = 0;
+    movie_frame_valid = 0;
+    stored_videomodes = mode;
+    SDL_AtomicSet(&video_reset_pending, 0);
+    video_failed = video_warning = video_suspended = 0;
+    video_failed_context = NULL;
+    if(shutdown)
+    {
+        video_transition = 0;
+        return 0;
+    }
+    textureWidth = mode.hRes;
+    textureHeight = mode.vRes;
+    savedata.fullscreen = 1;
+    if(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8) < 0 ||
+       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) < 0)
+        goto failed;
+    if(!window)
+        window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            nativeWidth, nativeHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+    if(!window) goto failed;
+    if(!video_watch_installed)
+    {
+        SDL_AddEventWatch(video_native_watch, NULL);
+        video_watch_installed = 1;
+    }
+    video_context = SDL_GL_CreateContext(window);
+    if(!video_context || SDL_GL_MakeCurrent(window, video_context) < 0 ||
+       !video_create_resources()) goto failed;
+    video_transition = 0;
+    gpu_log("Android scene rendering: NATIVE - OpenGL ES 3, RGB32 targets; no CPU scene upload or rendering retry.");
+    return 1;
+failed:
+    video_release_resources(SDL_GL_GetCurrentContext() != video_context);
+    video_failed = 1;
+    video_failed_context = SDL_GL_GetCurrentContext();
+    video_transition = 0;
+    return video_reject("required GLES3 mode initialization");
+}
+
+/* Damon V. Caskey - 2026-11-20: retire native resources before SDL teardown. */
+void video_shutdown(void)
+{
+    s_videomodes shutdown = {0};
+    video_set_mode(shutdown);
+    if(video_watch_installed)
+    {
+        SDL_DelEventWatch(video_native_watch, NULL);
+        video_watch_installed = 0;
+    }
+    if(window) SDL_DestroyWindow(window);
+    window = NULL;
+}
+
+/* Damon V. Caskey - 2026-11-20: a failed launcher command rejects its frame. */
 static int video_launcher_reject(const char *reason)
 {
     launcher_frame_valid = 0;
-    gpu_launcher_android_invalidate(launcher);
     if(!launcher_warning)
     {
         gpu_log("WARNING: Android GPU launcher failed at %s; frame skipped without CPU retry.", reason);
@@ -398,524 +861,219 @@ static int video_launcher_reject(const char *reason)
     return 0;
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Retire the private composition before its SDL renderer or screen owner.
- * Lost contexts require abandoning raw GL names, which may already refer to
- * unrelated objects in a replacement context. SDL still owns its textures.
- */
-static void video_launcher_retire(int context_lost)
-{
-    if(launcher_watch_installed)
-    {
-        SDL_DelEventWatch(video_launcher_watch, NULL);
-        launcher_watch_installed = 0;
-    }
-    launcher_frame_valid = 0;
-    launcher_owner = NULL;
-    if(context_lost) gpu_launcher_android_abandon(launcher);
-    else gpu_launcher_android_destroy(launcher);
-    launcher = NULL;
-    launcher_context = NULL;
-    launcher_init_failed = 0;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Reject a stale frame before accessing its target, atlas or source storage.
- * Ordinary game screens remain outside this launcher-only ownership boundary.
- */
-static int video_launcher_current(const s_screen *target)
-{
-    if(launcher_context && SDL_GL_GetCurrentContext() != launcher_context)
-    {
-        SDL_AtomicSet(&launcher_reset_pending, 1);
-    }
-    if(!target || target != launcher_owner || !launcher || !renderer ||
-       !video_mode_ready || !launcher_frame_valid ||
-       SDL_AtomicGet(&launcher_reset_pending))
-    {
-        return video_launcher_reject("unavailable or invalidated composition");
-    }
-    return 1;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Begin each launcher composition on its private RGB32 GPU target. Register
- * the requested owner even when initialization fails, so presentation cannot
- * fall through to the unrelated CPU scene upload. Reset recovery recreates
- * SDL presentation resources before replaying the caller's normal draw order.
- * Failed construction or mode recovery stays unavailable until a new mode,
- * context or reset event, bounding initialization attempts and diagnostics
- * while leaving command retry intact.
- */
+/* Damon V. Caskey - 2026-11-20: ordinary native screen ownership serves the launcher. */
 int video_launcher_begin(s_screen *target)
 {
     launcher_owner = target;
     launcher_frame_valid = 0;
-    if(SDL_AtomicGet(&launcher_reset_pending) ||
-       ((launcher || launcher_init_failed) &&
-        SDL_GL_GetCurrentContext() != launcher_context))
-    {
-        launcher_rebuild_pending = 1;
-    }
-    if(launcher_rebuild_pending)
-    {
-        s_videomodes mode = stored_videomodes;
-        if(!video_set_mode(mode))
-        {
-            launcher_owner = target;
-            launcher_context = SDL_GL_GetCurrentContext();
-            launcher_init_failed = 1;
-            launcher_rebuild_pending = 0;
-            /* Mode teardown removed the old watch. A fresh reset can permit
-             * another recovery attempt; ordinary redraws must not repeatedly
-             * recreate the renderer or compile an unavailable filter. */
-            if(!launcher_watch_installed)
-            {
-                SDL_AddEventWatch(video_launcher_watch, NULL);
-                launcher_watch_installed = 1;
-            }
-            return video_launcher_reject("renderer reset recovery");
-        }
-        launcher_owner = target;
-        launcher_rebuild_pending = 0;
-    }
-    if(!video_mode_ready || !renderer || !texture || !target ||
-       target->pixelformat != PIXEL_32 || target->width != textureWidth ||
-       target->height != textureHeight || target->width <= 0 || target->height <= 0)
-    {
-        return video_launcher_reject("invalid RGB32 owner or video mode");
-    }
-    if(!launcher_watch_installed)
-    {
-        SDL_AddEventWatch(video_launcher_watch, NULL);
-        launcher_watch_installed = 1;
-    }
-    if(!launcher)
-    {
-        if(launcher_init_failed)
-            return video_launcher_reject("unavailable compositor initialization");
-        launcher_context = SDL_GL_GetCurrentContext();
-        launcher = gpu_launcher_android_create(renderer, target->width, target->height);
-        if(!launcher)
-        {
-            launcher_init_failed = 1;
-            return video_launcher_reject("composition allocation");
-        }
-        launcher_context = SDL_GL_GetCurrentContext();
-    }
-    if(SDL_AtomicGet(&launcher_reset_pending) ||
-       !gpu_launcher_android_begin(launcher))
-    {
+    if(!target || target->pixelformat != PIXEL_32 ||
+       target->width != textureWidth || target->height != textureHeight ||
+       !video_ensure_context() || !gpu_clear_screen(target))
         return video_launcher_reject("composition start");
-    }
     launcher_frame_valid = 1;
     return 1;
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Consume launcher backgrounds and previews synchronously, retaining no
- * borrowed screen pointer after return. Previews may be freed immediately.
- */
+/* Damon V. Caskey - 2026-11-20: maintain complete-frame launcher ordering. */
+static int video_launcher_current(const s_screen *target)
+{
+    if(!target || target != launcher_owner || !launcher_frame_valid || !video_ensure_context())
+        return 0;
+    /* Recovery can invalidate the frame while preserving the screen owner. */
+    return launcher_frame_valid;
+}
+
+/* Damon V. Caskey - 2026-11-20: consume transient previews through native image residency. */
 int video_launcher_screen(s_screen *target, s_screen *source, int x, int y)
 {
-    if(!video_launcher_current(target)) return 0;
-    if(source == launcher_owner)
-        return video_launcher_reject("GPU owner used as a CPU source asset");
-    if(!gpu_launcher_android_screen(launcher, source, x, y))
+    if(!video_launcher_current(target) || !gpu_draw_screen(target, source, x, y, NULL))
         return video_launcher_reject("image composition");
     return 1;
 }
 
-/* Damon V. Caskey - 2026-11-16: preserve opaque launcher panel order on GPU. */
+/* Damon V. Caskey - 2026-11-20: preserve opaque launcher panel order. */
 int video_launcher_box(s_screen *target, int x, int y, int width, int height, unsigned color)
 {
-    if(!video_launcher_current(target)) return 0;
-    if(!gpu_launcher_android_box(launcher, x, y, width, height, color))
+    if(!video_launcher_current(target) || !gpu_draw_box(target, x, y, width, height, color, NULL))
         return video_launcher_reject("box composition");
     return 1;
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-16
- * The common formatter supplies safe byte-mapped glyphs. Rasterize them at
- * their original call site without writing or synchronizing the CPU owner.
- */
+/* Damon V. Caskey - 2026-11-20: share the native resident font atlas on Android. */
 int video_launcher_text(s_screen *target, int x, int y, unsigned foreground,
                          unsigned background, int fill, const unsigned char *glyphs,
                          size_t count, const unsigned char *font_rows, size_t font_glyph_count)
 {
-    if(!video_launcher_current(target)) return 0;
-    if(!gpu_launcher_android_text(launcher, x, y, foreground, background, fill,
-                                  glyphs, count, font_rows, font_glyph_count))
+    if(!video_launcher_current(target) || !gpu_gl_draw_launcher_text(target, x, y,
+        foreground, background, fill, glyphs, count, font_rows, font_glyph_count))
         return video_launcher_reject("text composition");
     return 1;
 }
 
-/* End Android launcher GPU presentation boundary. */
-
-/*
-Start of video code. Unlike the original code for video, everything is
-incorporated in video_set_mode, since this is isolated from the main
-code.
-*/
-
 /*
  * Damon V. Caskey
- * 2026-11-16
- * Initialize Android presentation for RGB32 scenes only. Optional output
- * filters use a GLES2 target before the normal SDL brightness/touch pass.
- * Failed filter initialization stops the mode without a CPU filter retry.
+ * 2026-11-20
+ * Submit one textured rectangle in top-left window coordinates. Native image
+ * row zero is texture row zero; explicit coordinates avoid SDL texture caches
+ * and preserve the shared renderer's logical screen orientation. Scene/movie
+ * output is opaque RGB32 regardless of its unused source byte; only touch
+ * artwork carries real alpha. Movie colors were corrected before YUV clamp.
  */
-int video_set_mode(s_videomodes videomodes)
+static void video_draw_rectangle(GLuint image, float x, float y, float width, float height,
+    float u0, float v0, float u1, float v1, float opacity, int correction, int linear)
 {
-    //hardcode flags
-    int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
-    int recreate_renderer;
-
-    /* Zero dimensions request shutdown and carry no scene format. */
-    if(videomodes.hRes != 0 || videomodes.vRes != 0)
+    const GLfloat vertices[] = {
+        x, y, u0, v0, x + width, y, u1, v0, x, y + height, u0, v1,
+        x + width, y, u1, v0, x + width, y + height, u1, v1, x, y + height, u0, v1
+    };
+    glBindTexture(GL_TEXTURE_2D, image);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linear ? GL_LINEAR : GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linear ? GL_LINEAR : GL_NEAREST);
+    glUniform4f(video_color_uniform, 1.0f, 1.0f, 1.0f, opacity);
+    glUniform1i(video_textured_uniform, 1);
+    glUniform1i(video_correction_uniform, correction);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    /* Borrowed native images always return with their established sampler. */
+    if(linear)
     {
-        if(videomodes.pixel != 4)
-        {
-            gpu_log("ERROR: Video mode rejected: OpenBOR scenes require RGB32 (4 bytes per pixel), received %d.", videomodes.pixel);
-            return 0;
-        }
-        if(videomodes.hRes <= 0 || videomodes.vRes <= 0 ||
-           savedata.swfilter < BLITTER_NONE || savedata.swfilter >= BLITTER_MAX)
-        {
-            gpu_log("ERROR: Android video mode rejected invalid dimensions or output-filter selection.");
-            return 0;
-        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
-    stored_videomodes = videomodes;
-    savedata.fullscreen = 1;
+}
 
-    //destroy all
-    video_mode_ready = 0;
-    recreate_renderer = launcher_rebuild_pending || SDL_AtomicGet(&launcher_reset_pending) ||
-        (launcher_context && SDL_GL_GetCurrentContext() != launcher_context);
-    video_launcher_retire(recreate_renderer);
-    SDL_AtomicSet(&launcher_reset_pending, 0);
-    if(recreate_renderer) gpu_output_filter_android_abandon(output_filter);
-    else gpu_output_filter_android_destroy(output_filter);
-    output_filter = NULL;
-    SDL_DestroyTexture(movie_texture);
-    movie_texture = NULL;
-    movie_owner = NULL;
-    if(texture_base)
-    {
-        SDL_DestroyTexture(texture_base);
-        texture_base = NULL;
-    }
-    if(texture)
-    {
-        SDL_DestroyTexture(texture);
-        texture = NULL;
-    }
-    if(buttons)
-    {
-        SDL_DestroyTexture(buttons);
-        buttons = NULL;
-    }
-    if(recreate_renderer && renderer)
-    {
-        SDL_DestroyRenderer(renderer);
-        renderer = NULL;
-    }
-
-    if(videomodes.hRes == 0 && videomodes.vRes == 0)
-    {
-        //Term_Gfx();
-        launcher_rebuild_pending = 0;
-        launcher_warning = 0;
-        return 0;
-    }
-
-    videomodes = setupPreBlitProcessing(videomodes);
-    if(!videomodes.pixel)
-    {
-        return 0;
-    }
-    assert(videomodes.pixel == 4);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-    if(!window && !(window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, nativeWidth, nativeHeight, flags)))
-    {
-        printf("error: %s\n", SDL_GetError());
-        return 0;
-    }
-
-    if(!renderer)
-    {
-        int index, selected = -1;
-        SDL_RendererInfo candidate;
-        for(index = 0; index < SDL_GetNumRenderDrivers(); ++index)
-        {
-            if(SDL_GetRenderDriverInfo(index, &candidate) == 0 &&
-               candidate.name && !strcmp(candidate.name, "opengles2"))
-            {
-                selected = index;
-                break;
-            }
-        }
-        if(selected < 0 || !(renderer = SDL_CreateRenderer(window, selected,
-            SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE)))
-        {
-            gpu_log("ERROR: Android requires SDL's opengles2 presenter: %s.", SDL_GetError());
-            return 0;
-        }
-    }
-
-    //For status
-    SDL_RendererInfo info;
-    SDL_GetRendererInfo(renderer, &info);
-
-    printf("SDL video Renderer: %s \n", info.name);
-
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY, savedata.hwfilter ? "nearest" : "linear", SDL_HINT_DEFAULT);
-
-    // now create a texture
-
-  	textureWidth = videomodes.hRes;
-  	textureHeight = videomodes.vRes;
-
-    if(!texture_base)
-    {
-        SDL_Surface *tmp_surface = SDL_CreateRGBSurface(0, 800, 480, 32, 0, 0, 0, 0);
-        if(!tmp_surface)
-        {
-            printf("error: %s\n", SDL_GetError());
-            return 0;
-        }
-        SDL_FillRect(tmp_surface, NULL, SDL_MapRGB(tmp_surface->format, 0, 0, 0));
-        SDL_SetSurfaceBlendMode(tmp_surface, SDL_BLENDMODE_NONE);
-        if(!(texture_base = SDL_CreateTextureFromSurface(renderer, tmp_surface)))
-        {
-            printf("error: %s\n", SDL_GetError());
-            return 0;
-        }
-        SDL_FreeSurface(tmp_surface);
-        tmp_surface = NULL;
-    }
-
-    if(!(texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
-        SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight)))
-    {
-        printf("error: %s\n", SDL_GetError());
-        return 0;
-    }
-    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
-    if(savedata.swfilter)
-    {
-        output_filter = gpu_output_filter_android_create(renderer,
-            textureWidth, textureHeight, savedata.swfilter);
-        if(!output_filter) return 0;
-        gpu_log("Android RGB32 GPU output filter %d enabled.", savedata.swfilter);
-    }
-
-    setup_touch();
-
-    if(!buttons)
-    {
-        SDL_Surface *btn_screen = pngToSurface(buttonpng);
-        if(!btn_screen || !(buttons = SDL_CreateTextureFromSurface(renderer, btn_screen)))
-        {
-            printf("error: %s\n", SDL_GetError());
-            return 0;
-        }
-        SDL_FreeSurface(btn_screen);
-        btn_screen = NULL;
-    }
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    video_clearscreen();
-
-    video_mode_ready = 1;
-    launcher_rebuild_pending = 0;
-    return 1;
+/* Damon V. Caskey - 2026-11-20: retain SDL's clipped source-rectangle behavior. */
+static void video_draw_button(int index)
+{
+    SDL_Rect source = btnsrc[index], dest = btndes[index];
+    int left = MAX(0, source.x), top = MAX(0, source.y);
+    int64_t right = MIN((int64_t)buttons_width, (int64_t)source.x + source.w);
+    int64_t bottom = MIN((int64_t)buttons_height, (int64_t)source.y + source.h);
+    if(source.w <= 0 || source.h <= 0 || dest.w <= 0 || dest.h <= 0 ||
+       left >= right || top >= bottom) return;
+    /* SDL_RenderCopy clips the source, then stretches that intersection over
+     * the complete requested destination. Do not shrink the destination. */
+    video_draw_rectangle(buttons, dest.x, dest.y, dest.w, dest.h,
+        (float)left / buttons_width, (float)top / buttons_height,
+        (float)right / buttons_width, (float)bottom / buttons_height,
+        (touchstates[index] ? 128.0f : 64.0f) / 255.0f,
+        VIDEO_PRESENT_TOUCH, !savedata.hwfilter);
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Release fullscreen movie storage while retaining Android game textures and
- * touch controls. Movie selection no longer replaces their presentation state.
+ * 2026-11-20
+ * Present a resident native texture, apply display correction, then draw touch
+ * controls. Movie targets are already corrected at final resolution so their
+ * second pass is a neutral one-to-one copy. No scene readback/upload occurs.
  */
-int video_restore_mode(void)
+static int video_present_texture(GLuint image, int width, int height, int movie)
 {
-    SDL_DestroyTexture(movie_texture);
-    movie_texture = NULL;
-    movie_owner = NULL;
-    return renderer && texture;
-}
-
-void video_fullscreen_flip()
-{
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Retain Android's final brightness, aspect and touch composition, reporting
- * SDL failures so a GPU-only launcher frame can be rebuilt without uploading
- * an obsolete CPU screen. Flush before present to observe queued draw errors.
- */
-int blit(void)
-{
-    int i, h;
+    int i, held = 0, drawable_width, drawable_height;
     int hide_touch;
-    static int warned;
+    float output_width, output_height, x, y;
+    float corrected_black = brightness > 0 ? brightness / 256.0f : 0.0f;
     extern int hide_t;
-
-    if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) < 0 ||
-       SDL_RenderClear(renderer) < 0) goto failed;
-
-    //SDL_SetRenderTarget(renderer, NULL);
-    //SDL_RenderSetLogicalSize(renderer, 0, 0);
-    if(SDL_SetTextureBlendMode(texture_base, SDL_BLENDMODE_NONE) < 0 ||
-       SDL_RenderCopy(renderer, texture_base, NULL, NULL) < 0) goto failed;
-
-    if(stretch)
+    /* The texture was borrowed after the caller's context guard. Rebuilding
+     * here would invalidate that numeric name, so reject a changed context and
+     * let the next owner-level operation reconstruct/reacquire its resource. */
+    if(!image || width <= 0 || height <= 0 || !video_mode_ready ||
+       SDL_GL_GetCurrentContext() != video_context || SDL_AtomicGet(&video_reset_pending))
+        return video_reject("context changed before presentation");
+    SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
+    if(drawable_width <= 0 || drawable_height <= 0) return video_reject("window dimensions");
+    if(drawable_width != nativeWidth || drawable_height != nativeHeight)
     {
-        //SDL_RenderSetLogicalSize(renderer, 0, 0);
-        if(SDL_RenderCopy(renderer, texture, NULL, NULL) < 0) goto failed;
+        nativeWidth = drawable_width;
+        nativeHeight = drawable_height;
+        setup_touch();
     }
-    else
+    if(movie && (width != nativeWidth || height != nativeHeight))
+        return video_reject("movie viewport changed after preparation");
+    gpu_gl_prepare_present();
+    glViewport(0, 0, nativeWidth, nativeHeight);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DITHER);
+    glDisable(GL_BLEND);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glClearColor(corrected_black, corrected_black, corrected_black, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(video_program);
+    glBindBuffer(GL_ARRAY_BUFFER, video_vertices);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (const void *)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (const void *)(2 * sizeof(GLfloat)));
+    glActiveTexture(GL_TEXTURE0);
+    glUniform1i(video_source_uniform, 0);
+    glUniform2f(video_target_uniform, nativeWidth, nativeHeight);
+    glUniform1f(video_gamma_uniform, video_gamma / 256.0f);
+    glUniform1f(video_brightness_uniform, brightness / 256.0f);
+    output_width = movie || stretch ? nativeWidth : nativeHeight * ((float)width / height);
+    output_height = nativeHeight;
+    x = movie || stretch ? 0.0f : (int)(nativeWidth / 2.0f - output_width / 2.0f);
+    y = 0.0f;
+    /* Existing Android aspect behavior is height-fitted, with window clipping
+     * for a source wider than the device. Keep its integer destination width. */
+    video_draw_rectangle(image, x, y, (int)output_width, output_height,
+                         0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+                         movie ? VIDEO_PRESENT_MOVIE : VIDEO_PRESENT_SCENE,
+                         !movie && !savedata.hwfilter);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    hide_touch = timer_gettick() > hide_t;
+    for(i = 0; i < MAXTOUCHB; ++i)
     {
-        //SDL_RenderSetLogicalSize(renderer, textureWidth, textureHeight);
-        float aspectRatio = (float)textureWidth / (float)textureHeight;
-        float newWidth = nativeHeight * aspectRatio;
-
-        //SDL_Log("aspect: from %d/%d con %f, orig: %d/%d -> %d",textureWidth,textureHeight,aspectRatio,nativeWidth,nativeHeight,(int)newWidth);
-        SDL_Rect d_rect = {(int)(nativeWidth/2.0f - newWidth/2.0f), 0, (int)newWidth, nativeHeight};
-        if(SDL_RenderCopy(renderer, texture, NULL, &d_rect) < 0) goto failed;
+        held += touchstates[i];
+        if(!hide_touch) video_draw_button(i);
     }
-
-    if(brightness > 0)
-    {
-        if(SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1) < 0) goto failed;
-    }
-    else if(brightness < 0)
-    {
-        if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1) < 0) goto failed;
-    }
-    if(SDL_RenderFillRect(renderer, NULL) < 0) goto failed;
-
-    //SDL_RenderSetLogicalSize(renderer, 0, 0);
-    hide_touch = (timer_gettick() > hide_t);
-    for(i = 0, h = 0; i < MAXTOUCHB; i++)
-    {
-        h += touchstates[i];
-
-        /*
-            Kratus (02-2023) Now the screenshot key will always be shown
-            The modder can simply move or disable it by using the touch.txt file
-            The original code is commented in case any modder wants to use it
-        */
-
-        // if(!hide_touch && (i != SDID_SCREENSHOT || touchstates[i]))
-        if(!hide_touch)
-        {
-            if(SDL_SetTextureAlphaMod(buttons, touchstates[i] ? 128 : 64) < 0 ||
-               SDL_RenderCopy(renderer, buttons, &btnsrc[i], &btndes[i]) < 0) goto failed;
-        }
-    }
-    if(h)
-    {
-        hide_t = timer_gettick() + 5000;
-    }
-    if(SDL_RenderFlush(renderer) < 0) goto failed;
-    SDL_RenderPresent(renderer);
-    warned = 0;
+    if(held) hide_t = timer_gettick() + 5000;
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+    gpu_gl_invalidate_state();
+    if(glGetError() != GL_NO_ERROR || SDL_AtomicGet(&video_reset_pending))
+        return video_reject("window or touch draw");
+    SDL_GL_SwapWindow(window);
+    video_warning = 0;
     return 1;
-failed:
-    if(!warned)
-    {
-        gpu_log("WARNING: Android presentation failed: %s; frame skipped.", SDL_GetError());
-        warned = 1;
-    }
-    return 0;
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Present a completed launcher target directly, or upload the ordinary CPU
- * game scene. Both use the same GLES2 output filter and existing brightness,
- * aspect and touch presentation. Launcher failure never enters the CPU path.
- * Movie textures remain independent of both scene sources.
- */
-int video_copy_screen(s_screen *src)
+/* Damon V. Caskey - 2026-11-20: present ordinary GPU screens and the launcher identically. */
+int video_copy_screen(s_screen *source)
 {
-    SDL_Texture *game_texture = texture;
-    SDL_Texture *source_texture, *filtered;
-    int game_width = textureWidth, game_height = textureHeight;
-    int is_launcher = src && src == launcher_owner;
-    int success;
-    if(is_launcher)
+    unsigned image;
+    int width, height;
+    int is_launcher = source && source == launcher_owner;
+    if(is_launcher && !video_launcher_current(source))
+        return video_launcher_reject("incomplete frame");
+    if(!source || source->pixelformat != PIXEL_32 || !video_ensure_context() ||
+       !gpu_gl_get_filtered_screen_texture(source, savedata.swfilter, &image, &width, &height) ||
+       (is_launcher && !launcher_frame_valid) ||
+       !video_present_texture(image, width, height, 0))
     {
-        if(!video_launcher_current(src)) return 0;
-        source_texture = gpu_launcher_android_texture(launcher);
-        if(!source_texture) return video_launcher_reject("completed target access");
+        if(is_launcher) return video_launcher_reject("filtered presentation");
+        return video_reject("scene presentation");
     }
-    else
-    {
-        s_videosurface *surface = getVideoSurface(src);
-        if(!surface) return 0;
-        if(surface->width != textureWidth || surface->height != textureHeight ||
-           SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch) < 0)
-        {
-            gpu_log("ERROR: Android RGB32 scene upload failed: %s.", SDL_GetError());
-            return 0;
-        }
-        source_texture = texture;
-    }
-    if(savedata.swfilter)
-    {
-        filtered = gpu_output_filter_android_apply(output_filter, source_texture);
-        if(!filtered)
-        {
-            if(is_launcher) video_launcher_reject("output filtering");
-            return 0;
-        }
-        source_texture = filtered;
-        textureWidth *= 2;
-        textureHeight *= 2;
-    }
-    texture = source_texture;
-    success = blit();
-    texture = game_texture;
-    textureWidth = game_width;
-    textureHeight = game_height;
-    if(is_launcher)
-    {
-        if(!success || SDL_AtomicGet(&launcher_reset_pending))
-            return video_launcher_reject("final presentation");
-        launcher_warning = 0;
-    }
-    if(!success) return 0;
-
+    if(is_launcher) launcher_warning = 0;
     SDL_Delay(1);
     return 1;
 }
 
-void video_clearscreen()
+/* Damon V. Caskey - 2026-11-20: clear the real window without touching CPU pixels. */
+void video_clearscreen(void)
 {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-    SDL_RenderClear(renderer);
-    //SDL_RenderPresent(renderer);
+    if(!video_ensure_context()) return;
+    gpu_gl_prepare_present();
+    glViewport(0, 0, nativeWidth, nativeHeight);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void video_stretch(int enable)
@@ -923,271 +1081,125 @@ void video_stretch(int enable)
     stretch = enable;
 }
 
+void video_fullscreen_flip(void)
+{
+    /* Android remains fullscreen. */
+}
+
 void vga_vwait(void)
 {
-	static int prevtick = 0;
-	int now = SDL_GetTicks();
-	int wait = 1000/60 - (now - prevtick);
-	if (wait>0)
-	{
-		SDL_Delay(wait);
-	}
-	else SDL_Delay(1);
-	prevtick = now;
+    static int prevtick;
+    int now = SDL_GetTicks();
+    int wait = 1000 / 60 - (now - prevtick);
+    SDL_Delay(wait > 0 ? wait : 1);
+    prevtick = now;
 }
 
-void video_set_color_correction(int gm, int br)
+/* Damon V. Caskey - 2026-11-20: share desktop display-control range and equations. */
+void video_set_color_correction(int gamma, int value)
 {
-	brightness = br;
+    video_gamma = MAX(-256, MIN(256, gamma));
+    brightness = MAX(-256, MIN(256, value));
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Allocate an Android hardware movie texture with an explicitly supported
- * sampling choice. Restore the global SDL hint so movie selection cannot
- * change subsequent game textures. Higher kernels need the native port.
- */
-static SDL_Texture *video_android_movie_texture(int width, int height,
-                                               e_drawmethod_resample resample)
+/* Damon V. Caskey - 2026-11-20: finish movies without retiring gameplay residency. */
+int video_restore_mode(void)
 {
-    SDL_Texture *result;
-    const char *hint = SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY);
-    char *saved_hint = hint ? SDL_strdup(hint) : NULL;
-    if(resample != DC_RESAMPLE_NEAREST && resample != DC_RESAMPLE_BILINEAR)
-    {
-        static int warned;
-        if(!warned)
-        {
-            warned = 1;
-            gpu_log("WARNING: Android SDL movies support nearest and bilinear sampling. Higher resampling kernels require the native scene renderer port; output skipped.");
-        }
-        SDL_free(saved_hint);
-        return NULL;
-    }
-    if(hint && !saved_hint)
-    {
-        gpu_log("WARNING: Android hardware movie sampling setup could not allocate hint storage.");
-        return NULL;
-    }
-    /* Match the game's DEFAULT hint priority. Higher-priority configuration
-     * may reject this request; never silently use a different movie filter. */
-    if(!SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY,
-                resample == DC_RESAMPLE_NEAREST ? "nearest" : "linear", SDL_HINT_DEFAULT))
-    {
-        const char *active = SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY);
-        int matches = active && (resample == DC_RESAMPLE_NEAREST
-            ? (!SDL_strcasecmp(active, "nearest") || !strcmp(active, "0"))
-            : (!SDL_strcasecmp(active, "linear") || !strcmp(active, "1")));
-        if(!matches)
-        {
-            gpu_log("WARNING: Android movie sampling is blocked by an overriding SDL scale-quality setting; output skipped.");
-            SDL_free(saved_hint);
-            return NULL;
-        }
-    }
-    result = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12,
-                                SDL_TEXTUREACCESS_STREAMING, width, height);
-    SDL_SetHintWithPriority(SDL_HINT_RENDER_SCALE_QUALITY,
-                            saved_hint ? saved_hint : "nearest", SDL_HINT_DEFAULT);
-    SDL_free(saved_hint);
-    if(!result)
-    {
-        gpu_log("WARNING: Android hardware movie texture allocation failed: %s.", SDL_GetError());
-    }
-    return result;
+    if(movie_screen) freescreen(&movie_screen);
+    movie_frame_valid = 0;
+    return video_ensure_context();
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Retain Android fullscreen playback without replacing its RGB game texture.
- * This platform's SDL presenter is explicit and is never a retry after a
- * declined native movie-to-screen operation.
- */
+/* Damon V. Caskey - 2026-11-20: movies use the same scene backend and all fixed kernels. */
 int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-    SDL_Texture *replacement;
-    if(!renderer || !mode || mode->width < 2 || mode->height < 2 ||
+    if(!mode || mode->width < 2 || mode->height < 2 ||
        (mode->width & 1) || (mode->height & 1) ||
-       mode->display_width <= 0 || mode->display_height <= 0)
-    {
+       mode->display_width <= 0 || mode->display_height <= 0 || !video_ensure_context())
         return 0;
-    }
-    replacement = video_android_movie_texture(mode->width, mode->height, DC_RESAMPLE_MOVIE);
-    if(!replacement)
-    {
-        return 0;
-    }
-    SDL_DestroyTexture(movie_texture);
-    movie_texture = replacement;
-    movie_resample = DC_RESAMPLE_MOVIE;
-    movie_owner = NULL;
     stored_yuv_mode = *mode;
+    movie_frame_valid = 0;
     return 1;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Upload retained planes to Android's hardware presenter only when the
- * decoded generation changes. Plane names here explicitly follow Y, U, V.
+ * 2026-11-20
+ * Sample YUV directly at the final drawable resolution. Keeping this target
+ * separate from gameplay preserves its scene and avoids double reconstruction
+ * when cubic or Lanczos kernels are selected for fullscreen movies.
  */
-int video_prepare_yuv_frame(const gpu_yuv_source *source,
-                            e_drawmethod_resample resample)
+int video_prepare_yuv_frame(const gpu_yuv_source *source, e_drawmethod_resample resample)
 {
-    if(!source || !source->owner || !source->y || !source->u || !source->v ||
-       !renderer || source->width != stored_yuv_mode.width ||
-       source->height != stored_yuv_mode.height)
+    gpu_movie_draw draw = {0};
+    int width, height;
+    uint64_t generation;
+    double output_width;
+    movie_frame_valid = 0;
+    if(!source || source->width != stored_yuv_mode.width ||
+       source->height != stored_yuv_mode.height || !video_ensure_context()) return 0;
+    generation = gpu_gl_get_context_generation();
+    SDL_GL_GetDrawableSize(window, &width, &height);
+    if(width <= 0 || height <= 0) return 0;
+    if(movie_screen && (movie_screen->width != width || movie_screen->height != height))
+        freescreen(&movie_screen);
+    if(!movie_screen) movie_screen = allocscreen(width, height, PIXEL_32);
+    if(!movie_screen) return video_reject("movie target allocation");
+    output_width = stretch ? width : (double)height * stored_yuv_mode.display_width / stored_yuv_mode.display_height;
+    if(output_width < 1.0 || output_width > INT_MAX) return 0;
+    draw.width = (int)output_width;
+    draw.height = height;
+    draw.x = stretch ? 0 : (int)(width / 2.0 - output_width / 2.0);
+    draw.resample = resample;
+    draw.gamma = video_gamma / 256.0f;
+    draw.brightness = brightness / 256.0f;
+    /* Android applies brightness across the complete display, including bars. */
+    if(brightness > 0)
     {
-        return 0;
+        unsigned c = (unsigned)(brightness * 255.0f / 256.0f + 0.5f);
+        if(!gpu_draw_box(movie_screen, 0, 0, width, height, c | (c << 8) | (c << 16), NULL)) return 0;
     }
-    /* Controller layout can remain selected across a video-mode recreation.
-     * Rebuild discarded storage from the retained frame on its next draw. */
-    if(!movie_texture || movie_resample != resample)
-    {
-        SDL_Texture *replacement = video_android_movie_texture(source->width, source->height, resample);
-        if(!replacement)
-        {
-            return 0;
-        }
-        SDL_DestroyTexture(movie_texture);
-        movie_texture = replacement;
-        movie_resample = resample;
-        movie_owner = NULL;
-    }
-    if(movie_owner != source->owner || movie_generation != source->generation)
-    {
-        if(SDL_UpdateYUVTexture(movie_texture, NULL, source->y, source->width,
-                                source->u, source->width / 2,
-                                source->v, source->width / 2) < 0)
-        {
-            gpu_log("WARNING: Android hardware movie upload failed: %s.", SDL_GetError());
-            return 0;
-        }
-        movie_owner = source->owner;
-        movie_generation = source->generation;
-    }
+    else if(!gpu_clear_screen(movie_screen)) return 0;
+    if(!gpu_draw_yuv(movie_screen, source, &draw) ||
+       generation != gpu_gl_get_context_generation()) return 0;
+    movie_frame_valid = 1;
     return 1;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Capture Android movie pixels through SDL's accelerated YUV conversion and
- * an explicit render-target readback. No CPU color converter is retained.
- * Restore presenter state before returning, including after failed capture.
+ * 2026-11-20
+ * Movie capture uses native YUV conversion and the same display correction.
+ * The screen remains GPU-owned until the screenshot encoder explicitly reads.
  */
 int video_capture_yuv_frame(s_screen *screen, const gpu_yuv_source *source,
                             e_drawmethod_resample resample)
 {
-    SDL_Texture *planes = NULL, *target = NULL, *saved_target;
-    SDL_Rect viewport, clip;
-    SDL_BlendMode blend;
-    Uint8 red, green, blue, alpha;
-    float scale_x, scale_y;
-    int logical_width, logical_height, clipped, success = 0;
-    if(!renderer || !screen || screen->pixelformat != PIXEL_32 ||
-       screen->width <= 0 || screen->height <= 0 || !source ||
-       source->width < 2 || source->height < 2 ||
-       (source->width & 1) || (source->height & 1) ||
-       !source->y || !source->u || !source->v)
-    {
-        return 0;
-    }
-    planes = video_android_movie_texture(source->width, source->height, resample);
-    if(!planes)
-    {
-        return 0;
-    }
-    target = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
-                                SDL_TEXTUREACCESS_TARGET, screen->width, screen->height);
-    if(!target ||
-       SDL_UpdateYUVTexture(planes, NULL, source->y, source->width,
-                            source->u, source->width / 2,
-                            source->v, source->width / 2) < 0)
-    {
-        goto done;
-    }
-    saved_target = SDL_GetRenderTarget(renderer);
-    SDL_RenderGetViewport(renderer, &viewport);
-    SDL_RenderGetClipRect(renderer, &clip);
-    clipped = SDL_RenderIsClipEnabled(renderer);
-    SDL_RenderGetScale(renderer, &scale_x, &scale_y);
-    SDL_RenderGetLogicalSize(renderer, &logical_width, &logical_height);
-    SDL_GetRenderDrawBlendMode(renderer, &blend);
-    SDL_GetRenderDrawColor(renderer, &red, &green, &blue, &alpha);
-    if(SDL_SetRenderTarget(renderer, target) == 0)
-    {
-        SDL_RenderSetLogicalSize(renderer, 0, 0);
-        SDL_RenderSetScale(renderer, 1.0f, 1.0f);
-        SDL_RenderSetViewport(renderer, NULL);
-        SDL_RenderSetClipRect(renderer, NULL);
-        SDL_SetTextureBlendMode(planes, SDL_BLENDMODE_NONE);
-        if(SDL_RenderCopy(renderer, planes, NULL, NULL) == 0)
-        {
-            if(brightness)
-            {
-                int opacity = brightness > 0 ? MIN(256, brightness) : -MAX(-256, brightness);
-                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-                SDL_SetRenderDrawColor(renderer, brightness > 0 ? 255 : 0,
-                    brightness > 0 ? 255 : 0, brightness > 0 ? 255 : 0,
-                    (Uint8)(opacity - 1));
-                SDL_RenderFillRect(renderer, NULL);
-            }
-            /* Screenshot output consumes RGB only. SDL owns the YUV conversion;
-             * this explicit capture is the sole requested CPU pixel transfer. */
-            gpu_prepare_cpu_write(screen);
-            success = SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ABGR8888,
-                                            screen->data, screen->width * 4) == 0;
-        }
-    }
-    SDL_SetRenderTarget(renderer, saved_target);
-    SDL_RenderSetLogicalSize(renderer, logical_width, logical_height);
-    SDL_RenderSetScale(renderer, scale_x, scale_y);
-    SDL_RenderSetViewport(renderer, &viewport);
-    SDL_RenderSetClipRect(renderer, clipped ? &clip : NULL);
-    SDL_SetRenderDrawBlendMode(renderer, blend);
-    SDL_SetRenderDrawColor(renderer, red, green, blue, alpha);
-done:
-    if(!success)
-    {
-        gpu_log("WARNING: Android hardware movie screenshot capture failed: %s.", SDL_GetError());
-    }
-    if(planes) SDL_DestroyTexture(planes);
-    if(target) SDL_DestroyTexture(target);
-    return success;
+    gpu_movie_draw draw = {0};
+    if(!screen || screen->pixelformat != PIXEL_32 || !video_ensure_context()) return 0;
+    draw.width = screen->width;
+    draw.height = screen->height;
+    draw.resample = resample;
+    draw.gamma = video_gamma / 256.0f;
+    draw.brightness = brightness / 256.0f;
+    return gpu_draw_yuv(screen, source, &draw);
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Present the dedicated Android movie texture with existing touch controls
- * and display correction, then restore the game texture and its dimensions.
- */
+/* Damon V. Caskey - 2026-11-20: display a prepared movie while retaining all scene resources. */
 int video_display_yuv_frame(void)
 {
-    SDL_Texture *game_texture = texture;
-    int game_width = textureWidth, game_height = textureHeight;
-    int success;
-    if(!movie_texture)
-    {
-        return 0;
-    }
-    texture = movie_texture;
-    textureWidth = stored_yuv_mode.display_width;
-    textureHeight = stored_yuv_mode.display_height;
-    success = blit();
-    texture = game_texture;
-    textureWidth = game_width;
-    textureHeight = game_height;
-    return success;
+    unsigned image;
+    int width, height;
+    if(!video_ensure_context() || !movie_frame_valid || !movie_screen ||
+       !gpu_gl_get_screen_texture(movie_screen, &image, &width, &height) ||
+       !movie_frame_valid) return 0;
+    return video_present_texture(image, width, height, 1);
 }
 
-int video_current_refresh_rate()
+int video_current_refresh_rate(void)
 {
-    SDL_DisplayMode display_mode;
-    if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(window), &display_mode) != 0)
+    SDL_DisplayMode mode;
+    if(!window || SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(window), &mode) != 0)
         return 60;
-    return display_mode.refresh_rate;
+    return mode.refresh_rate;
 }

@@ -85,8 +85,9 @@ void gpu_unregister_backend(void)
  * Damon V. Caskey
  * 2026-11-15
  * Select the scene-rendering policy before attempting native initialization.
- * Only an explicitly unmigrated configuration may select CPU dispatch; failed
- * initialization and unregistering a backend never clear this requirement.
+ * Supported desktop and Android modes select native-only scene dispatch.
+ * Reference fixtures can explicitly select CPU dispatch; failed initialization
+ * and unregistering a backend never clear the production requirement.
  * Keep ordinary and explicit-resampling warnings bounded for that selection.
  */
 void gpu_set_native_required(int required)
@@ -106,7 +107,7 @@ void gpu_set_native_required(int required)
  * 2026-11-16 - Keep GPU output-filter selection independent of CPU eligibility.
  * Decide whether a declined native root operation still requires CPU work.
  * Migrated RGB32 scene targets log once per operation and remain unchanged;
- * indexed asset work and the unmigrated Android scene renderer retain theirs.
+ * indexed asset work and independent CPU reference fixtures retain theirs.
  */
 int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
 {
@@ -142,8 +143,8 @@ int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
  * Damon V. Caskey
  * 2026-11-15
  * 2026-11-16 - Output filters no longer select a CPU scene-rendering path.
- * Explicit non-nearest image sampling is GPU-only, including the unmigrated
- * Android scene renderer and indexed destinations. Declined native draws must
+ * Explicit non-nearest image sampling is GPU-only, including indexed
+ * destinations. Declined native draws must
  * stop before synchronization, CPU globals or writes can approximate the request
  * with nearest sampling. Disabled methods retain the ordinary default policy.
  */

@@ -9,10 +9,6 @@
 #include "videocommon.h"
 #include "savedata.h"
 #include "gpu.h"
-#include <limits.h>
-#include <stddef.h>
-
-static s_videosurface videoSurface;
 
 /*
  * Damon V. Caskey
@@ -32,27 +28,4 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
     videomodes.hScale = savedata.hwscale;
     videomodes.vScale = savedata.hwscale;
     return videomodes;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-16
- * Expose the RGB32 source for Android's remaining CPU-scene upload. Output
- * filtering runs after that upload on the GPU; desktop presents resident
- * textures directly and never requests this CPU view.
- */
-s_videosurface *getVideoSurface(s_screen *src)
-{
-    /* Engine rows are tightly packed; validate their byte stride first. */
-    if(!src || src->pixelformat != PIXEL_32 || src->width <= 0 ||
-       src->height <= 0 || src->width > INT_MAX / 4)
-    {
-        return NULL;
-    }
-    gpu_sync_cpu(src);
-    videoSurface.width = src->width;
-    videoSurface.height = src->height;
-    videoSurface.pitch = src->width * 4;
-    videoSurface.data = src->data;
-    return &videoSurface;
 }

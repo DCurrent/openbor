@@ -155,9 +155,8 @@ run_test "$test_build_dir/test_spriteq_sort"
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
 
-# Android still uses the RGB32 CPU renderer. Keep its affine pixel-center,
-# pivot, clipping and indexed sprite rules tested
-# independently of the OpenGL fixtures below.
+# Preserve the independent affine reference for pixel-center, pivot, clipping
+# and indexed sprite rules. Production Android uses the native GLES suite below.
 "$test_compiler" "${test_flags[@]}" tests/test_affine_transform.c \
     engine/source/gamelib/transform.c engine/source/gamelib/gpu.c \
     "${test_profile_sources[@]}" "${test_link_flags[@]}" \
@@ -176,8 +175,8 @@ test_software_sources=(engine/source/gamelib/gpu.c
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
-# Optional hardware color rules must leave ordinary RGB32 CPU drawing and
-# indexed sprite input unchanged on the supported Android renderer.
+# Keep explicit CPU/reference behavior stable while testing native color rules
+# separately on every supported rendering API below.
 "$test_compiler" "${test_flags[@]}" tests/test_drawmethod_colors.c \
     "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_drawmethod_colors"
@@ -295,26 +294,17 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
     bash tests/run_movie_gpu_controller_tests.sh
 
-# Exercise the supported Android SDL movie adapter against a real accelerated
-# host renderer, including its sampler policy and explicit capture lifecycle.
+# Reuse native pixel/ownership oracles with an actual GLES3 context, then test
+# the production Android video lifecycle, final composition and failure gates.
 OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
-    bash tests/run_android_movie_tests.sh
+    bash tests/run_gles_scene_tests.sh
 
-# Verify the Android GLES2 filter bridge against the shared independent RGB8
-# oracle, including SDL composition and native resource/error recovery.
 OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
-    bash tests/run_android_output_filter_tests.sh
-
-# Preserve ordered Android launcher images and glyphs through the production
-# GLES2 compositor, video lifecycle and final brightness/aspect/touch pipeline.
-OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
-    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
-    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
-    bash tests/run_android_launcher_tests.sh
+    bash tests/run_android_scene_tests.sh
 
 test_presentation_sources=("${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c
     engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/gfx.c)

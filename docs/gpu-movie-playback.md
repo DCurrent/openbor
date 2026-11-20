@@ -172,25 +172,24 @@ are removed with them. YUV frame allocation and CPU codec decoding remain.
 
 ## Availability and failure behavior
 
-Desktop native OpenGL movie rendering supports every listed filter. Missing
-backends, invalid input and rejected GPU operations report failure. There is no
+Desktop OpenGL and Android GLES3 movie rendering support every listed filter.
+Missing backends, invalid input and rejected GPU operations report failure. There is no
 CPU conversion or resampling retry. Decoder and audio errors retain their
 existing controller handling.
 
-Android retains its explicitly selected accelerated SDL fullscreen presenter,
-with dedicated movie storage separate from the game texture. It supports nearest
-and bilinear movie sampling; wider kernels are rejected and logged. Its explicit
-screenshot path uses SDL GPU conversion followed by capture readback. Android
-movie-to-screen composition requires the pending native scene renderer port and
-is rejected instead of executing the removed CPU converter. No Android native
-scene-rendering migration is claimed by this change.
+Android uses the common native movie shader and retained YUV plane resources
+for both fullscreen output and movie-to-screen composition. Nearest, bilinear,
+cubic and Lanczos selection follow the same contract as desktop. Explicit movie
+captures render into native screens; readback occurs when a CPU consumer such
+as the screenshot encoder requests pixels. The separate SDL YUV presenter is
+removed. See [Android GPU rendering](android-gpu-rendering.md).
 
-GPU output filters keep the desktop native backend available for movie-to-screen
+GPU output filters keep the native backend available for movie-to-screen
 composition. Movies drawn into scene screens receive the selected final-scene
 filter during normal presentation. Direct fullscreen movie output preserves its
 independent YUV color and resampling path. See
 [GPU output filters](gpu-output-filters.md) for the presentation order and
-Android scene-upload boundary.
+shared resident scene boundary.
 
 The existing decoder contract remains even-sized, tightly packed, 8-bit YUV420
 VP8 frames. Dynamic resolution and additional codec/color-metadata policies are
@@ -218,9 +217,11 @@ Failure tests inject actual plane-upload errors and verify unchanged targets,
 complete retry, generation rollback, released owner reuse and subsequent scene
 drawing. Controller tests exercise defaults, strict script selection, frame
 promotion, cross-output ordering, sizing, failed-draw acknowledgement, capture
-isolation and channel retirement. The Android adapter also has an accelerated
-host-SDL fixture for plane caching, sampling, context recreation, capture state
-and return-to-game behavior; it is not a device GLES scene-rendering test.
+isolation and channel retirement. `tests/run_gles_scene_tests.sh` executes the
+shared independent oracles with a real GLES3 context.
+`tests/run_android_scene_tests.sh` verifies production Android presentation,
+capture, lifecycle and return-to-game behavior. These host fixtures do not
+substitute for physical Android device testing.
 
 The development host uses Mesa llvmpipe for actual OpenGL execution. This
 validates behavior and resource ownership but does not measure physical-GPU

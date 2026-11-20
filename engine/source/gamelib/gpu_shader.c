@@ -1040,12 +1040,8 @@ const char *gpu_movie_fragment_shader_source =
     "    gl_FragColor = vec4(color / 255.0, 1.0);\n" \
     "}\n"
 
-const char *gpu_output_filter_fragment_shader_body = GPU_OUTPUT_FILTER_SHADER_BODY;
 const char *gpu_output_filter_fragment_shader_source =
     "#version 120\n" GPU_OUTPUT_FILTER_SHADER_BODY;
-const char *gpu_output_filter_fragment_shader_es_source =
-    "#version 100\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n"
-    GPU_OUTPUT_FILTER_SHADER_BODY;
 #undef GPU_OUTPUT_FILTER_SHADER_BODY
 
 /*

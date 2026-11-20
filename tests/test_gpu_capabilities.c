@@ -198,7 +198,12 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
            (capability_mode == CAPABILITY_WATER_COMPILE && water) ||
            (capability_mode == CAPABILITY_PLANE_COMPILE && plane))
         {
-            const GLchar *invalid = "#version 120\n#error injected_capability_compile_failure\n";
+            const GLchar *invalid =
+#if defined(OPENBOR_GLES)
+                "#version 300 es\n#error injected_capability_compile_failure\n";
+#else
+                "#version 120\n#error injected_capability_compile_failure\n";
+#endif
             ++capability_injected_compiles;
             capability_real_shader_source(shader, 1, &invalid, NULL);
             return;
@@ -211,8 +216,14 @@ static void APIENTRY capability_shader_source(GLuint shader, GLsizei count,
         {
             /* Vertex output uses vec2. A used vec3 input compiles separately
              * but must fail the real program's interface-link validation. */
-            const GLchar *invalid = "#version 120\nvarying vec3 sourcePosition;\n"
-                                    "void main() { gl_FragColor = vec4(sourcePosition, 1.0); }\n";
+            const GLchar *invalid =
+#if defined(OPENBOR_GLES)
+                "#version 300 es\nprecision highp float;\nin vec3 sourcePosition;\n"
+                "out vec4 failedColor;\nvoid main(){failedColor=vec4(sourcePosition,1.0);}\n";
+#else
+                "#version 120\nvarying vec3 sourcePosition;\n"
+                "void main() { gl_FragColor = vec4(sourcePosition, 1.0); }\n";
+#endif
             ++capability_injected_links;
             capability_real_shader_source(shader, 1, &invalid, NULL);
             return;
@@ -1154,7 +1165,7 @@ int main(void)
         fprintf(stderr, "SKIP: SDL video unavailable: %s\n", SDL_GetError());
         return 77;
     }
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR GPU capability tests", 0, 0, 64, 64,
                               SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     if(!window)

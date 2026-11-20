@@ -15,7 +15,7 @@
 #include <SDL.h>
 #include "gpu.h"
 #include "gpu_renderer.h"
-#include "loadgl.h"
+#include "gpu_test_context.h"
 
 #define MOVIE_SOURCE_PIXELS 256
 #define MOVIE_TARGET_PIXELS 4096
@@ -628,6 +628,9 @@ static void movie_test_rejection(void)
     movie_release_screen(target);
 }
 
+#if !defined(OPENBOR_GLES)
+/* The historical presenter requires compatibility GL. GLES uses the same
+ * independent scalar movie/color/resampling oracles as desktop below. */
 /*
  * Damon V. Caskey
  * 2026-11-15
@@ -788,6 +791,8 @@ static void movie_test_legacy_equivalence(void)
     movie_release_screen(target);
 }
 
+#endif
+
 /*
  * Damon V. Caskey
  * 2026-11-15
@@ -923,7 +928,7 @@ int main(void)
     SDL_GLContext context;
     assert(sizeof(void *) == 8);
     if(SDL_Init(SDL_INIT_VIDEO) != 0) return 77;
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR GPU movie tests", 0, 0, 64, 64,
                                SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;
@@ -942,7 +947,9 @@ int main(void)
     movie_test_upload_state();
     movie_test_cache();
     movie_test_rejection();
+#if !defined(OPENBOR_GLES)
     movie_test_legacy_equivalence();
+#endif
     movie_test_window();
     movie_test_tiny_window();
     movie_test_context(window, &context);

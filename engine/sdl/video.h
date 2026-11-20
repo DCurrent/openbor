@@ -32,17 +32,26 @@ void video_stretch(int);
 void video_set_window_title(const char*);
 void video_set_color_correction(int, int);
 
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_SCENE_TEST)
+/* Damon V. Caskey - 2026-11-20
+ * Android owns the native GLES context. Lifecycle notifications are consumed
+ * on the rendering thread; ordinary drawing must first have a usable context. */
+void video_shutdown(void);
+void video_handle_event(const SDL_Event *event);
+int video_ensure_context(void);
+#endif
+
 /* Ordered launcher composition uses GPU drawing on every supported platform.
- * Begin precedes the background of each new frame. Android owns a private
- * target for this screen identity; video_copy_screen presents it without
- * reading the screen's CPU shadow. Mode teardown releases that ownership. */
+ * Begin precedes the background of each new frame. General native RGB32 screen
+ * storage is shared with gameplay on desktop and Android. Presentation samples
+ * the resident image without reading its CPU shadow. */
 int video_launcher_begin(s_screen *target);
 int video_launcher_screen(s_screen *target, s_screen *source, int x, int y);
 int video_launcher_box(s_screen *target, int x, int y, int width, int height,
                        unsigned color);
-#if defined(ANDROID) || defined(OPENBOR_ANDROID_LAUNCHER_TEST)
-/* The shared formatter submits Android glyphs through its scoped compositor;
- * desktop glyphs use the native scene renderer directly. */
+#if defined(ANDROID) || defined(OPENBOR_ANDROID_SCENE_TEST)
+/* The Android adapter tracks complete-frame eligibility while forwarding
+ * glyphs to the same native scene renderer used by desktop. */
 int video_launcher_text(s_screen *target, int x, int y,
                         unsigned foreground, unsigned background, int fill,
                         const unsigned char *glyphs, size_t count,

@@ -6,7 +6,7 @@
  */
 #include <SDL.h>
 #include "gpu_renderer.h"
-#include "loadgl.h"
+#include "gpu_test_context.h"
 #include "engine_profile.h"
 #define COLOR_GPU_TEST 1
 #include "test_drawmethod_colors.c"
@@ -92,7 +92,7 @@ int main(void)
     assert(sizeof(void *) == 8);
     pixelformat = PIXEL_32;
     if(SDL_Init(SDL_INIT_VIDEO) != 0) return 77;
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR color tests", 0, 0, 64, 64,
                               SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;

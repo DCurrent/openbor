@@ -7,10 +7,11 @@
 #define OPENBOR_GPU_SHADER_H
 
 /*
- * GLSL 1.20 compatibility-profile programs. Logical row zero is GL row zero;
- * presentation applies the final screen orientation. The vertexPosition and
- * vertexTexcoord attributes carry destination pixel edges and raw source
- * texel coordinates. Each transform selects its sampling policy before
+ * Shared scene equations compiled as desktop GLSL 1.20 or GLES GLSL ES 3.00.
+ * The renderer supplies profile declarations and explicit GLES high precision.
+ * Logical row zero is GL row zero; presentation applies the final orientation.
+ * The vertexPosition and vertexTexcoord attributes carry destination pixel
+ * edges and raw source texel coordinates. Each transform selects its policy before
  * the fragment stage evaluates source coverage and material compositing.
  *
  * Uniforms:
@@ -40,12 +41,12 @@
  *     vec3 planeOrigin                      clipped left, image top, source U
  *     vec2 planeInfo                        horizontal center, row-map height
  *
- * All samplers use nearest filtering. Indexed source and mask are LUMINANCE8;
- * palette is a bounded RGBA8 atlas with 256 colors per row. Truecolor screen
- * pixels carry RGB; drawmethod's color
- * key and separate mask choose coverage. The uploaded RGBA alpha channel is
+ * All samplers use nearest filtering. Indexed source and mask use one-byte
+ * textures (desktop LUMINANCE8, GLES3 R8). The palette is a bounded RGBA8 atlas
+ * with 256 colors per row. Truecolor screen pixels carry RGB; drawmethod's
+ * color key and separate mask choose coverage. The uploaded RGBA alpha channel is
  * ignored, allowing black screen pixels to remain opaque when keying is off.
- * blendTableTexture is a 256x1536 LUMINANCE8 atlas. Each 256-row slice is one
+ * blendTableTexture is a 256x1536 one-byte atlas. Each 256-row slice is one
  * blend mode, row=source byte, column=destination byte. A zero blendTableMask
  * selects the built-in equations and needs no atlas upload.
  * Plane/rotation sampling snaps values within 0.0001 texel of an integer
@@ -70,14 +71,11 @@ extern const char *gpu_vertex_shader_source;
 extern const char *gpu_fragment_shader_source;
 /* Shared direct YUV reconstruction for screen targets and window output. */
 extern const char *gpu_movie_fragment_shader_source;
-/* Output filters share exact RGB8 equations across desktop GL and GLES2.
- * The body omits version/precision; complete variants supply GLSL 1.20 or
- * GLSL ES 1.00 with high precision. Uniforms: sourceTexture, sourceSize and
- * filterMode (1..6). sourcePosition carries original source pixel edges;
- * source row zero and output row zero both use texture coordinate v=0. */
-extern const char *gpu_output_filter_fragment_shader_body;
+/* Output filters use the same RGB8 equations on both native APIs. The renderer
+ * supplies its desktop or GLES3 declarations during compilation. Uniforms:
+ * sourceTexture, sourceSize and filterMode (1..6). sourcePosition carries
+ * original source pixel edges; source and output row zero both use v=0. */
 extern const char *gpu_output_filter_fragment_shader_source;
-extern const char *gpu_output_filter_fragment_shader_es_source;
 
 /* Standalone reference helpers used by regression tests and shader diagnostics. */
 unsigned gpu_shader_blend_reference(int mode, unsigned source, unsigned destination);

@@ -20,7 +20,7 @@
 #include <SDL.h>
 #include "gpu.h"
 #include "gpu_renderer.h"
-#include "loadgl.h"
+#include "gpu_test_context.h"
 #include "transform.h"
 #include "draw.h"
 #include "engine_profile.h"
@@ -1248,7 +1248,7 @@ int main(void)
     {
         return 77;
     }
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    gpu_test_context_attributes();
     window = SDL_CreateWindow("OpenBOR transform tests", 0, 0, 64, 64, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;
     if(!context)

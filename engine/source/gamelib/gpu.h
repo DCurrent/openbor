@@ -43,8 +43,8 @@ typedef struct gpu_movie_draw
  * Rendering dispatch is independent of the window system. Draw/clear/copy
  * callbacks return zero only before modifying their target. RGB32 callers
  * selected for native rendering log and stop after failure; they never retry
- * through the CPU rasterizer. Unmigrated rendering configurations retain
- * explicit CPU dispatch and synchronized pixel access.
+ * through the CPU rasterizer. Desktop and Android use this policy; indexed
+ * asset operations and independent reference tests retain explicit CPU access.
  * Explicit non-nearest image filters require GPU drawing in every configuration;
  * unsupported filtered draws log and stop before any CPU approximation.
  * Successful native writes leave GPU storage authoritative until a CPU reader

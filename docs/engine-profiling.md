@@ -71,7 +71,7 @@ normal engine startup recreates its log.
 | `OPENBOR_PROFILE_SCRIPT` | Enabled on this branch | Exact value `0` disables detailed interpreter/native-call timing without disabling the existing frame, renderer, or GPU reports. |
 | `OPENBOR_PROFILE_SCRIPT_INTERVAL` | `16` | Measure all interpreter/native transitions within one eligible recorded frame out of this many, from `1` through `1000`. Invalid values use `16`. Value `1` measures every recorded frame and has greater observer cost. |
 | `OPENBOR_PROFILE_GPU` | Enabled when supported | Exact value `0` disables GPU timestamps while leaving CPU profiling and native rendering enabled. |
-| `OPENBOR_GPU` | Native renderer required for normal desktop RGB32 modes | Exact value `0` disables native initialization and fails a required native mode. It no longer selects software comparison rendering. This is independent of timestamp sampling. |
+| `OPENBOR_GPU` | Native renderer required for desktop and Android RGB32 modes | Exact value `0` disables native initialization and fails a required native mode. It no longer selects software comparison rendering. This is independent of timestamp sampling. |
 
 Renderer configuration is logged as readable sections when the video mode is
 selected. Check **Starting Values**, **GPU CAPABILITY REPORT**, **Active
@@ -539,12 +539,9 @@ bus traffic or GPU memory-bandwidth consumption.
 `software_ms` and the software draw/clear/copy counters cover instrumented
 high-level operations in required CPU paths and indexed image processing.
 Scene targets use RGB32; indexed source storage does not define another scene
-color mode. Android gameplay scene composition still requires CPU rendering until its
-native GLES backend is implemented. Output filters already run on the GPU on
-desktop and Android. Desktop filtering uses resident scene textures without
-readback; Android retains the upload of its completed RGB32 scene before the
-GLES2 filter pass. Android launcher composition uses its own resident GPU target
-and bypasses that CPU scene upload. Filter choice no longer selects CPU desktop scene drawing.
+color mode. Desktop and Android gameplay and launcher composition use the same
+native renderer. Output filters sample resident scene textures without readback
+or a completed CPU scene upload. Filter choice does not select CPU scene drawing.
 They do not claim to count every low-level CPU pixel routine in the engine.
 When a retained CPU operation first synchronizes a GPU-authored screen, its
 inclusive software span includes that readback; `readback_ms` also records the
