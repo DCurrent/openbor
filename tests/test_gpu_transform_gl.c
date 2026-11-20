@@ -1,11 +1,10 @@
 /*
- * Compare native GPU transforms with the production software rasterizer.
+ * Compare native GPU transforms with independent scalar pixel expectations.
  *
  * Build with the same SDL/OpenGL flags as test_gpu_renderer.c, linking:
  *   tests/test_gpu_transform_gl.c engine/source/gamelib/gpu.c
  *   engine/source/gamelib/gpu_shader.c engine/source/gamelib/gpu_transform.c
- *   engine/source/gamelib/transform.c engine/source/gamelib/pixelformat.c
- *   engine/source/gamelib/draw32.c engine/source/omath.c
+ *   engine/source/gamelib/pixelformat.c
  *   engine/sdl/gpu_renderer.c engine/sdl/loadgl.c
  * Use -ffunction-sections -fdata-sections -Wl,--gc-sections and -lm.
  * Run with SDL_VIDEODRIVER=offscreen when a headless Mesa driver is available.
@@ -21,7 +20,7 @@
 #include "gpu.h"
 #include "gpu_renderer.h"
 #include "gpu_test_context.h"
-#include "transform.h"
+#include "gpu_transform_reference.h"
 #include "draw.h"
 #include "engine_profile.h"
 
@@ -35,9 +34,6 @@ const s_drawmethod plainmethod = {
     .object_type = OBJECT_TYPE_DRAWMETHOD
 };
 
-static unsigned plane_drift_corrections;
-static unsigned rotation_bounds_corrections;
-static unsigned rotation_sample_corrections;
 static unsigned compared_draws;
 static unsigned compared_shear_draws;
 static unsigned compared_water_draws, compared_plane_draws;
@@ -76,7 +72,7 @@ static void transform_profile_log(const char *line)
  *
  * Independently solve the documented affine mapping at a destination pixel
  * center. Long-double arithmetic separates the oracle from the compensated
- * shader and the software rasterizer's direct double-precision implementation.
+ * shader, its coefficient encoding and production geometry preparation.
  */
 static unsigned canonical_affine_pixel(const s_screen *source, const s_drawmethod *method,
                                        int draw_x, int draw_y, int dest_x, int dest_y)
@@ -266,7 +262,7 @@ static s_screen *make_screen(int width, int height)
     s_screen *screen = calloc(1, sizeof(*screen) + (size_t)width * height * 4);
 
     /* Zeroed inline RGB pixels make untouched coverage explicit in both the
-     * software reference and its independently rendered native counterpart. */
+     * scalar expectation and its independently rendered native counterpart. */
     assert(screen);
     screen->magic = screen_magic;
     screen->width = width;
@@ -281,13 +277,12 @@ static s_screen *make_screen(int width, int height)
  * 2026-11-14 - Count safe shear geometry around the same pixel-tested draw.
  * 2026-11-15 - Measure one-quad water/plane execution and bound wave drift.
  *
- * Compare one real software draw with the GPU draw, printing exact context on
- * failure. Rotation may reveal valid pixels formerly cut off by its old bounds.
+ * Compare independent scalar sampling with a GPU draw, printing exact
+ * context on failure. Verify native geometry and transfer counters separately.
  */
 static void compare_draw(s_screen *source, s_screen *reference, s_screen *native,
                          s_drawmethod *method, int family, int x, int y)
 {
-    gfx_entry entry;
     int pixel, differences = 0, covered = 0;
     int measure_shear = family == 0 && method->shiftx != 0;
     int measure_mapping = measure_shear || family == 1 || family == 2;
@@ -296,47 +291,30 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
          method->water.amplitude > 32);
     uint64_t frame = 0, shear_quads = 0;
 
-    /* Reset each target through its owning path. Software receives a current
-     * CPU shadow, while native clear preserves a GPU-resident comparison. */
-    entry.screen = source;
+    /* The expectation stays local to this test; the native target clears
+     * and draws without touching its CPU shadow until explicit readback. */
     gpu_prepare_cpu_write(reference);
     memset(reference->data, 0, (size_t)reference->width * reference->height * 4);
     assert(gpu_clear_screen(native));
-    drawmethod_global_init(method);
-    if(family == 0)
+    /* Independent formulas enumerate the entire target, including uncovered
+     * pixels. No production scene draw ever writes the reference buffer. */
+    for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
     {
-        gfx_draw_scale(reference, &entry, x, y, 0, 0, method);
-    }
-    else if(family == 1)
-    {
-        gfx_draw_water(reference, &entry, x, y, 0, 0, method);
-        /* Legacy water ignores the drawmethod clip in its CPU pixel loop.
-         * Native drawing already applies this scissor after either row or
-         * shader mapping, so restrict the oracle to that established output. */
-        if(method->clipw > 0 && method->cliph > 0)
-        {
-            for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
-            {
-                int px = pixel % reference->width, py = pixel / reference->width;
-                if(px < method->clipx || px >= method->clipx + method->clipw ||
-                   py < method->clipy || py >= method->clipy + method->cliph)
-                {
-                    ((unsigned *)reference->data)[pixel] = 0;
-                }
-            }
-        }
-    }
-    else if(family == 2)
-    {
-        gfx_draw_plane(reference, &entry, x, y, 0, 0, method);
-    }
-    else
-    {
-        gfx_draw_rotate(reference, &entry, x, y, 0, 0, method);
+        int px = pixel % reference->width, py = pixel / reference->width;
+        unsigned expected;
+        if(family == 0)
+            expected = canonical_scale_pixel(source, reference, method, x, y, px, py);
+        else if(family == 1)
+            expected = canonical_water_pixel(source, method, x, y, px, py);
+        else if(family == 2)
+            expected = canonical_plane_pixel(source, reference, method, x, y, px, py);
+        else
+            expected = canonical_rotation_pixel(source, method, x, y, px, py);
+        ((unsigned *)reference->data)[pixel] = expected;
     }
 
     /* These fixtures fit their shader samplers. Count only native drawing,
-     * excluding the software oracle, clear and assertion readback. */
+     * excluding scalar expectation construction, clear and assertion readback. */
     if(measure_mapping)
     {
         engine_profile_set_hooks(transform_profile_clock, transform_profile_log);
@@ -360,7 +338,6 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
         assert(report->counts[EP_COUNT_NATIVE_DRAWS] == shear_quads);
         assert(report->counts[EP_COUNT_NATIVE_BATCHES] == shear_quads);
         assert(report->counts[EP_COUNT_READBACKS] == 0);
-        assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
         assert(report->counts[EP_COUNT_NATIVE_WATER_DRAWS] == (family == 1 ? shear_quads : 0));
         assert(report->counts[EP_COUNT_NATIVE_PLANE_DRAWS] == (family == 2 ? shear_quads : 0));
         for(fallback = 0; fallback < EP_FALLBACK_COUNT; ++fallback)
@@ -374,41 +351,13 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
         compared_plane_draws += family == 2;
     }
     gpu_sync_cpu(native);
-    /* Ordinary transforms compare directly with production software. Plane
-     * drift and rotation bounds/sampling use independent canonical mappings;
-     * count those intended corrections separately from rendering failures. */
+    /* Full-image comparison catches coverage and sample errors. Water alone
+     * permits the previously accepted one-pixel horizontal approximation. */
     for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
     {
         unsigned expected = ((unsigned *)reference->data)[pixel] & 0x00ffffffu;
         unsigned actual = ((unsigned *)native->data)[pixel] & 0x00ffffffu;
         covered += expected != 0;
-        if(family == 2)
-        {
-            unsigned canonical = canonical_plane_pixel(source, reference, method, x, y,
-                                 pixel % reference->width, pixel / reference->width);
-            if(expected != canonical)
-            {
-                ++plane_drift_corrections;
-            }
-            expected = canonical;
-        }
-        else if(family == 3)
-        {
-            unsigned canonical = canonical_rotation_pixel(source, method, x, y,
-                                 pixel % reference->width, pixel / reference->width);
-            if(expected != canonical)
-            {
-                if(expected == 0)
-                {
-                    ++rotation_bounds_corrections;
-                }
-                else
-                {
-                    ++rotation_sample_corrections;
-                }
-            }
-            expected = canonical;
-        }
         if(expected != actual)
         {
             /* Direct shader phase evaluation can differ from repeated float
@@ -450,7 +399,7 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
  * 2026-11-12
  *
  * Exercise all flips, varied fixed-point scales/shears, and both target and
- * drawmethod clipping against the actual legacy pixel loop.
+ * drawmethod clipping against independent fixed-point sample positions.
  */
 static void test_scale(s_screen *source, s_screen *reference, s_screen *native)
 {
@@ -760,7 +709,6 @@ static void test_plane_product_boundary(s_screen *source, s_screen *native)
     assert(report->counts[EP_COUNT_NATIVE_BATCHES] == 1);
     assert(report->counts[EP_COUNT_NATIVE_PLANE_DRAWS] == 1);
     assert(report->counts[EP_COUNT_READBACKS] == 0);
-    assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
     for(fallback = 0; fallback < EP_FALLBACK_COUNT; ++fallback)
     {
         assert(report->fallbacks[fallback] == 0);
@@ -842,24 +790,19 @@ static void test_rotate(s_screen *source, s_screen *reference, s_screen *native)
  * Damon V. Caskey
  * 2026-11-13
  *
- * Compare native and production-software affine pixels with an independent
+ * Compare native affine pixels directly with an independent
  * analytic result, including transforms with repeating inverse coefficients.
  */
 static void compare_affine_draw(s_screen *source, s_screen *reference, s_screen *native,
                                 s_drawmethod *method, int x, int y)
 {
-    gfx_entry entry;
     int pixel, differences = 0;
 
-    /* Both implementations must preserve the authored map at pixel centers.
-     * The independent result prevents a shared boundary error from passing
-     * merely because the native and fallback implementations agree. */
-    entry.screen = source;
+    /* Long-double inverse mapping checks the authored sample boundary
+     * independently of the GPU shader and its prepared transform geometry. */
     gpu_prepare_cpu_write(reference);
     memset(reference->data, 0, (size_t)reference->width * reference->height * 4);
     assert(gpu_clear_screen(native));
-    drawmethod_global_init(method);
-    gfx_draw_affine(reference, &entry, x, y, 0, 0, method);
     assert(gpu_draw_screen(native, source, x, y, method));
     gpu_sync_cpu(native);
     for(pixel = 0; pixel < native->width * native->height; ++pixel)
@@ -867,19 +810,18 @@ static void compare_affine_draw(s_screen *source, s_screen *reference, s_screen 
         unsigned expected = canonical_affine_pixel(source, method, x, y,
                             pixel % native->width, pixel / native->width);
         unsigned actual = ((const unsigned *)native->data)[pixel] & 0x00ffffffu;
-        unsigned software = ((const unsigned *)reference->data)[pixel] & 0x00ffffffu;
-        if(actual != expected || software != expected)
+        if(actual != expected)
         {
             if(differences < 5)
             {
                 fprintf(stderr, "affine [%.9g,%.9g;%.9g,%.9g]+(%.9g,%.9g) at(%d,%d) flip%d pivot(%d,%d) "
-                        "clip(%d,%d,%d,%d) pixel(%d,%d) expected%06x actual%06x software%06x\n",
+                        "clip(%d,%d,%d,%d) pixel(%d,%d) expected%06x actual%06x\n",
                         method->affine.m00, method->affine.m01,
                         method->affine.m10, method->affine.m11,
                         method->affine.tx, method->affine.ty, x, y, method->config,
                         method->centerx, method->centery,
                         method->clipx, method->clipy, method->clipw, method->cliph,
-                        pixel % native->width, pixel / native->width, expected, actual, software);
+                        pixel % native->width, pixel / native->width, expected, actual);
             }
             ++differences;
         }
@@ -1014,7 +956,7 @@ static void test_affine(s_screen *source, s_screen *reference, s_screen *native)
  *
  * Compare production Bresenham coverage across octants, both endpoint orders,
  * degenerate points, horizontal/vertical lines, and offscreen clipping. New
- * drawmethod scissoring is independently applied to the legacy reference.
+ * drawmethod scissoring is independently applied to scalar line coverage.
  */
 static void test_lines(s_screen *reference, s_screen *native)
 {
@@ -1045,14 +987,12 @@ static void test_lines(s_screen *reference, s_screen *native)
                     gpu_prepare_cpu_write(reference);
                     memset(reference->data, 0, (size_t)reference->width * reference->height * 4);
                     assert(gpu_clear_screen(native));
-                    drawmethod_global_init(&method);
-                    line32(sx, sy, ex, ey, 0x00abcdefu, reference, 0);
+                    reference_line(reference, sx, sy, ex, ey, 0x00abcdefu);
                     assert(gpu_draw_line(native, sx, sy, ex, ey, 0x00abcdefu, &method));
                     gpu_sync_cpu(native);
 
-                    /* Production software supplies line coverage. Apply the
-                     * intended scissor to that reference independently because
-                     * its legacy pixel loop ignores drawmethod clip bounds. */
+                    /* Apply the scissor independently of line coverage so
+                     * clipping cannot rebase the expected interpolation. */
                     for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
                     {
                         int x = pixel % reference->width, y = pixel / reference->width;
@@ -1196,7 +1136,6 @@ static void test_axis_line_materials(s_screen *reference, s_screen *native)
                 assert(report->counts[EP_COUNT_NATIVE_QUADS] == (unsigned)(covered != 0));
                 assert(report->counts[EP_COUNT_NATIVE_BATCHES] == (unsigned)(covered != 0));
                 assert(report->counts[EP_COUNT_READBACKS] == 0);
-                assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
                 for(fallback = 0; fallback < EP_FALLBACK_COUNT; ++fallback)
                 {
                     assert(report->fallbacks[fallback] == 0);
@@ -1232,7 +1171,7 @@ static void test_axis_line_materials(s_screen *reference, s_screen *native)
  * 2026-11-15 - Report sampled water/plane work and bounded phase differences.
  * 2026-11-15 - Isolate one plane product boundary from strict normal comparisons.
  *
- * Run production-CPU-versus-native-GPU transform comparisons on a real context.
+ * Run independent-reference-versus-native-GPU comparisons on a real context.
  */
 int main(void)
 {
@@ -1283,8 +1222,8 @@ int main(void)
     test_lines(reference, native);
     test_axis_line_materials(reference, native);
 
-    /* Retire identities while the context still exists, then report ordinary
-     * comparisons and the explicitly tracked intended corrections separately. */
+    /* Retire identities while the context still exists, then report the
+     * full-image comparisons and bounded water/plane approximations. */
     gpu_release_screen(source); gpu_release_screen(reference); gpu_release_screen(native);
     free(source); free(reference); free(native);
     gpu_gl_shutdown();
@@ -1293,13 +1232,11 @@ int main(void)
            "%u bounded plane draws with one-quad counters), "
            "%u affine draws, %u lines, "
            "%u axis-line material images with one-quad counters; "
-           "corrected legacy pixels: plane boundaries=%u, rotation coverage=%u, "
-           "rotation sampling=%u; water pixels within one-X-pixel bound=%u, "
+           "water pixels within one-X-pixel bound=%u, "
            "plane stress pixels within one-source-X-texel bound=%u.\n",
            compared_draws, compared_shear_draws, compared_water_draws, compared_plane_draws,
            compared_plane_stress_draws,
-           compared_affine_draws, compared_lines, compared_axis_lines, plane_drift_corrections,
-           rotation_bounds_corrections, rotation_sample_corrections, water_approximation_pixels,
+           compared_affine_draws, compared_lines, compared_axis_lines, water_approximation_pixels,
            plane_approximation_pixels);
     return 0;
 }

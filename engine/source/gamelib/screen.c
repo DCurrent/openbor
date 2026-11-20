@@ -6,19 +6,10 @@
  * Copyright (c)  OpenBOR Team
  */
 
-/*
-	Code for handling 'screen' structures.
-	(Memory allocation and copy functions)
-	Last update: 10 feb 2003
-*/
-#include <stdio.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
-#include "types.h"
-#include "transform.h"
 #include "screen.h"
 #include "gpu.h"
-#include "engine_profile.h"
 
 /*
  * Damon V. Caskey
@@ -77,779 +68,103 @@ void freescreen(s_screen **screen)
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Stop native RGB32 failures without a software retry.
- * Copy a screen with destination clipping. Unmigrated CPU copies include
- * synchronization and copying in one inclusive software span.
+ * 2026-11-20
+ * Copy RGB32 render targets entirely on the GPU. Indexed buffers are source
+ * artwork, including cached backgrounds, and retain their plain byte-copy
+ * operation. That asset operation has no blending, scaling or scene writes.
+ * Destination clipping and the existing separate palette ownership remain.
  */
 void copyscreen(s_screen *dest, s_screen *src)
 {
-    /* Reject malformed image identities before any coherence or pixel work. */
+    int width, height, row;
+
     if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
-       !pixel_format_supported(src->pixelformat))
+       dest->pixelformat != src->pixelformat || dest == src)
     {
         return;
     }
 
-    ep_scope software;
-    unsigned char *sp, *dp;
-    int width = src->width;
-    int height = src->height;
-    int pixelformat = src->pixelformat;
-
-    if(pixelformat != dest->pixelformat)
+    if(pixel_format_indexed(dest->pixelformat))
     {
-        return;
-    }
-
-    /* Keep copies between render targets on the GPU when supported. */
-    if(gpu_copy_screen(dest, src))
-    {
-        return;
-    }
-    if(!gpu_allow_cpu_operation(dest, GPU_OPERATION_COPY))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_COPIES, 1);
-    /* Synchronization belongs to this fallback's wall time. A readback, when
-     * required, also appears in its own inclusive transfer measurement. */
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-
-    if(height > dest->height)
-    {
-        height = dest->height;
-    }
-    if(width > dest->width)
-    {
-        width = dest->width;
-    }
-
-    dp = dest->data;
-    sp = src->data;
-    // Copy unclipped
-    if(dest->width == src->width)
-    {
-        memcpy(dest->data, src->data, width * height * pixelbytes[(int)pixelformat]);
-        engine_profile_span_end(software, EP_SPAN_SOFTWARE);
-        return;
-    }
-
-    // Copy clipped
-    do
-    {
-        memcpy(dp, sp, width * pixelbytes[(int)pixelformat]);
-        sp += src->width * pixelbytes[(int)pixelformat];
-        dp += dest->width * pixelbytes[(int)pixelformat];
-    }
-    while(--height);
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Prevent failed native clears from writing CPU pixels.
- * Clear either resident GPU storage or its CPU shadow. Count and time the
- * software path separately so mixed-renderer costs remain visible.
- */
-void clearscreen(s_screen *s)
-{
-    ep_scope software;
-    if(s == NULL)
-    {
-        return;
-    }
-    if(gpu_clear_screen(s))
-    {
-        return;
-    }
-    if(!gpu_allow_cpu_operation(s, GPU_OPERATION_CLEAR))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_CLEARS, 1);
-    /* Clearing replaces every pixel, so no previous GPU contents are needed. */
-    gpu_mark_cpu_dirty(s);
-    memset(s->data, 0, s->width * s->height * pixelbytes[(int)s->pixelformat]);
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Copy supported image buffers with offsets and clipping. Reject obsolete
- * formats before synchronization or pixel-stride lookup.
- */
-void copyscreen_o(s_screen *dest, s_screen *src, int x, int y)
-{
-    /* Reject malformed image identities before any coherence or pixel work. */
-    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
-       !pixel_format_supported(src->pixelformat))
-    {
-        return;
-    }
-
-    unsigned char *sp, *dp;
-    int pixelformat = src->pixelformat;
-    int sw = src->width;
-    int sh = src->height;
-    int dw = dest->width;
-    int cw = sw, ch = sh;
-    int linew, slinew, dlinew;
-    int sox, soy;
-
-    int xmin = useclip ? clipx1 : 0,
-        xmax = useclip ? clipx2 : dest->width,
-        ymin = useclip ? clipy1 : 0,
-        ymax = useclip ? clipy2 : dest->height;
-
-    // Copy anything at all?
-    if(x >= xmax)
-    {
-        return;
-    }
-    if(sw + x <= xmin)
-    {
-        return;
-    }
-    if(y >= ymax)
-    {
-        return;
-    }
-    if(sh + y <= ymin)
-    {
-        return;
-    }
-
-    sox = 0;
-    soy = 0;
-
-    // Clip?
-    if(x < xmin)
-    {
-        sox = xmin - x;
-        cw -= sox;
-    }
-    if(y < ymin)
-    {
-        soy = ymin - y;
-        ch -= soy;
-    }
-
-    if(x + sw > xmax)
-    {
-        cw -= (x + sw) - xmax;
-    }
-    if(y + sh > ymax)
-    {
-        ch -= (y + sh) - ymax;
-    }
-
-    if(x < xmin)
-    {
-        x = xmin;
-    }
-    if(y < ymin)
-    {
-        y = ymin;
-    }
-
-    if(dest->pixelformat != src->pixelformat)
-    {
-        return;
-    }
-
-    /* Public software entry points must also observe preceding GPU draws. */
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-    sp = src->data + (soy * sw + sox) * pixelbytes[(int)pixelformat];
-    dp = dest->data + (y * dw + x) * pixelbytes[(int)pixelformat];
-    linew = cw * pixelbytes[(int)pixelformat];
-    slinew = sw * pixelbytes[(int)pixelformat];
-    dlinew = dw * pixelbytes[(int)pixelformat];
-    // Copy data
-    do
-    {
-        memcpy(dp, sp, linew);
-        sp += slinew;
-        dp += dlinew;
-    }
-    while(--ch);
-}
-
-// same as above, with color key
-void copyscreen_trans(s_screen *dest, s_screen *src, int x, int y)
-{
-    unsigned char *sp, *dp;
-    int sw = src->width;
-    int sh = src->height;
-    int dw = dest->width;
-    int cw = sw, ch = sh;
-    int sox, soy;
-    int i;
-
-    int xmin = useclip ? clipx1 : 0,
-        xmax = useclip ? clipx2 : dest->width,
-        ymin = useclip ? clipy1 : 0,
-        ymax = useclip ? clipy2 : dest->height;
-
-    // Copy anything at all?
-    if(x >= xmax)
-    {
-        return;
-    }
-    if(sw + x <= xmin)
-    {
-        return;
-    }
-    if(y >= ymax)
-    {
-        return;
-    }
-    if(sh + y <= ymin)
-    {
-        return;
-    }
-
-    sox = 0;
-    soy = 0;
-
-    // Clip?
-    if(x < xmin)
-    {
-        sox = xmin - x;
-        cw -= sox;
-    }
-    if(y < ymin)
-    {
-        soy = ymin - y;
-        ch -= soy;
-    }
-
-    if(x + sw > xmax)
-    {
-        cw -= (x + sw) - xmax;
-    }
-    if(y + sh > ymax)
-    {
-        ch -= (y + sh) - ymax;
-    }
-
-    if(x < xmin)
-    {
-        x = xmin;
-    }
-    if(y < ymin)
-    {
-        y = ymin;
-    }
-
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-    sp = src->data + (soy * sw + sox);
-    dp = dest->data + (y * dw + x);
-    // Copy data
-    do
-    {
-        i = cw - 1;
-        do
+        width = src->width < dest->width ? src->width : dest->width;
+        height = src->height < dest->height ? src->height : dest->height;
+        if(width <= 0 || height <= 0)
         {
-            if(sp[i] == 0)
-            {
-                continue;
-            }
-            dp[i] = sp[i];
-        }
-        while(i--);
-        sp += sw;
-        dp += dw;
-    }
-    while(--ch);
-}
-
-//same as above, with remap, work only under 8bit pixel format
-void copyscreen_remap(s_screen *dest, s_screen *src, int x, int y, unsigned char *remap)
-{
-    unsigned char *sp = src->data;
-    unsigned char *dp = dest->data;
-    int i;
-    int sw = src->width;
-    int sh = src->height;
-    int dw = dest->width;
-    int cw = sw, ch = sh;
-    int sox, soy;
-
-    int xmin = useclip ? clipx1 : 0,
-        xmax = useclip ? clipx2 : dest->width,
-        ymin = useclip ? clipy1 : 0,
-        ymax = useclip ? clipy2 : dest->height;
-
-    // Copy anything at all?
-    if(x >= xmax)
-    {
-        return;
-    }
-    if(sw + x <= xmin)
-    {
-        return;
-    }
-    if(y >= ymax)
-    {
-        return;
-    }
-    if(sh + y <= ymin)
-    {
-        return;
-    }
-
-    sox = 0;
-    soy = 0;
-
-    // Clip?
-    if(x < xmin)
-    {
-        sox = xmin - x;
-        cw -= sox;
-    }
-    if(y < ymin)
-    {
-        soy = ymin - y;
-        ch -= soy;
-    }
-
-    if(x + sw > xmax)
-    {
-        cw -= (x + sw) - xmax;
-    }
-    if(y + sh > ymax)
-    {
-        ch -= (y + sh) - ymax;
-    }
-
-    if(x < xmin)
-    {
-        x = xmin;
-    }
-    if(y < ymin)
-    {
-        y = ymin;
-    }
-
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-    sp += (soy * sw + sox);
-    dp += (y * dw + x);
-
-    // Copy data
-    do
-    {
-        i = cw - 1;
-        do
-        {
-            if(!sp[i])
-            {
-                continue;
-            }
-            dp[i] = remap[sp[i]];
-        }
-        while(i--);
-        sp += sw;
-        dp += dw;
-    }
-    while(--ch);
-}
-
-//same as above, with alpha blend
-void blendscreen(s_screen *dest, s_screen *src, int x, int y, unsigned char *lut)
-{
-    unsigned char *sp = src->data;
-    unsigned char *dp = dest->data;
-    int i;
-    int sw = src->width;
-    int sh = src->height;
-    int dw = dest->width;
-    int cw = sw, ch = sh;
-    int sox, soy;
-    unsigned char *d, *s;
-
-    int xmin = useclip ? clipx1 : 0,
-        xmax = useclip ? clipx2 : dest->width,
-        ymin = useclip ? clipy1 : 0,
-        ymax = useclip ? clipy2 : dest->height;
-
-    // Copy anything at all?
-    if(x >= xmax)
-    {
-        return;
-    }
-    if(sw + x <= xmin)
-    {
-        return;
-    }
-    if(y >= ymax)
-    {
-        return;
-    }
-    if(sh + y <= ymin)
-    {
-        return;
-    }
-
-    sox = 0;
-    soy = 0;
-
-    // Clip?
-    if(x < xmin)
-    {
-        sox = xmin - x;
-        cw -= sox;
-    }
-    if(y < ymin)
-    {
-        soy = ymin - y;
-        ch -= soy;
-    }
-
-    if(x + sw > xmax)
-    {
-        cw -= (x + sw) - xmax;
-    }
-    if(y + sh > ymax)
-    {
-        ch -= (y + sh) - ymax;
-    }
-
-    if(x < xmin)
-    {
-        x = xmin;
-    }
-    if(y < ymin)
-    {
-        y = ymin;
-    }
-
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-    sp += soy * sw + sox;
-    dp += y * dw + x;
-
-    // Copy data
-    do
-    {
-        i = cw;
-        do
-        {
-            d = dp + i - 1;
-            s = sp + i - 1;
-            if(!(*s))
-            {
-                continue;
-            }
-            *d = lut[(*s) << 8 | (*d)];
-        }
-        while(--i);
-        sp += sw;
-        dp += dw;
-    }
-    while(--ch);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-13
- * 2026-11-15 - Retain only indexed artwork and RGB32 dispatch.
- * Select software screen geometry and preserve the existing pixel operations.
- * Explicit affine geometry overrides the stored legacy transform settings.
- */
-static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
-{
-    unsigned char *table;
-    int alpha, transbg;
-    gfx_entry gfx;
-
-    if(!drawmethod || !(drawmethod->config & DRAWMETHOD_CONFIG_ENABLED))
-    {
-        table = NULL;
-        alpha = 0;
-        transbg = 0;
-    }
-    else if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
-    {
-        /* Opt-in affine takes precedence over legacy shear, rotation and water. */
-        gfx.screen = src;
-        gfx_draw_affine(dest, &gfx, x, y, 0, 0, drawmethod);
-        return;
-    }
-    else if(drawmethod->water.watermode && drawmethod->water.amplitude)
-    {
-        gfx.screen = src;
-        if(drawmethod->water.watermode == 3)
-        {
-            gfx_draw_plane(dest, &gfx, x, y, 0, 0, drawmethod);
-        }
-        else
-        {
-            gfx_draw_water(dest, &gfx, x, y, 0, 0, drawmethod);
-        }
-        return ;
-    }
-    else if(drawmethod->rotate)
-    {
-        gfx.screen = src;
-        gfx_draw_rotate(dest, &gfx, x, y, 0, 0, drawmethod);
-        return;
-    }
-    else if(drawmethod->scalex != 256 || drawmethod->scaley != 256 || drawmethod->shiftx)
-    {
-        gfx.screen = src;
-        gfx_draw_scale(dest, &gfx, x, y, 0, 0, drawmethod);
-        return;
-    }
-    else
-    {
-        table = drawmethod->table;
-        alpha = drawmethod->alpha;
-        transbg = (drawmethod->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
-        x -= drawmethod->centerx;
-        y -= drawmethod->centery;
-    }
-
-    if(!table && alpha <= 0 && !transbg && !usechannel)
-    {
-        if(dest->pixelformat == src->pixelformat && dest->width == src->width && dest->height == src->height && !x && !y)
-        {
-            copyscreen(dest, src);
             return;
         }
-    }
 
-    if(dest->pixelformat == PIXEL_8)
-    {
-        if(table)
+        /* Indexed artwork remains CPU-owned. Invalidate any uploaded source
+         * texture before editing its bytes; no render-target readback is needed. */
+        gpu_mark_cpu_dirty(dest);
+        if(dest->width == src->width)
         {
-            copyscreen_remap(dest, src, x, y, drawmethod->table);
-        }
-        else if(alpha > 0)
-        {
-            blendscreen(dest, src, x, y, blendtables[drawmethod->alpha - 1]);
-        }
-        else if(transbg)
-        {
-            copyscreen_trans(dest, src, x, y);
+            memcpy(dest->data, src->data, (size_t)width * height);
         }
         else
         {
-            copyscreen_o(dest, src, x, y);
+            for(row = 0; row < height; ++row)
+            {
+                memcpy(dest->data + (size_t)row * dest->width,
+                       src->data + (size_t)row * src->width, (size_t)width);
+            }
         }
+        return;
     }
-    else if(dest->pixelformat == PIXEL_32)
+
+    if(!gpu_copy_screen(dest, src))
     {
-        if(src->pixelformat == PIXEL_x8)
-        {
-            putscreenx8p32(dest, src, x, y, transbg, (unsigned *)table, getblendfunction32(alpha));
-        }
-        else if(src->pixelformat == PIXEL_32)
-        {
-            blendscreen32(dest, src, x, y, transbg, getblendfunction32(alpha));
-        }
+        gpu_report_rejected_operation(dest, GPU_OPERATION_COPY);
     }
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
- * 2026-11-15 - Prepare CPU globals only in modes that still require software.
- * 2026-11-15 - Reject unavailable GPU resampling even in unmigrated CPU modes.
- * Dispatch a screen draw with its repeats and effects. Selected native RGB32
- * draws never retry on the CPU; unmigrated CPU work includes coherence time.
+ * 2026-11-20
+ * Clear RGB32 targets through the GPU with logging on failure. Resetting an
+ * indexed source image only changes its owned index bytes; it is asset
+ * maintenance and cannot become a scene-rendering fallback.
+ */
+void clearscreen(s_screen *screen)
+{
+    if(!screen || !pixel_format_supported(screen->pixelformat))
+    {
+        return;
+    }
+
+    if(pixel_format_indexed(screen->pixelformat))
+    {
+        if(screen->width <= 0 || screen->height <= 0)
+        {
+            return;
+        }
+        gpu_mark_cpu_dirty(screen);
+        memset(screen->data, 0, (size_t)screen->width * screen->height);
+        return;
+    }
+
+    if(!gpu_clear_screen(screen))
+    {
+        gpu_report_rejected_operation(screen, GPU_OPERATION_CLEAR);
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Submit the complete screen draw to native rendering, including repeats,
+ * clipping, transforms and sampling. Rejected draws only report the failure;
+ * no CPU renderer or mutable pixel-writer state participates in dispatch.
  */
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
-    /* Reject malformed image identities before any coherence or pixel work. */
     if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
        !pixel_format_supported(src->pixelformat))
     {
         return;
     }
 
-    ep_scope software;
-    int xrepeat, yrepeat, xspan, yspan, i, j;
-    s64 dx, dy;
-
-    /* One native dispatch includes all repeats and reads drawmethod directly. */
-    if(gpu_draw_screen(dest, src, x, y, drawmethod))
+    if(!gpu_draw_screen(dest, src, x, y, drawmethod))
     {
-        return;
+        gpu_report_rejected_image_operation(dest, GPU_OPERATION_SCREEN, drawmethod);
     }
-    if(!gpu_allow_cpu_image_operation(dest, GPU_OPERATION_SCREEN, drawmethod))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
-    /* Low-level CPU blitters consume these shared globals; native draws do not. */
-    drawmethod_global_init(drawmethod);
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-
-    if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
-    {
-        xrepeat = drawmethod->xrepeat;
-        yrepeat = drawmethod->yrepeat;
-        xspan = drawmethod->xspan;
-        yspan = drawmethod->yspan;
-    }
-    else
-    {
-        xrepeat = yrepeat = 1;
-        xspan = yspan = 0;
-    }
-
-    /* Calculate only actual instances in wider arithmetic. Unrepresentable
-     * coordinates are skipped, and no unused final increment can overflow. */
-    for(j = 0; j < yrepeat; j++)
-    {
-        dy = (s64)y + (s64)j * yspan;
-        if(dy < INT_MIN || dy > INT_MAX)
-        {
-            continue;
-        }
-        for(i = 0; i < xrepeat; i++)
-        {
-            dx = (s64)x + (s64)i * xspan;
-            if(dx < INT_MIN || dx > INT_MAX)
-            {
-                continue;
-            }
-            _putscreen(dest, src, (int)dx, (int)dy, drawmethod);
-        }
-    }
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Scale supported image buffers. Validate both identities before computing
- * the byte stride so unsupported formats cannot produce a zero divisor.
- */
-void scalescreen(s_screen *dest, s_screen *src)
-{
-    /* Reject malformed image identities before any coherence or pixel work. */
-    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
-       !pixel_format_supported(src->pixelformat))
-    {
-        return;
-    }
-
-    int sw, sh;
-    int dw, dh;
-    int dx, dy;
-    unsigned char *sp;
-    unsigned char *dp;
-    unsigned char *lineptr;
-    unsigned int xstep, ystep, xpos, ypos;
-    int pixelformat = src->pixelformat;
-
-    if(dest->pixelformat != pixelformat)
-    {
-        return;
-    }
-
-    if(src == NULL || dest == NULL)
-    {
-        return;
-    }
-    gpu_sync_cpu(src);
-    gpu_prepare_cpu_write(dest);
-    sp = src->data;
-    dp = dest->data;
-
-    sw = src->width * pixelbytes[(int)pixelformat];
-    sh = src->height;
-    dw = dest->width * pixelbytes[(int)pixelformat];
-    dh = dest->height;
-
-    xstep = (sw << 16) / dw;
-    ystep = (sh << 16) / dh;
-
-    ypos = 0;
-    for(dy = 0; dy < dh; dy++)
-    {
-        lineptr = sp + ((ypos >> 16) * sw);
-        ypos += ystep;
-        xpos = 0;
-        for(dx = 0; dx < dw; dx++)
-        {
-            *dp = lineptr[xpos >> 16];
-            ++dp;
-            xpos += xstep;
-        }
-    }
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Scale supported indexed or RGB32 buffers, checking temporary allocation.
- * Zooms in or out on the screen.
- * Parameters:
- *     centerx - x coord of zoom center on unclipped, unscaled screen
- *     centery - y coord of zoom center on unclipped, unscaled screen
- *     scalex - x scale factor
- *     scaley - y scale factor
- */
-void zoomscreen(s_screen *dest, s_screen *src, int centerx, int centery, int scalex, int scaley)
-{
-    /* Reject malformed image identities before any coherence or pixel work. */
-    if(!dest || !src || !pixel_format_supported(dest->pixelformat) ||
-       !pixel_format_supported(src->pixelformat))
-    {
-        return;
-    }
-
-    s_screen *frame;
-    int screenwidth = src->width;
-    int screenheight = src->height;
-    int width = (screenwidth << 8) / scalex; // width of clipped, unscaled screen
-    int height = (screenheight << 8) / scaley; // height of clipped, unscaled screen
-    int xmin = (width >> 1) - centerx; // x coord before clipping corresponding to x=0 after clipping
-    int ymin = (height >> 1) - centery; // y coord before clipping corresponding to y=0 after clipping
-    int pixelformat = dest->pixelformat;
-
-    if(src->pixelformat != pixelformat)
-    {
-        return;
-    }
-    if(xmin >= screenwidth || xmin + ((width * scalex) >> 8) < 0)
-    {
-        return;    // out of left or right border
-    }
-    if(ymin >= screenheight)
-    {
-        return;
-    }
-
-    frame = allocscreen(width, height, pixelformat); // the part of the screen that will be zoomed
-    if(!frame)
-    {
-        return;
-    }
-    copyscreen_o(frame, src, xmin, ymin);
-
-    if(pixelformat == PIXEL_8 || pixelformat == PIXEL_x8)
-    {
-        scalescreen(dest, frame);
-    }
-    else if(pixelformat == PIXEL_32)
-    {
-        scalescreen32(dest, frame);
-    }
-
-    freescreen(&frame);
 }

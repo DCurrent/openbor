@@ -155,32 +155,22 @@ run_test "$test_build_dir/test_spriteq_sort"
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
 
-# Preserve the independent affine reference for pixel-center, pivot, clipping
-# and indexed sprite rules. Production Android uses the native GLES suite below.
-"$test_compiler" "${test_flags[@]}" tests/test_affine_transform.c \
-    engine/source/gamelib/transform.c engine/source/gamelib/gpu.c \
-    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
-    -o "$test_build_dir/test_affine_transform"
-run_test "$test_build_dir/test_affine_transform"
-
-test_software_sources=(engine/source/gamelib/gpu.c
-    engine/source/gamelib/screen.c
-    engine/source/gamelib/screen32.c engine/source/gamelib/draw.c
-    engine/source/gamelib/draw32.c engine/source/gamelib/sprite.c
-    engine/source/gamelib/spritex8p32.c engine/source/gamelib/spriteq.c
-    engine/source/gamelib/bitmap.c engine/source/gamelib/transform.c
-    engine/source/gamelib/pixelformat.c engine/source/omath.c)
+# Public scene roots only dispatch native work; explicit CPU image access and
+# indexed asset maintenance are tested with separate mock GPU pixel storage.
+test_scene_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/screen.c
+    engine/source/gamelib/draw.c engine/source/gamelib/sprite.c
+    engine/source/gamelib/spriteq.c engine/source/gamelib/bitmap.c
+    engine/source/gamelib/pixelformat.c)
 "$test_compiler" "${test_flags[@]}" tests/test_gpu_coherence.c \
-    "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    "${test_scene_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
-# Keep explicit CPU/reference behavior stable while testing native color rules
-# separately on every supported rendering API below.
-"$test_compiler" "${test_flags[@]}" tests/test_drawmethod_colors.c \
-    "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
-    -o "$test_build_dir/test_drawmethod_colors"
-run_test "$test_build_dir/test_drawmethod_colors"
+# Inspect uncollected production objects so dead-code elimination cannot hide
+# an accidentally reintroduced public software renderer from this gate.
+"$test_compiler" "${test_flags[@]}" -r "${test_scene_sources[@]}" engine/source/gamelib/gpu_shader.c \
+    -o "$test_build_dir/scene_dispatch.o"
+bash tests/check_no_software_renderer.sh "$test_build_dir/scene_dispatch.o"
 
 # Honor explicit dependency paths before consulting installed SDL metadata.
 # Both flag sets are required together to avoid mixing separate installations.
@@ -198,7 +188,7 @@ else
     if [[ ${OPENBOR_REQUIRE_GPU_TESTS:-0} == 1 ]]; then
         exit 1
     fi
-    printf 'CPU renderer tests passed. Test binaries: %s\n' "$test_build_dir"
+    printf 'Driver-independent scene and ownership tests passed. Test binaries: %s\n' "$test_build_dir"
     exit 0
 fi
 
@@ -241,16 +231,15 @@ for test_name in test_gpu_renderer test_gpu_shutdown test_gpu_palette_cache test
 done
 
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_transform_gl.c \
-    "${test_gpu_sources[@]}" engine/source/gamelib/transform.c \
-    engine/source/gamelib/pixelformat.c engine/source/gamelib/draw32.c \
-    engine/source/omath.c "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    "${test_gpu_sources[@]}" engine/source/gamelib/pixelformat.c \
+    "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
     -o "$test_build_dir/test_gpu_transform_gl"
 run_test "$test_build_dir/test_gpu_transform_gl"
 
 # Link real dispatch and queue code while checking native color effects against
 # independent expected pixels. The fixture rejects any software draw or fallback.
 test_color_native_sources=("${test_gpu_sources[@]}")
-for test_color_source in "${test_software_sources[@]}"; do
+for test_color_source in "${test_scene_sources[@]}"; do
     if [[ $test_color_source != engine/source/gamelib/gpu.c ]]; then
         test_color_native_sources+=("$test_color_source")
     fi

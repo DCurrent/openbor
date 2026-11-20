@@ -616,6 +616,27 @@ const char *gpu_fragment_shader_source =
     "        pixel = sign(position) * floor(abs(position));\n"
     "        pixel = mod(pixel, sourceSize);\n"
     "    }\n"
+    "    else if(wrapSource == 8)\n"
+    "    {\n"
+    "        /* Damon V. Caskey - 2026-11-20\n"
+    "         * Preview resizing must cover every destination pixel. Four\n"
+    "         * binary32 epsilon units across the source extent stabilize\n"
+    "         * large-image interpolation, where a fixed tiny band is too\n"
+    "         * narrow. The quarter-texel ceiling bounds a correction to an\n"
+    "         * adjacent source texel; ordinary scene samplers are unchanged.\n"
+    "         * Clamp after rounding so an extreme clipped ratio cannot\n"
+    "         * promote the final texel to an out-of-source discard. */\n"
+    "        const float sourcePrecision = 1.0 / 2097152.0;\n"
+    "        const float minimumRounding = 0.0001;\n"
+    "        const float maximumRounding = 0.25;\n"
+    "        vec2 position = sourcePosition;\n"
+    "        vec2 nearest = floor(position + 0.5);\n"
+    "        vec2 tolerance = min(vec2(maximumRounding),\n"
+    "            max(vec2(minimumRounding), sourceSize * sourcePrecision));\n"
+    "        position = mix(position, nearest,\n"
+    "            vec2(lessThan(abs(position - nearest), tolerance)));\n"
+    "        pixel = clamp(floor(position), vec2(0.0), sourceSize - vec2(1.0));\n"
+    "    }\n"
     "    else\n"
     "    {\n"
     "        /*\n"
@@ -1100,68 +1121,3 @@ const char *gpu_gif_fragment_shader_source =
     "    }\n"
     "    gl_FragColor = vec4(color, 1.0);\n"
     "}\n";
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- *
- * Expose the canonical byte equations without SDL/OpenGL for regression tests.
- * Mode numbers are drawmethod alpha/tint values, not zero-based BLEND_* IDs.
- */
-unsigned gpu_shader_blend_reference(int mode, unsigned source, unsigned destination)
-{
-    unsigned result;
-
-    /* Match texture sampling's byte domain even when callers pass packed words. */
-    source &= 255u;
-    destination &= 255u;
-
-    /* Keep each mode separate so tests can compare it with its CPU counterpart. */
-    switch(mode)
-    {
-    case 1:
-    {
-        return 255u - ((255u - source) * (255u - destination) / 255u);
-    }
-    case 2:
-    {
-        return source * destination / 256u;
-    }
-    case 3:
-    {
-        return destination < 128u ? 2u * destination * source / 256u
-             : 255u - ((511u - 2u * destination) * (255u - source) / 255u);
-    }
-    case 4:
-    {
-        return source < 128u ? 2u * source * destination / 256u
-             : 255u - ((511u - 2u * source) * (255u - destination) / 255u);
-    }
-    case 5:
-    {
-        result = destination * 256u / (256u - source);
-        return result > 255u ? 255u : result;
-    }
-    case 6:
-    {
-        return (source + destination) / 2u;
-    }
-    default:
-    {
-        return source;
-    }
-    }
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- *
- * Keep the existing 255-complement/256-divisor opacity rule visible and tested.
- * Changing it is a separate visual-behavior decision, not an implicit GPU change.
- */
-unsigned gpu_shader_channel_reference(unsigned source, unsigned destination, unsigned opacity)
-{
-    return ((source & 255u) * (opacity & 255u)
-         + (destination & 255u) * (255u - (opacity & 255u))) / 256u;
-}

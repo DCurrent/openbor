@@ -10,40 +10,19 @@
 #define SPRITE_H
 
 #ifndef TRANSPARENT_IDX
-#define		TRANSPARENT_IDX		0x00
+#define TRANSPARENT_IDX 0x00
 #endif
 
 unsigned fakey_encodesprite(s_bitmap *bitmap);
 unsigned encodesprite(int offsx, int offsy, s_bitmap *bitmap, s_sprite *dest);
 
-// common sprite draw function, dispatch all formats
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Sprite drawing is GPU-only; explicit source-index reads remain available
+ * to the script image-access API independently of scene rendering.
+ */
 void putsprite(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
+char sprite_get_pixel(s_sprite *sprite, int x, int y);
 
-// Normal putsprite
-void putsprite_8(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned char *remap, unsigned char *blend);
-//with speical effects
-void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
-/*
-// 8bit pixel transpixel functions
-unsigned char remapcolor(unsigned char* table, unsigned char color, unsigned char unused);
-unsigned char blendcolor(unsigned char* table, unsigned char color1, unsigned char color2);
-unsigned char blendfillcolor(unsigned char* table, unsigned char unused, unsigned char color);
-*/
-//----------------------------------------------------------------------------------------------------
-//              RGB32 palette version
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Normal putsprite
-void putsprite_x8p32(int x, int y, int is_flip, s_sprite *frame, s_screen *screen, unsigned *remap, unsigned(*fp)(unsigned, unsigned));
-//with speical effects
-void putsprite_ex_x8p32(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod);
-
-/*
-unsigned blend_multiply(unsigned color1, unsigned color2);
-unsigned blend_screen(unsigned color1, unsigned color2);
-unsigned blend_overlay(unsigned color1, unsigned color2);
-unsigned blend_hardlight(unsigned color1, unsigned color2);
-unsigned blend_dodge(unsigned color1, unsigned color2);
-unsigned blend_half(unsigned color1, unsigned color2);
-*/
-unsigned blend_channel32(unsigned color1, unsigned color2, unsigned a);
 #endif

@@ -64,16 +64,11 @@ for test_case in "${test_cases[@]}"; do
     case "$test_case" in
         renderer|shutdown|palette_cache|state_cache) ;;
         transform_gl)
-            test_extra_sources=(engine/source/gamelib/transform.c
-                engine/source/gamelib/pixelformat.c engine/source/gamelib/draw32.c
-                engine/source/omath.c) ;;
+            test_extra_sources=(engine/source/gamelib/pixelformat.c) ;;
         colors)
-            test_extra_sources=(engine/source/gamelib/screen.c engine/source/gamelib/screen32.c
-                engine/source/gamelib/draw.c engine/source/gamelib/draw32.c
-                engine/source/gamelib/sprite.c engine/source/gamelib/spritex8p32.c
-                engine/source/gamelib/spriteq.c engine/source/gamelib/bitmap.c
-                engine/source/gamelib/transform.c engine/source/gamelib/pixelformat.c
-                engine/source/omath.c) ;;
+            test_extra_sources=(engine/source/gamelib/screen.c engine/source/gamelib/draw.c
+                engine/source/gamelib/sprite.c engine/source/gamelib/spriteq.c
+                engine/source/gamelib/bitmap.c engine/source/gamelib/pixelformat.c) ;;
         resample|movie|movie_failures) ;;
         anigif)
             test_extra_sources=(engine/source/gamelib/anigif.c

@@ -23,7 +23,7 @@ color rules are separately opt-in; they are not enabled in DC3D automatically.
 
 The profiler separates update phases, main-queue playback, offscreen captures,
 CPU-side native-renderer work, presentation, transfers, rejected native
-operations, and explicitly retained software work. Optional GPU timestamps
+operations, and explicit image transfers. Optional GPU timestamps
 provide a second timeline. Profiling itself does not change input order, frame
 limiting, game ticks, drawing order, or renderer selection. The current branch
 requires native rendering for normal desktop RGB32 scene modes; the
@@ -346,8 +346,8 @@ Compare `gpu_geometry_ms` and `native_quads` when evaluating that change;
 shared one buffered draw. CPU geometry remains constant with visible row count,
 while the GPU rejects gaps inside the enclosing quad. Startup's **Legacy Shear**
 section identifies shader sampling or retained CPU row setup. Both paths still
-render pixels natively, so CPU row setup alone does not increment the software
-raster or fallback counters.
+render pixels natively. CPU row setup is geometry preparation and does not
+increment rejected-operation counters.
 
 Stage 4 retains validated affine-repeat quads and sampling data in a reusable
 cache of up to 8,192 instances. Compare `gpu_geometry_ms` with matching
@@ -361,9 +361,8 @@ Full replacement copies between distinct RGB32 screens also skip upload of
 obsolete destination CPU pixels when the source covers the complete target.
 Compare image-upload counts/bytes and `upload_ms` for equivalent copy workloads.
 Partial copies still upload dirty destination pixels to preserve their border;
-source uploads remain independent. Successful native calls also skip software
-draw-state initialization. That small setup saving remains in the enclosing
-phase rather than receiving a separate timer.
+source uploads remain independent. The obsolete software draw-state globals
+and their initialization have been removed from production.
 
 ### Water and plane accounting
 
@@ -388,7 +387,7 @@ The sampled-draw fields count actual shader use, not merely enabled water
 settings. Retained CPU row geometry continues to increment ordinary native
 draw/quad/batch counts but does not increment either sampled-draw field. That
 path still renders pixels on the GPU, so retaining row setup alone does not
-increment software-raster or rejected-operation counters.
+increment rejected-operation counters.
 
 Map counters describe preparation and residency work, independently of whether
 the eventual draw has visible coverage. One lookup precedes a repeated image
@@ -458,8 +457,8 @@ performed, unique sprites, or unique queue entries. Native repeats can create
 multiple submissions; do not add both fields as a total draw count.
 
 These controls have no CPU implementation. Missing shader support leaves
-ordinary native drawing available and ignores the rules; retained CPU-mode
-draws also ignore them. There is no software-color counter or color-rule
+ordinary native drawing available and ignores the rules. There is no
+software-color counter or color-rule
 fallback reason. Other causes, including an absent backend, unsupported
 geometry, or missing resources, retain their existing diagnostic reason fields.
 Native-required RGB32 operations are logged and skipped rather than retried on
@@ -536,23 +535,19 @@ count GPU snapshots used by blending or self-drawing; self-copies are also
 identified separately. Byte values are logical payload sizes, not measured
 bus traffic or GPU memory-bandwidth consumption.
 
-`software_ms` and the software draw/clear/copy counters cover instrumented
-high-level operations in required CPU paths and indexed image processing.
-Scene targets use RGB32; indexed source storage does not define another scene
-color mode. Desktop and Android gameplay and launcher composition use the same
-native renderer. Output filters sample resident scene textures without readback
-or a completed CPU scene upload. Filter choice does not select CPU scene drawing.
-They do not claim to count every low-level CPU pixel routine in the engine.
-When a retained CPU operation first synchronizes a GPU-authored screen, its
-inclusive software span includes that readback; `readback_ms` also records the
-transfer itself. Adding both would count that time twice.
+The retired `software_ms`, `software_draws`, `software_clears` and
+`software_copies` fields have been removed with the production CPU scene
+renderer. Indexed source byte-copy/reset operations are asset maintenance;
+they do not define another scene color mode. Desktop and Android gameplay and
+launcher composition share the native renderer. Output filters sample resident
+scene textures without readback or a completed CPU scene upload.
 
 `fallback_totals` retains its existing field name and reason codes for declined
-native operations. In native-required RGB32 modes, rejection returns before
-CPU synchronization, software-state initialization, and software profiling.
-Such a rejection can increment a reason count while software draws and
-readbacks remain zero. Check the ordinary bounded warning to identify the
-skipped operation; zero software work alone does not prove a successful draw.
+native operations. Rejection returns before CPU synchronization or image writes.
+These counts report rejected work, not execution of a fallback renderer. Check
+the ordinary bounded warning and native draw counts to distinguish skipped
+operations from successful draws. Explicit script reads, image edits and
+screenshots retain the independently measured readback boundary.
 
 ### Resident palette-cache accounting
 

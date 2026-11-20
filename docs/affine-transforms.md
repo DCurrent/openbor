@@ -1,5 +1,9 @@
 # Affine transforms
 
+Author: Damon V. Caskey
+
+Date: 2026-11-20
+
 The drawmethod supports an opt-in, six-coefficient affine transform for sprites
 and screens. The native renderer draws supported affine operations directly
 on the GPU. OpenBOR scene targets use RGB32 only. Desktop and Android scenes
@@ -42,8 +46,9 @@ Here `local_x = source_x - (sprite_centerx + drawmethod_centerx)` and likewise
 for Y. Source screens use `(0, 0)` as their built-in pivot. The `flipx` and
 `flipy` flags, when enabled, negate the corresponding **local** source axes
 before applying the matrix. The matrix operates on continuous coordinates;
-the renderer samples the source at destination pixel centers with nearest
-neighbor filtering.
+the renderer samples the source at destination pixel centers. Nearest neighbor
+is the default; the selected [drawmethod resampling](drawmethod-resampling.md)
+formula also applies to affine draws.
 
 Some examples:
 
@@ -83,15 +88,15 @@ coefficient enables affine rendering. `affineenabled` controls that flag;
   clipping, transparency, palette remapping, fill, tint and blending still
   participate in drawing. Affine only replaces **geometry**.
 - Singular matrices (determinant zero) draw nothing. Invalid non-finite
-  numbers are rejected by the script setter, and ignored by the native
-  rasterizer if passed directly.
+  numbers are rejected by the script setter. Direct native calls also reject
+  invalid coefficients before writing destination pixels.
 - All existing numeric drawmethod property IDs retain their values. New
   property names are resolved through an alphabetized lookup table without
   renumbering the older properties.
 - The drawmethod's general `enabled` flag still controls whether any of its
   settings apply. Toggling `affineenabled` preserves all six coefficients.
 
-## GPU execution and retained CPU work
+## GPU execution and CPU image access
 
 Hardware drawing keeps source pixels resident through the existing renderer.
 The CPU prepares one clipped bounding quad and a small amount of sampling state;
@@ -102,7 +107,7 @@ image into another image for every native draw.
 Affine sampling has no blanket near-integer snapping tolerance. Integer byte
 comparisons of source numerators and the determinant preserve exact scale
 boundaries and authored fractional positions. Numerically extreme mappings are
-rejected without a CPU retry in native-required RGB32 modes; see
+rejected without a CPU retry; see
 [the renderer guide](gpu-renderer-migration.md#color-and-intended-behavior-corrections)
 for the native arithmetic and uniform-capacity bounds.
 
@@ -114,15 +119,12 @@ snapshots for overlapping blends and self-drawing. Larger grids or unavailable
 cache storage retain preflight and recomputation while rendering pixels on the
 GPU. The cache changes preparation work, not the affine API or sampling rules.
 
-The retained CPU implementation serves independent reference checks. It
-inverse-maps destination pixel centers into the source,
-clips transformed bounds before scanning, and evaluates each source sample
-directly in double precision. Direct evaluation avoids accumulated coordinate
-drift at exact texel boundaries without snapping nearby authored translations.
-Half-pixel translations and their adjacent representable values remain distinct.
-Its pixel writers retain palette, transparency, mask, tint and blend behavior.
-Explicit CPU image access still uses the existing synchronization contract;
-native rejection does not request a readback to run this implementation.
+Explicit CPU image reads and edits still use the existing synchronization
+contract. Reading GPU-owned pixels resolves the current image first; editing
+its CPU copy invalidates the uploaded version. Asset decoding and these
+requested image operations remain available. Production code contains no CPU
+affine rasterizer, and rejected native draws do not request a rendering
+readback or execute a software retry.
 
 Hardware transforms still consume draw submission, rasterization and fill
 resources. Their cost depends on drawn area, overlap, effects, batching and
@@ -156,26 +158,32 @@ that every source uses an indexed palette.
 Run the renderer suite from the repository root:
 
 ```sh
-bash tests/run_gpu_tests.sh
+OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_gpu_tests.sh
 ```
 
-For only the standalone retained CPU raster/reference checks:
+The suite compares desktop OpenGL and Android GLES3 output with independent
+scalar expectations in `tests/test_gpu_transform_gl.c`. Those checks evaluate
+the inverse mapping at each destination pixel center without calling a
+production CPU rasterizer. Test-only formulas for the other transform families
+live in `tests/gpu_transform_reference.h`; neither file is linked into the
+engine. The former standalone CPU affine test and its production rasterizer
+have been removed.
+
+For a focused GLES3 transform run:
 
 ```sh
-cc -std=c99 -O2 -Wall -Werror -D_DEFAULT_SOURCE -DPP_TEST \
-    -ffunction-sections -fdata-sections \
-    -Iengine -Iengine/source -Iengine/source/gamelib \
-    tests/test_affine_transform.c engine/source/gamelib/transform.c \
-    engine/source/gamelib/gpu.c engine/source/gamelib/engine_profile.c \
-    -Wl,--gc-sections -lm -o /tmp/test_affine_transform
-/tmp/test_affine_transform
+OPENBOR_REQUIRE_GPU_TESTS=1 OPENBOR_GLES_TEST_CASES=transform_gl \
+    bash tests/run_gles_scene_tests.sh
 ```
 
 The tests cover identity, source pivot and translation, flips, right-angle
-rotation, non-uniform scale, shear with clipping, indexed RLE transparency,
-fractional sampling, exact texel boundaries, adjacent half-pixel translations,
-threefold scale with pivots, collapsed matrices, offscreen transforms and
-invalid floating-point input. The renderer suite also checks native transforms,
-repeat preparation reuse, and rejected RGB32 draws without CPU retry. CPU raster
-references and indexed image operations are tested separately. Measure performance
-using representative sprites, screens and effects on the target hardware.
+rotation, non-uniform scale, shear with clipping, fractional sampling, exact
+texel boundaries, adjacent half-pixel translations, threefold scale with
+pivots, collapsed matrices, offscreen transforms and invalid floating-point
+input. The full renderer suite also checks native material/coverage behavior,
+repeat preparation reuse, and unchanged RGB32 destinations after rejected
+draws or backend loss. Indexed source-asset operations and explicit CPU access
+are tested separately from scene rendering. Requiring GPU tests prevents a
+missing graphics context from silently skipping native coverage. Measure
+performance using representative sprites, screens and effects on the target
+hardware.

@@ -22,6 +22,7 @@ static unsigned launcher_texture_failures, launcher_upload_failures;
 static void (APIENTRY *launcher_real_gen_textures)(GLsizei, GLuint *);
 static void (APIENTRY *launcher_real_texture_image)(GLenum, GLint, GLint, GLsizei,
     GLsizei, GLint, GLenum, GLenum, const void *);
+static void launcher_verify(s_screen *screen, const unsigned *expected, const char *label);
 void *__real_malloc(size_t size);
 void *__real_SDL_GL_GetProcAddress(const char *name);
 
@@ -165,6 +166,118 @@ static void launcher_reference_box(unsigned *pixels, int width, int height,
         for(column = x; column < x + box_width; ++column)
             if(column >= 0 && column < width && row >= 0 && row < height)
                 pixels[row * width + column] = color & 0x00ffffffu;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Verify direct preview resizing against integer source-coordinate arithmetic.
+ * Both decoded indexed artwork and GPU-owned RGB images must retain exact
+ * bounds, opaque index zero, unclipped sampling phase and cached source reuse.
+ */
+static void launcher_test_previews(void)
+{
+    enum { LAUNCHER_PREVIEW_PALETTE_COLORS = 256 };
+    const struct
+    {
+        int source_width, source_height, target_width, target_height;
+        int x, y, width, height;
+    } fixtures[] =
+    {
+        {13, 7, 29, 19, 2, 1, 23, 15},
+        {13, 7, 29, 19, -5, -3, 25, 17},
+        {47, 31, 29, 19, 19, 13, 9, 5},
+        {33, 21, 176, 136, 8, 8, 160, 120},
+        {13, 7, 29, 19, INT_MIN + 100, 0, INT_MAX, 1},
+        {8192, 7, 176, 136, 8, 8, 160, 120}
+    };
+    const unsigned background = 0x002d4359u, native_pixel = 0x00c78139u;
+    size_t fixture;
+    int format;
+
+    for(format = 0; format < 2; ++format)
+        for(fixture = 0; fixture < sizeof(fixtures) / sizeof(fixtures[0]); ++fixture)
+        {
+            int source_width = fixtures[fixture].source_width;
+            int source_height = fixtures[fixture].source_height;
+            int target_width = fixtures[fixture].target_width;
+            int target_height = fixtures[fixture].target_height;
+            size_t source_pixels = (size_t)source_width * source_height;
+            size_t target_pixels = (size_t)target_width * target_height;
+            s_screen *source = test_screen(source_width, source_height, format ? PIXEL_32 : PIXEL_x8);
+            s_screen *target = test_screen(target_width, target_height, PIXEL_32);
+            unsigned *source_rgb = malloc(source_pixels * sizeof(unsigned));
+            unsigned *expected = malloc(target_pixels * sizeof(unsigned));
+            gpu_renderer_stats before;
+            int x, y;
+            size_t pixel;
+            assert(source_rgb && expected);
+
+            for(pixel = 0; pixel < LAUNCHER_PREVIEW_PALETTE_COLORS; ++pixel)
+            {
+                unsigned color = (unsigned)pixel * 0x00010307u & 0x00ffffffu;
+                if(!format) memcpy(source->palette + pixel * sizeof(color), &color, sizeof(color));
+            }
+            for(pixel = 0; pixel < source_pixels; ++pixel)
+            {
+                unsigned index = (unsigned)pixel % LAUNCHER_PREVIEW_PALETTE_COLORS;
+                source_rgb[pixel] = index * 0x00010307u & 0x00ffffffu;
+                if(format) ((unsigned *)source->data)[pixel] = source_rgb[pixel];
+                else source->data[pixel] = (unsigned char)index;
+            }
+            /* Leave one RGB texel newer on the GPU than its CPU shadow. */
+            if(format)
+            {
+                assert(gpu_draw_box(source, 1, 1, 1, 1, native_pixel, &plainmethod));
+                source_rgb[source_width + 1] = native_pixel;
+                assert(((unsigned *)source->data)[source_width + 1] != native_pixel);
+            }
+            assert(gpu_draw_box(target, 0, 0, target_width, target_height, background, &plainmethod));
+            for(pixel = 0; pixel < target_pixels; ++pixel) expected[pixel] = background;
+            for(y = 0; y < target_height; ++y)
+                for(x = 0; x < target_width; ++x)
+                {
+                    int64_t dx = (int64_t)x - fixtures[fixture].x;
+                    int64_t dy = (int64_t)y - fixtures[fixture].y;
+                    if(dx >= 0 && dy >= 0 && dx < fixtures[fixture].width && dy < fixtures[fixture].height)
+                        expected[y * target_width + x] = source_rgb[
+                            (dy * source_height / fixtures[fixture].height) * source_width +
+                            dx * source_width / fixtures[fixture].width];
+                }
+            before = *gpu_gl_get_stats();
+            assert(gpu_gl_draw_screen_scaled(target, source, fixtures[fixture].x, fixtures[fixture].y,
+                                             fixtures[fixture].width, fixtures[fixture].height));
+            assert(gpu_gl_get_stats()->uploads == before.uploads + !format +
+                   gpu_gl_get_stats()->palette_uploads - before.palette_uploads);
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(gpu_gl_get_stats()->draws == before.draws + 1);
+            assert(gpu_gl_get_stats()->destination_copies == before.destination_copies);
+            for(pixel = 0; pixel < target_pixels; ++pixel) assert(((unsigned *)target->data)[pixel] == 0);
+            before = *gpu_gl_get_stats();
+            assert(gpu_gl_draw_screen_scaled(target, source, fixtures[fixture].x, fixtures[fixture].y,
+                                             fixtures[fixture].width, fixtures[fixture].height));
+            assert(gpu_gl_get_stats()->uploads == before.uploads);
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(gpu_gl_get_stats()->draws == before.draws + 1);
+            launcher_verify(target, expected, format ? "resident RGB preview" : "opaque indexed preview");
+
+            /* Empty or completely clipped rectangles do no work. Invalid
+             * source formats fail atomically without changing either image. */
+            before = *gpu_gl_get_stats();
+            assert(gpu_gl_draw_screen_scaled(target, source, 0, 0, 0, 1));
+            assert(gpu_gl_draw_screen_scaled(target, source, INT_MAX, INT_MAX, INT_MAX, INT_MAX));
+            source->pixelformat = PIXEL_8;
+            assert(!gpu_gl_draw_screen_scaled(target, source, 0, 0, 4, 4));
+            source->pixelformat = format ? PIXEL_32 : PIXEL_x8;
+            assert(gpu_gl_get_stats()->draws == before.draws);
+            assert(gpu_gl_get_stats()->uploads == before.uploads);
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(!memcmp(target->data, expected, target_pixels * sizeof(unsigned)));
+            release_test_screen(source);
+            release_test_screen(target);
+            free(source_rgb);
+            free(expected);
+        }
 }
 
 /*
@@ -466,7 +579,6 @@ static void launcher_test_failures(void)
     assert(gpu_gl_get_stats()->launcher_text_draws == before.launcher_text_draws);
     assert(gpu_gl_get_stats()->readbacks == before.readbacks);
     assert(gpu_gl_get_stats()->uploads == before.uploads);
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     launcher_verify(screen, expected, "failed atlas replacement is atomic");
     assert(launcher_printf(screen, 7, 1, 0x00a1b3c5u, 0x00010305u, 1, "B"));
     assert(gpu_gl_get_stats()->launcher_font_uploads == before.launcher_font_uploads);
@@ -511,11 +623,9 @@ static void launcher_test_context(SDL_Window *window, SDL_GLContext *context)
     memcpy(shadow, screen->data, sizeof(shadow));
     assert(!launcher_printf(screen, 1, 1, 1, 2, 1, "No backend"));
     assert(!memcmp(shadow, screen->data, sizeof(shadow)));
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     SDL_GL_DeleteContext(*context);
     *context = SDL_GL_CreateContext(window);
     assert(*context && LoadGLFunctions() && gpu_gl_init());
-    gpu_set_native_required(1);
     assert(gpu_gl_get_stats()->launcher_font_resources == 0);
     before = *gpu_gl_get_stats();
     assert(launcher_printf(screen, 6, 2, 0x00b1c3d5u, 0, 0, "B"));
@@ -551,20 +661,20 @@ int main(void)
         return 77;
     }
     assert(LoadGLFunctions() && gpu_gl_init());
-    gpu_set_native_required(1);
     launcher_test_noops();
     launcher_test_glyphs();
     launcher_test_layout();
     launcher_test_formatting();
     launcher_test_ordering();
     launcher_test_failures();
+    launcher_test_previews();
     launcher_test_context(window, &context);
     assert(gpu_gl_get_stats()->fallback_draws == 0);
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    printf("GPU launcher text tests passed: %u complete images, %u exact RGB8 pixels; byte mapping, glyphs, fill, clipping, formatting, ordering, no implicit readback, atlas failure/recovery and context replacement.\n",
+    printf("GPU launcher text tests passed: %u complete images, %u exact RGB8 pixels; byte mapping, glyphs, scaled previews, fill, clipping, formatting, ordering, no implicit readback, atlas failure/recovery and context replacement.\n",
            launcher_images_checked, launcher_pixels_checked);
     return 0;
 }

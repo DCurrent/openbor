@@ -768,7 +768,6 @@ int video_set_mode(s_videomodes mode)
         gpu_log("ERROR: Android video mode requires valid RGB32 dimensions and a supported GPU output filter.");
         return 0;
     }
-    gpu_set_native_required(1);
     video_transition = 1;
     current = SDL_GL_GetCurrentContext();
     if(video_context || gpu_is_active())
@@ -888,6 +887,23 @@ int video_launcher_screen(s_screen *target, s_screen *source, int x, int y)
 {
     if(!video_launcher_current(target) || !gpu_draw_screen(target, source, x, y, NULL))
         return video_launcher_reject("image composition");
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Resize original title assets through the shared native material. Failed
+ * preview draws invalidate the complete launcher frame before presentation.
+ */
+int video_launcher_preview(s_screen *target, s_screen *source,
+                            int x, int y, int width, int height)
+{
+    if(!video_launcher_current(target) ||
+       !gpu_gl_draw_screen_scaled(target, source, x, y, width, height))
+    {
+        return video_launcher_reject("preview composition");
+    }
     return 1;
 }
 

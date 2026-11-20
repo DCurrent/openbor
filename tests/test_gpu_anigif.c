@@ -1014,7 +1014,6 @@ int main(void)
         return 77;
     }
     assert(LoadGLFunctions());
-    gpu_set_native_required(1);
     assert(gpu_gl_init());
     gif_test_native_frames();
     gif_test_decoder_frames();

@@ -22,6 +22,7 @@
 #include "videocommon.h"
 #include "timer.h"
 #include "gpu.h"
+#include "gpu_renderer.h"
 #include "engine_profile.h"
 
 SDL_Window *window = NULL;
@@ -259,7 +260,6 @@ int video_set_mode(s_videomodes videomodes)
         video_gl_shutdown();
         return 0;
     }
-    gpu_set_native_required(1);
     savedata.usegl = 1;
     videomodes = setupPreBlitProcessing(videomodes);
 
@@ -352,7 +352,7 @@ int video_copy_screen(s_screen *src)
     }
 
     /* The existing once-per-operation diagnostic reports a rejected frame. */
-    gpu_allow_cpu_operation(src, GPU_OPERATION_PRESENT);
+    gpu_report_rejected_operation(src, GPU_OPERATION_PRESENT);
     return 0;
 }
 
@@ -384,7 +384,24 @@ int video_launcher_begin(s_screen *target)
 int video_launcher_screen(s_screen *target, s_screen *source, int x, int y)
 {
     if(gpu_draw_screen(target, source, x, y, NULL)) return 1;
-    gpu_allow_cpu_operation(target, GPU_OPERATION_SCREEN);
+    gpu_report_rejected_operation(target, GPU_OPERATION_SCREEN);
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Resize the decoded title directly into its launcher rectangle. The source
+ * stays in its original format and no CPU thumbnail is allocated or written.
+ */
+int video_launcher_preview(s_screen *target, s_screen *source,
+                            int x, int y, int width, int height)
+{
+    if(gpu_gl_draw_screen_scaled(target, source, x, y, width, height))
+    {
+        return 1;
+    }
+    gpu_report_rejected_operation(target, GPU_OPERATION_SCREEN);
     return 0;
 }
 
@@ -397,7 +414,7 @@ int video_launcher_box(s_screen *target, int x, int y, int width, int height,
                        unsigned color)
 {
     if(gpu_draw_box(target, x, y, width, height, color, NULL)) return 1;
-    gpu_allow_cpu_operation(target, GPU_OPERATION_BOX);
+    gpu_report_rejected_operation(target, GPU_OPERATION_BOX);
     return 0;
 }
 

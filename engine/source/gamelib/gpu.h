@@ -62,19 +62,18 @@ enum
 
 /*
  * Rendering dispatch is independent of the window system. Draw/clear/copy
- * callbacks return zero only before modifying their target. RGB32 callers
- * selected for native rendering log and stop after failure; they never retry
- * through the CPU rasterizer. Desktop and Android use this policy; indexed
- * asset operations and independent reference tests retain explicit CPU access.
- * Explicit non-nearest image filters require GPU drawing in every configuration;
- * unsupported filtered draws log and stop before any CPU approximation.
+ * callbacks return zero only before modifying their target. Scene drawing,
+ * clearing and copying require RGB32 destinations and have no CPU renderer.
+ * Callers log and stop after failure. Indexed source-asset maintenance and
+ * explicit image access retain CPU data without providing scene rasterization.
+ * Every image filter requires GPU drawing; rejected draws never substitute a
+ * different sampler.
  * Successful native writes leave GPU storage authoritative until a CPU reader
  * requests synchronization; presenting or sampling that texture needs no copy.
  *
  * The backend owns this callback table for its entire registered lifetime.
  * Shutdown synchronizes surviving screens and evicts pointer-keyed resources.
- * Unregistering does not change the selected rendering policy. Native-only
- * dispatch stays selected across failed initialization or context teardown.
+ * Failed initialization and context teardown leave scene drawing unavailable.
  */
 typedef struct gpu_backend
 {
@@ -126,9 +125,8 @@ void gpu_log(const char *format, ...);
 void gpu_register_backend(const gpu_backend *backend);
 void gpu_unregister_backend(void);
 int gpu_is_active(void);
-void gpu_set_native_required(int required);
-int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation);
-int gpu_allow_cpu_image_operation(const s_screen *screen, gpu_operation operation,
+void gpu_report_rejected_operation(const s_screen *screen, gpu_operation operation);
+void gpu_report_rejected_image_operation(const s_screen *screen, gpu_operation operation,
                                   const s_drawmethod *method);
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method);
 int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method);

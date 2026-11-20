@@ -411,6 +411,7 @@ static void android_launcher(void)
     assert(vscreen && preview);
     memset(vscreen->data, 0, sizeof(pixels));
     palette = (unsigned *)preview->palette;
+    memset(palette, 0, PAL_BYTES);
     palette[0] = 0x005ea137u;
     palette[1] = 0x00c19473u;
     memcpy(preview->data, indexes, sizeof(indexes));
@@ -419,16 +420,28 @@ static void android_launcher(void)
     for(index = 0; index < 16 * 12; ++index) pixels[index] = 0x00351763u;
     printText(1, 1, 0x0091df37u, 0, 0, "%s", "AZ");
     android_reference_text(pixels, 1, 1, "AZ");
-    launcher_frame_ready &= video_launcher_screen(vscreen, preview, 4, 5);
-    for(index = 0; index < 8; ++index)
-        pixels[(5 + index / 4) * 16 + 4 + index % 4] = palette[index & 1];
+    {
+        gpu_renderer_stats transfers = *gpu_gl_get_stats();
+        int x, y;
+        launcher_frame_ready &= video_launcher_preview(vscreen, preview, -1, 5, 11, 5);
+        assert(gpu_gl_get_stats()->uploads == transfers.uploads + 1 +
+               gpu_gl_get_stats()->palette_uploads - transfers.palette_uploads);
+        assert(gpu_gl_get_stats()->readbacks == transfers.readbacks);
+        transfers = *gpu_gl_get_stats();
+        launcher_frame_ready &= video_launcher_preview(vscreen, preview, -1, 5, 11, 5);
+        assert(gpu_gl_get_stats()->uploads == transfers.uploads);
+        assert(gpu_gl_get_stats()->readbacks == transfers.readbacks);
+        for(y = 5; y < 10; ++y)
+            for(x = 0; x < 10; ++x)
+                pixels[y * 16 + x] = palette[indexes[((y - 5) * 2 / 5) * 4 + (x + 1) * 4 / 11]];
+    }
     freescreen(&preview);
     assert(launcher_frame_ready);
     before = presents;
     blit_video_menu(vscreen);
     assert(!launcher_redraw && presents == before + 1);
     android_expected_scene(pixels, 16, 12, 0, 0, 0, expected);
-    android_compare(presented, expected, ANDROID_PIXELS, 0, "launcher ordering and opaque index zero");
+    android_compare(presented, expected, ANDROID_PIXELS, 0, "launcher scaled preview, clipping and opaque index zero");
     for(index = 0; index < 16 * 12; ++index) assert(((unsigned *)vscreen->data)[index] == 0);
 
     /* Formatting can fail before the native call; the real menu gate must
@@ -443,6 +456,9 @@ static void android_launcher(void)
     assert(launcher_redraw && presents == before + 1);
     assert(video_launcher_begin(vscreen));
     assert(!video_launcher_screen(vscreen, NULL, 0, 0));
+    assert(!video_copy_screen(vscreen) && presents == before + 1);
+    assert(video_launcher_begin(vscreen));
+    assert(!video_launcher_preview(vscreen, NULL, 0, 0, 160, 120));
     assert(!video_copy_screen(vscreen) && presents == before + 1);
     freescreen(&vscreen);
 }
@@ -544,7 +560,6 @@ static void android_lifecycle(s_screen *screen, unsigned *pixels)
     android_event(SDL_APP_WILLENTERBACKGROUND, 0);
     assert(gpu_gl_get_stats()->readbacks == reads + 1);
     assert(!gpu_draw_box(screen, 0, 0, 1, 1, 0, &plainmethod));
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_BOX));
     assert(!video_copy_screen(screen));
     android_compare((unsigned *)screen->data, pixels, 16 * 12, 0, "background preservation");
     android_replace_context();
@@ -627,7 +642,6 @@ static void android_failures(s_screen *screen)
     {
         assert(!video_copy_screen(screen));
         assert(!gpu_draw_box(screen, 0, 0, 1, 1, 0, &plainmethod));
-        assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_BOX));
     }
     assert(compiles == shader_compilations && creates == context_creations);
     assert(logs == diagnostic_count && swaps == presents);
@@ -637,7 +651,7 @@ static void android_failures(s_screen *screen)
     assert(!video_set_mode(android_mode()));
     creates = context_creations;
     for(retry = 0; retry < 8; ++retry) assert(!video_copy_screen(screen));
-    assert(creates == context_creations && !gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
+    assert(creates == context_creations);
     reject_context = 0;
     assert(video_set_mode(android_mode()));
 }

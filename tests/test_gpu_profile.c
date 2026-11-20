@@ -231,7 +231,6 @@ static void test_native_profile_row_effects(void)
     assert(report->counts[EP_COUNT_PLANE_MAP_UPLOAD_BYTES] == 2 * 12 * 4 * sizeof(float));
     assert(report->counts[EP_COUNT_PLANE_ROWS_PREPARED] == 24);
     assert(report->counts[EP_COUNT_READBACKS] == 0);
-    assert(report->counts[EP_COUNT_SOFTWARE_DRAWS] == 0);
     assert(gpu_gl_get_stats()->water_draws == 1);
     assert(gpu_gl_get_stats()->plane_draws == 5);
     assert(gpu_gl_get_stats()->plane_map_builds == 2);

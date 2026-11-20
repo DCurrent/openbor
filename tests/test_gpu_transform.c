@@ -17,6 +17,7 @@
 #include <string.h>
 #include "gpu_shader.h"
 #include "gpu_transform.h"
+#include "gpu_material_reference.h"
 
 extern unsigned blend_screen(unsigned source, unsigned destination);
 extern unsigned blend_multiply(unsigned source, unsigned destination);
@@ -367,7 +368,7 @@ static void test_blends(void)
             for(destination = 0; destination < 256; ++destination)
             {
                 unsigned expected = legacy[mode - 1](source, destination);
-                assert(gpu_shader_blend_reference(mode, source, destination) == expected);
+                assert(reference_blend_byte(mode, source, destination) == expected);
                 assert(shader_float_blend(mode, source, destination) == expected);
             }
         }
@@ -385,7 +386,7 @@ static void test_blends(void)
                 unsigned expected = (source*opacity + destination*(255-opacity)) >> 8;
                 unsigned sampled = (unsigned)floorf(((float)source*opacity
                                    + (float)destination*(255-opacity))/256.0f);
-                assert(gpu_shader_channel_reference(source, destination, opacity) == expected);
+                assert(reference_channel_byte(source, destination, opacity) == expected);
                 assert(sampled == expected);
             }
         }

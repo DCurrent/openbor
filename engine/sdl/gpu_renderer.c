@@ -3227,6 +3227,123 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y,
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Resize an opaque source into exact pixel bounds with one native quad.
+ * Top-left sampling retains the preview's established phase, using the true
+ * ratio instead of accumulating a truncated CPU fixed-point increment. Clip
+ * in wide coordinates before resource access; source coordinates retain the
+ * original unclipped origin. Ordinary materials preserve palettes and safely
+ * snapshot self-draws without requiring optional affine shader support.
+ * Preview sampling stabilizes large-image interpolation within a bounded
+ * adjacent-texel tolerance and clamps source edges to preserve opaque coverage.
+ */
+static int gpu_gl_draw_screen_scaled_body(s_screen *dest, s_screen *src,
+                                           int x, int y, int width, int height)
+{
+    gpu_image *target, *source;
+    s_drawmethod method = plainmethod;
+    int64_t left, top, right, bottom;
+    double step_x, step_y;
+    float source_left, source_top, source_right, source_bottom;
+    const double pixel_center = 0.5;
+    ep_scope geometry_scope;
+    int geometry_ready;
+
+    native_failure = EP_FALLBACK_OTHER;
+    if(!gpu_is_active())
+    {
+        native_failure = EP_FALLBACK_NO_BACKEND;
+        goto failed;
+    }
+    if(!dest || !src || dest->pixelformat != PIXEL_32)
+    {
+        native_failure = dest && src ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER;
+        goto failed;
+    }
+    if(src->pixelformat != PIXEL_x8 && src->pixelformat != PIXEL_32)
+    {
+        native_failure = EP_FALLBACK_SOURCE_FORMAT;
+        goto failed;
+    }
+    if(dest->width <= 0 || dest->height <= 0 || src->width <= 0 || src->height <= 0 ||
+       dest->width > maximum_texture_size || dest->height > maximum_texture_size ||
+       src->width > maximum_texture_size || src->height > maximum_texture_size)
+    {
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
+        goto failed;
+    }
+    if(width <= 0 || height <= 0)
+    {
+        return 1;
+    }
+
+    left = x > 0 ? x : 0;
+    top = y > 0 ? y : 0;
+    right = (int64_t)x + width;
+    bottom = (int64_t)y + height;
+    if(right > dest->width) right = dest->width;
+    if(bottom > dest->height) bottom = dest->height;
+    if(right <= left || bottom <= top)
+    {
+        return 1;
+    }
+
+    step_x = (double)src->width / width;
+    step_y = (double)src->height / height;
+    source_left = (float)(((double)(left - x) - pixel_center) * step_x);
+    source_top = (float)(((double)(top - y) - pixel_center) * step_y);
+    source_right = (float)(((double)(right - x) - pixel_center) * step_x);
+    source_bottom = (float)(((double)(bottom - y) - pixel_center) * step_y);
+    quad_count = 0;
+    geometry_scope = engine_profile_span_begin();
+    {
+        gpu_vertex vertices[] =
+        {
+            {(float)left, (float)top, source_left, source_top},
+            {(float)right, (float)top, source_right, source_top},
+            {(float)right, (float)bottom, source_right, source_bottom},
+            {(float)left, (float)bottom, source_left, source_bottom}
+        };
+        geometry_ready = gpu_collect_quad(vertices, GPU_SAMPLE_PREVIEW, NULL);
+    }
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    if(!geometry_ready)
+    {
+        goto failed;
+    }
+
+    target = gpu_screen_image(dest, 1);
+    source = gpu_screen_image(src, 1);
+    if(!target || !source)
+    {
+        goto failed;
+    }
+    method.alpha = 0;
+    method.resample = DC_RESAMPLE_NEAREST;
+    if(gpu_render_quads(target, source, NULL, src->palette, &method, 0, 0, 0,
+                         NULL, NULL, NULL, NULL, 0))
+    {
+        return 1;
+    }
+failed:
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+int gpu_gl_draw_screen_scaled(s_screen *target, s_screen *source,
+                              int x, int y, int width, int height)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gl_draw_screen_scaled_body(target, source, x, y, width, height);
+    --context_guard_busy;
+    return result;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Draw a cached indexed sprite with its current palette, pivot and optional
  * independent opacity mask. Cached uploads are reused across frames.
@@ -5078,9 +5195,6 @@ int gpu_gl_init(void)
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
     const char *vendor, *device, *version, *shader_version;
-    /* Selecting this backend commits RGB32 dispatch to native drawing even
-     * if configuration or capability checks reject initialization. */
-    gpu_set_native_required(1);
     if(initialized)
     {
         return gpu_context_ready();

@@ -100,7 +100,7 @@ static const char *const span_names[EP_SPAN_COUNT] =
 {
     "main_sort_ms", "main_playback_ms", "capture_sort_ms", "capture_playback_ms",
     "gpu_geometry_ms", "gpu_state_ms", "gpu_submit_ms", "palette_lookup_ms", "upload_ms",
-    "readback_ms", "dest_copy_ms", "software_ms", "present_setup_ms",
+    "readback_ms", "dest_copy_ms", "present_setup_ms",
     "swap_ms", "limiter_ms"
 };
 
@@ -113,7 +113,7 @@ static const char *const counter_names[EP_COUNT_COUNT] =
     "palette_uploads", "palette_upload_bytes", "palette_cache_hits",
     "palette_cache_misses", "palette_cache_evictions", "table_uploads", "table_upload_bytes",
     "readbacks", "readback_bytes", "dest_copies", "dest_copy_bytes", "self_copies",
-    "software_draws", "software_clears", "software_copies", "gpu_query_pairs",
+    "gpu_query_pairs",
     "gpu_query_dropped", "gpu_query_skipped", "native_chroma_draws",
     "native_substitute_draws", "native_water_draws", "native_plane_draws",
     "plane_map_builds", "plane_map_reuses", "plane_map_uploads",

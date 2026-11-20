@@ -141,7 +141,6 @@ static void test_native_output_filters(s_screen *source)
         before = *gpu_gl_get_stats();
         assert(video_copy_screen(source));
         assert(gpu_is_active());
-        assert(!gpu_allow_cpu_operation(source, GPU_OPERATION_SCREEN));
         assert(gpu_gl_get_stats()->readbacks == before.readbacks);
         assert(gpu_gl_get_stats()->uploads == before.uploads);
         assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws + 1);
@@ -218,7 +217,6 @@ static void test_scene_format_rejection(s_videomodes valid_mode, s_screen *scree
         assert(gpu_gl_get_stats()->uploads == uploads);
         assert(gpu_gl_get_stats()->readbacks == readbacks);
     }
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(video_copy_screen(screen));
 }
 
@@ -266,7 +264,6 @@ static void test_native_movie_presentation(s_screen *screen)
     before = *gpu_gl_get_stats();
     assert(video_setup_yuv_overlay(&mode));
     assert(gpu_is_active());
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(SDL_GL_GetCurrentContext() == context);
     assert(gpu_gl_get_stats()->readbacks == before.readbacks);
     assert(test_pixel(screen, 2, 2) == stale_pixel);
@@ -377,7 +374,6 @@ int main(void)
     savedata.hwscale = 2.0f;
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
     test_native_output_filters(screen);
 

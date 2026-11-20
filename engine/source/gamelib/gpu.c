@@ -13,7 +13,6 @@
 #endif
 
 static const gpu_backend *active_backend;
-static int native_required;
 static unsigned declined_operation_warnings;
 static unsigned declined_resample_warnings;
 static int declined_movie_warning;
@@ -54,7 +53,7 @@ void gpu_log(const char *format, ...)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * 2026-11-15 - Select native-only RGB32 dispatch with the registered renderer.
+ * 2026-11-20 - Reset bounded failure diagnostics for each registered backend.
  * Install a fully initialized renderer. The backend owns its callback table
  * and must preserve it until it has drained and unregistered its resources.
  */
@@ -66,64 +65,36 @@ void gpu_register_backend(const gpu_backend *backend)
     declined_gif_frame_warning = declined_gif_merge_warning = 0;
     if(backend)
     {
-        gpu_set_native_required(1);
+        declined_operation_warnings = 0;
+        declined_resample_warnings = 0;
     }
 }
 
 /*
  * Damon V. Caskey
  * 2026-11-12
- * 2026-11-15 - Retain native-only policy across context loss and teardown.
- * Retire callbacks after the backend has synchronized live screens. Losing
- * their context must not silently enable CPU rasterization for RGB32 draws.
+ * 2026-11-20 - Scene rendering has no software implementation to enable.
+ * Retire callbacks after the backend has synchronized live screens. Preserve
+ * failure diagnostics across context loss until a new backend is registered.
  */
 void gpu_unregister_backend(void)
 {
-    /* Mode selection, rather than backend lifetime, controls CPU eligibility. */
     active_backend = NULL;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Select the scene-rendering policy before attempting native initialization.
- * Supported desktop and Android modes select native-only scene dispatch.
- * Reference fixtures can explicitly select CPU dispatch; failed initialization
- * and unregistering a backend never clear the production requirement.
- * Keep ordinary and explicit-resampling warnings bounded for that selection.
+ * 2026-11-20
+ * Report a rejected scene operation without changing image ownership or data.
+ * Rendering is GPU-only from process startup through context teardown.
  */
-void gpu_set_native_required(int required)
-{
-    /* Preserve one warning per operation throughout an unchanged selection. */
-    if(native_required != (required != 0))
-    {
-        declined_operation_warnings = 0;
-        declined_resample_warnings = 0;
-    }
-    native_required = required != 0;
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-15
- * 2026-11-16 - Keep GPU output-filter selection independent of CPU eligibility.
- * Decide whether a declined native root operation still requires CPU work.
- * Migrated RGB32 scene targets log once per operation and remain unchanged;
- * indexed asset work and independent CPU reference fixtures retain theirs.
- */
-int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
+void gpu_report_rejected_operation(const s_screen *screen, gpu_operation operation)
 {
     unsigned warning;
 
-    /* Invalid destinations cannot be rasterized by either implementation. */
-    if(!screen || !pixel_format_supported(screen->pixelformat) ||
-       (operation == GPU_OPERATION_PRESENT && screen->pixelformat != PIXEL_32))
+    if(!screen || !pixel_format_supported(screen->pixelformat))
     {
-        return 0;
-    }
-    if(!native_required || screen->pixelformat != PIXEL_32)
-    {
-        return 1;
+        return;
     }
 
     /* A fixed bit check is the only repeated failure-path work. Keep the
@@ -134,35 +105,30 @@ int gpu_allow_cpu_operation(const s_screen *screen, gpu_operation operation)
         if(!(declined_operation_warnings & warning))
         {
             declined_operation_warnings |= warning;
-            gpu_log("WARNING: Native %s unavailable or rejected; RGB32 operation skipped. CPU rendering retry is disabled.",
-                    operation_names[operation]);
+            gpu_log("WARNING: Native %s unavailable or rejected (target=%u); operation skipped. CPU scene rendering is unavailable.",
+                    operation_names[operation], (unsigned)screen->pixelformat);
         }
     }
-    return 0;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * 2026-11-16 - Output filters no longer select a CPU scene-rendering path.
- * Explicit non-nearest image sampling is GPU-only, including indexed
- * destinations. Declined native draws must
- * stop before synchronization, CPU globals or writes can approximate the request
- * with nearest sampling. Disabled methods retain the ordinary default policy.
+ * 2026-11-20
+ * Include the selected filter in bounded image-draw failure diagnostics.
+ * Failed draws do not synchronize, alter pixels or substitute another sampler.
  */
-int gpu_allow_cpu_image_operation(const s_screen *screen, gpu_operation operation,
-                                  const s_drawmethod *method)
+void gpu_report_rejected_image_operation(const s_screen *screen, gpu_operation operation,
+                                         const s_drawmethod *method)
 {
     unsigned warning;
     if(!screen || !pixel_format_supported(screen->pixelformat))
     {
-        return 0;
+        return;
     }
     if(method && (method->config & DRAWMETHOD_CONFIG_ENABLED) &&
        method->resample != DC_RESAMPLE_NEAREST)
     {
-        /* One record per operation survives missing callbacks and backend loss.
-         * This is independent of the RGB32-only native rendering requirement. */
+        /* One record per operation survives missing callbacks and backend loss. */
         if(operation >= 0 && operation < GPU_OPERATION_COUNT)
         {
             warning = 1u << operation;
@@ -175,9 +141,9 @@ int gpu_allow_cpu_image_operation(const s_screen *screen, gpu_operation operatio
                         (unsigned)screen->pixelformat);
             }
         }
-        return 0;
+        return;
     }
-    return gpu_allow_cpu_operation(screen, operation);
+    gpu_report_rejected_operation(screen, operation);
 }
 
 /*
@@ -209,14 +175,30 @@ static int gpu_screen_format_valid(const s_screen *screen, ep_fallback reason)
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Indexed images are source assets only. Reject other destinations before a
+ * backend callback can claim ownership or modify a scene target.
+ */
+static int gpu_scene_target_valid(const s_screen *screen)
+{
+    if(!screen || screen->pixelformat != PIXEL_32)
+    {
+        engine_profile_fallback(EP_FALLBACK_TARGET_FORMAT);
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * 2026-11-15 - Validate both image formats before backend dispatch.
  * Try a screen draw without synchronizing CPU pixels. Unsupported draws
- * return zero; root dispatch applies the selected no-retry rendering policy.
+ * return zero; root dispatch logs the failure without changing CPU pixels.
  */
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method)
 {
-    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT) ||
+    if(!gpu_scene_target_valid(dest) ||
        !gpu_screen_format_valid(src, EP_FALLBACK_SOURCE_FORMAT))
     {
         return 0;
@@ -244,7 +226,7 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
  */
 int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
 {
-    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    if(!gpu_scene_target_valid(dest))
     {
         return 0;
     }
@@ -276,7 +258,7 @@ int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_draw
  */
 int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned color, const s_drawmethod *method)
 {
-    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    if(!gpu_scene_target_valid(dest))
     {
         return 0;
     }
@@ -298,7 +280,7 @@ int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned c
  */
 int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color, const s_drawmethod *method)
 {
-    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT))
+    if(!gpu_scene_target_valid(dest))
     {
         return 0;
     }
@@ -320,7 +302,7 @@ int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color
  */
 int gpu_clear_screen(s_screen *screen)
 {
-    if(!gpu_screen_format_valid(screen, EP_FALLBACK_TARGET_FORMAT))
+    if(!gpu_scene_target_valid(screen))
     {
         return 0;
     }
@@ -342,7 +324,7 @@ int gpu_clear_screen(s_screen *screen)
  */
 int gpu_copy_screen(s_screen *dest, s_screen *src)
 {
-    if(!gpu_screen_format_valid(dest, EP_FALLBACK_TARGET_FORMAT) ||
+    if(!gpu_scene_target_valid(dest) ||
        !gpu_screen_format_valid(src, EP_FALLBACK_SOURCE_FORMAT))
     {
         return 0;
@@ -460,7 +442,7 @@ int gpu_merge_channels(s_screen *dest, s_screen *red, s_screen *green, s_screen 
  */
 void gpu_sync_cpu(s_screen *screen)
 {
-    /* Software-only screens already expose the authoritative image to CPU readers. */
+    /* CPU-owned images already expose their authoritative pixels to readers. */
     if(!screen || !pixel_format_supported(screen->pixelformat) ||
        !active_backend || !active_backend->sync_cpu)
     {
@@ -502,7 +484,7 @@ void gpu_mark_cpu_dirty(s_screen *screen)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Preserve GPU-produced contents before a partial software write, then
+ * Preserve GPU-produced contents before an explicit partial image edit, then
  * transfer ownership of the new image version to its CPU shadow.
  */
 void gpu_prepare_cpu_write(s_screen *screen)

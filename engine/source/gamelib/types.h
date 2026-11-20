@@ -220,30 +220,10 @@ typedef struct
     int  centery;
 } s_sprite_map;
 
-void set_blendtables(unsigned char *tables[]); // set global blend tables for 8bit mode
-
-typedef unsigned char (*transpixelfunc)(unsigned char *table, unsigned char src, unsigned char dest);
-typedef unsigned (*blend32fp)(unsigned, unsigned);
-
-blend32fp getblendfunction32(int alpha);
-
-extern blend32fp blendfunctions32[MAX_BLENDINGS];
+/* Channel lookup tables are GPU material sources, not scene pixel writers. */
+void set_blendtables(unsigned char *tables[]);
 extern unsigned char *blendtables[MAX_BLENDINGS];
-extern unsigned channelr, channelg, channelb, tintmode, tintcolor;
-extern int usechannel;
-extern int useclip, clipx1, clipx2, clipy1, clipy2;
-extern blend32fp tint32fp1, tint32fp2;
-
 unsigned colour32(unsigned char r, unsigned char g, unsigned char b);
-
-#if 0
-void u8revcpy(unsigned char *pa, const unsigned char *pb, unsigned len);
-void u8revpcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
-void u8pcpy(unsigned char *pa, const unsigned char *pb, unsigned char *pp, unsigned len);
-
-void u32revpcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
-void u32pcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
-#endif
 
 typedef enum
 {
@@ -401,15 +381,6 @@ typedef struct
     e_object_type object_type;
 } s_drawmethod;
 extern const s_drawmethod plainmethod;
-void drawmethod_global_init(s_drawmethod *drawmethod);
-
-typedef enum
-{
-    gfx_screen,
-    gfx_bitmap,
-    gfx_sprite
-} gfx_type;
-
 
 typedef struct
 {

@@ -24,7 +24,8 @@
  *                                      2=8.8 fixed-point floor+clip,
  *                                      3=continuous boundary-stable floor+clip,
  *                                      4=affine, 5=legacy shear,
- *                                      6=water displacement, 7=prepared plane
+ *                                      6=water displacement, 7=prepared plane,
+ *                                      8=opaque preview resize with edge clamp
  *   int blendTableMask                 bit (mode-1) selects an uploaded LUT
  *   vec3 fillColor, tintColor, channelOpacity  normalized RGB components
  *   GPU_COLOR_RULES optional variant:
@@ -52,6 +53,10 @@
  * Plane/rotation sampling snaps values within 0.0001 texel of an integer
  * boundary to that integer. This stabilizes texel selection and wrapping
  * after GPU interpolation while keeping pixel work inside the shader.
+ * Damon V. Caskey - 2026-11-20: preview resizing instead uses a per-axis
+ * rounding band of min(0.25, max(0.0001, source dimension / 2097152)) texels.
+ * Its correction is bounded to an adjacent source texel at extreme ratios;
+ * source-edge clamping preserves every covered pixel of the opaque rectangle.
  * Water retains quantized phase and integer displacement; the renderer only
  * selects direct phase evaluation within its documented approximation bound.
  * Prepared plane records contain reciprocal horizontal scale and an exact
@@ -79,9 +84,5 @@ extern const char *gpu_gif_fragment_shader_source;
  * sourceTexture, sourceSize and filterMode (1..6). sourcePosition carries
  * original source pixel edges; source and output row zero both use v=0. */
 extern const char *gpu_output_filter_fragment_shader_source;
-
-/* Standalone reference helpers used by regression tests and shader diagnostics. */
-unsigned gpu_shader_blend_reference(int mode, unsigned source, unsigned destination);
-unsigned gpu_shader_channel_reference(unsigned source, unsigned destination, unsigned opacity);
 
 #endif

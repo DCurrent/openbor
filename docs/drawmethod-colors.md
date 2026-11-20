@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-15
+Date: 2026-11-20
 
 ## Scope
 
@@ -18,10 +18,11 @@ clipping, repeat order, palette lookup, and blend behavior remain in effect.
 
 The native renderer executes supported color rules in its fragment shader.
 These controls have no software implementation. If a rule cannot execute,
-the draw proceeds normally with that rule ignored. CPU reference draws and
-indexed image operations ignore both controls. Scene targets use RGB32 only;
-indexed artwork remains a supported source format. Valid settings remain
-stored in the drawmethod for later supported native draws.
+the draw proceeds normally with that rule ignored. Scene drawing uses the GPU
+and RGB32 destinations; indexed artwork remains a supported source format.
+Indexed asset copies, resets and explicit CPU image access do not apply these
+drawmethod controls. Valid settings remain stored in the drawmethod for later
+supported native draws.
 
 These are reusable drawmethod controls; public programmable materials and
 RGB24 asset loading remain separate work. Games must opt into these rules
@@ -236,23 +237,23 @@ chroma and Substitute are native, their five-slot capacities, RGB32 destination
 scope, and matching order. Read these rows alongside the general scene/affine
 result; the existing `NATIVE` result line alone does not establish native
 color-rule availability. Desktop and Android RGB32 modes require native scene
-initialization; failure does not select the software renderer. GPU output
-filters preserve native color rules. Indexed asset operations and independent
-CPU reference paths continue to ignore these shader-only controls.
+initialization; no CPU scene renderer is retained. GPU output filters preserve
+native color rules. Indexed asset operations and explicit image reads or edits
+do not emulate these shader-only controls.
 
 The renderer attempts supported combined and individual shader variants.
 If the combined program cannot initialize, it prefers retaining existing
-native affine support, then tries color-only and legacy variants as applicable.
+native affine support, then tries color-only and base shader variants as
+applicable.
 Missing native color support preserves usable native operations and ignores
 the color rules. Startup reports `UNAVAILABLE - ignored` and explains that
 these rules have no CPU implementation. The rules never force an otherwise
 supported native draw onto the CPU. No per-draw warning is emitted.
 
-Execution requires an RGB32 native destination. Indexed image operations and
-required CPU paths retain their ordinary behavior without chroma or Substitute.
-Missing optional color support alone causes no
-format error or shutdown. Rejection of the underlying native RGB32 operation,
-such as an unsupported transform, logs and skips the draw without CPU retry.
+Execution requires an RGB32 native destination. Missing optional color support
+alone causes no format error or shutdown. Rejection of the underlying native
+RGB32 operation, such as an unsupported transform, logs and skips the draw
+without CPU retry.
 
 Indexed chroma also needs a usable source palette. If an indexed fill has no
 palette, chroma is ignored for that draw while the native fill and any supported
@@ -278,7 +279,8 @@ back to disabled rules.
 ## Limits and validation
 
 Protection applies only to pixels eligible for this draw. Later draws, clears,
-CPU writes, palette changes, or output filters can produce the same color again.
+explicit image edits, palette changes, or output filters can produce the same
+color again.
 Protect each relevant writing operation when a screen must maintain a color
 constraint. Substitute may deliberately change a visually meaningful exact
 color, so choose keys and replacements for the intended artwork and blend modes.
@@ -288,14 +290,28 @@ channel. Existing mask/opacity behavior still controls partial transparency.
 Exact RGB rules provide no color range, alpha gradient, palette-index identity,
 or programmable shading language.
 
-Run `bash tests/run_gpu_tests.sh` for validation. Coverage includes complete
-native images, all five slots, palette/fill order, blend-produced matches,
-source coverage, zero opacity,
-primitive colors, repeat/affine geometry, queue copies, self-draws, and state
-reuse without unnecessary transfers. Retained CPU-mode checks verify that
-configured rules leave ordinary rendering unchanged. Capability fixtures
-exercise optional shader compilation/linking failures, reduced resource limits,
-and native draws that ignore unavailable rules without switching to software.
+Run the complete renderer suite with native coverage required:
+
+```sh
+OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_gpu_tests.sh
+```
+
+Desktop OpenGL and Android GLES3 fixtures compare complete native images with
+independent expected pixels in `tests/test_gpu_colors.c`. Coverage includes
+all five slots, palette/fill order, blend-produced matches, source coverage,
+zero opacity, primitive colors, repeat/affine geometry, queue copies,
+self-draws, and state reuse without unnecessary transfers. Expected pixels
+are calculated only in test code; there is no CPU scene-rendering mode to
+select. Capability fixtures exercise optional shader compilation/linking
+failures, reduced resource limits, and native draws that ignore unavailable
+rules while retaining supported native operations.
+
+For a focused GLES3 color/capability run:
+
+```sh
+OPENBOR_REQUIRE_GPU_TESTS=1 OPENBOR_GLES_TEST_CASES="colors capabilities" \
+    bash tests/run_gles_scene_tests.sh
+```
 
 The runner also links the production script APIs to verify constant lookup,
 common/object/legacy call forms, atomic validation, getters, reset behavior,

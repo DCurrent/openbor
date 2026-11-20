@@ -2,7 +2,7 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-16
+Date: 2026-11-20
 
 ## One filter per draw
 
@@ -162,15 +162,16 @@ screen/fullscreen contracts, capture, and platform availability.
 
 The shared desktop OpenGL and Android GLES3 scene renderer implements these
 formulas for RGB32 destinations, indexed sprites, indexed source screens and
-RGB32 source screens. GPU-produced screens are sampled directly without CPU readback.
-No new software resampler is provided.
+RGB32 source screens. GPU-produced screens are sampled directly without CPU
+readback. Reconstruction, including nearest sampling, executes on the GPU;
+production code contains no CPU scene renderer or scene resampler.
 
-Explicit filtered draws that cannot execute natively are logged and skipped.
-They do not silently become nearest or fall back to CPU pixel processing.
+Image draws that cannot execute natively are logged and skipped for every
+selector. Filtered draws do not silently become nearest or retry on the CPU.
 Startup capability logging reports native resampling availability on both
-desktop and Android. Video [output filters](gpu-output-filters.md) run on the GPU on desktop and
-Android; they operate after scene composition and do not change this per-draw
-availability or select a CPU scene renderer.
+desktop and Android. Video [output filters](gpu-output-filters.md) run on the
+GPU on desktop and Android; they operate after scene composition and do not
+change this per-draw availability or select a CPU scene renderer.
 
 These are fixed-support reconstruction filters. Strong reduction can still
 alias; footprint-aware area filtering, mipmaps and anisotropic sampling are
@@ -180,13 +181,27 @@ part of this selection.
 
 ## Verification
 
-`tests/run_gpu_resample_tests.sh` compares production native output against
-independent long-double kernels and inverse mappings. It covers every formula,
-source formats, transparency/material combinations, transform families,
-clipping, queue snapshots and GPU-resident source reuse. The full
-`tests/run_gpu_tests.sh` includes this suite alongside the exact nearest,
-capability, lifecycle, state-cache and presentation regressions. Script API
-validation is included in `tests/run_drawmethod_color_script_tests.sh`.
+The desktop OpenGL suite compares production native output against independent
+long-double kernels and inverse mappings in `tests/test_gpu_resample.c`:
+
+```sh
+OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_gpu_resample_tests.sh
+```
+
+The same expected pixels are checked against the Android GLES3 implementation:
+
+```sh
+OPENBOR_REQUIRE_GPU_TESTS=1 OPENBOR_GLES_TEST_CASES=resample \
+    bash tests/run_gles_scene_tests.sh
+```
+
+These fixtures cover every formula, source formats, transparency/material
+combinations, transform families, clipping, queue snapshots and GPU-resident
+source reuse. Scalar expectations remain in test code and do not provide an
+engine rendering path. The full `tests/run_gpu_tests.sh` includes the OpenGL
+and GLES3 suites alongside exact-nearest, capability, lifecycle, state-cache
+and presentation regressions. Script API validation is included in
+`tests/run_drawmethod_color_script_tests.sh`.
 
 Formula references: [PBRT image reconstruction](https://pbr-book.org/4ed/Sampling_and_Reconstruction/Image_Reconstruction)
 and [GPU Gems 2, high-quality filtering](https://developer.nvidia.com/gpugems/gpugems2/part-iii-high-quality-rendering/chapter-27-advanced-high-quality-filtering).

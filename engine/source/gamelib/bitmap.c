@@ -78,7 +78,12 @@ void freebitmap(s_bitmap *bitmap)
     }
 }
 
-// Sluggish getbitmap function. Should be redone in ASM.
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Extract indexed source artwork into a CPU bitmap for font asset encoding.
+ * This explicit image read does not draw or composite a scene.
+ */
 void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *screen)
 {
 
@@ -134,65 +139,6 @@ void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *
         */
     }
 }
-
-
-
-// Clipped putbitmap. Slow.
-void putbitmap(int x, int y, s_bitmap *bitmap, s_screen *screen)
-{
-    int skipleft = 0;
-    int skiptop = 0;
-    int width = bitmap->width;
-    int height = bitmap->height;
-    int d;
-    int i;
-
-    // Clip width and height
-    if(x < 0)
-    {
-        skipleft = -x;
-        width -= skipleft;
-        x = 0;
-    }
-    if(y < 0)
-    {
-        skiptop = -y;
-        height -= skiptop;
-        y = 0;
-    }
-    if(x + width > screen->width)
-    {
-        width = screen->width - x;
-    }
-    if(y + height > screen->height)
-    {
-        height = screen->height - y;
-    }
-    if(width <= 0 || height <= 0)
-    {
-        return;
-    }
-
-    /* Preserve target pixels outside the bitmap while switching to CPU. */
-    gpu_prepare_cpu_write(screen);
-    d = (y * screen->width) + x;
-
-    do
-    {
-        int s = skiptop * bitmap->width + skipleft;
-        ++skiptop;
-        for(i = 0; i < width; i++)
-        {
-            screen->data[d] = bitmap->data[s];
-            ++d;
-            ++s;
-        }
-        d += screen->width;
-        d -= width;
-    }
-    while(--height);
-}
-
 
 
 

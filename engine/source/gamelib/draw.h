@@ -9,37 +9,13 @@
 #ifndef DRAW_H
 #define DRAW_H
 
-// Primitive drawing functions. Support clipping.
-
-
-// Line function, not particularly fast
-void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alpha);
-
-void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, int alpha);
-//void drawbox_trans(int x, int y, int width, int height, char colour, s_screen *screen, char *lut);
-
-// Pretty slow circle function
-void circle(int x, int y, int radius, int colour, s_screen *screen, int alpha);
-
-// Always handy
-void _putpixel(int x, int y, int colour, s_screen *screen, int alpha);
-
-
-///////////////////////////////////////
-///////   RGB32 primitives ...........
-///////////////////////////////////////////
-void line32(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, int alpha);
-void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *screen, int alpha);
-void _putpixel32(int x, int y, unsigned colour, s_screen *screen, int alpha);
-
-
-//======================== root methods ==================================
-
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * RGB32 scene primitives share the GPU drawmethod and clipping contract.
+ */
 void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod);
 void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod);
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod);
 
-
 #endif
-
-

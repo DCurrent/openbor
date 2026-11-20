@@ -41,6 +41,12 @@ static int launcher_redraw;
 /* Formatting can fail before reaching the renderer; present only full frames. */
 static int launcher_frame_ready;
 
+enum
+{
+    LAUNCHER_PREVIEW_WIDTH = 160,
+    LAUNCHER_PREVIEW_HEIGHT = 120
+};
+
 #define RGB32(R,G,B) ((R) | ((G) << 8) | ((B) << 16))
 #define RGB(R,G,B)   RGB32(R,G,B)
 
@@ -225,38 +231,22 @@ static void printText(int x, int y, int col, int backcol, int fill, const char *
 
 /*
  * Damon V. Caskey
- * 2026-11-16
- * Prepare the existing preview asset before ordered GPU composition. Indexed
- * images carry a palette; RGB32 images have no palette storage to copy.
+ * 2026-11-20
+ * Decode the original title asset for ordered GPU composition. The native
+ * preview draw resizes it directly, retaining indexed palettes or RGB32 pixels.
  */
 static s_screen *getPreview(char *filename)
 {
 	s_screen *title = NULL;
-	s_screen *scale = NULL;
 	// Grab current path and filename
 	getBasePath(packfile, filename, 1);
-	// Create & Load & Scale Image
+	// Load the original source; resizing belongs to the native preview draw.
 	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL; //Kratus (13-03-21) avoid engine "close" bug
-	if((scale = allocscreen(160, 120, title->pixelformat)) == NULL) return NULL;
-
-	if (title->pixelformat == PIXEL_32)
-	{
-		scalescreen32(scale, title);
-	}
-	else
-	{
-		scalescreen(scale, title);
-	}
-	if(scale->palette && title->palette)
-	{
-		memcpy(scale->palette, title->palette, PAL_BYTES);
-	}
 
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
 
-	freescreen(&title);
-	return scale;
+	return title;
 }
 
 static void StopBGM()
@@ -566,8 +556,9 @@ static void drawMenu()
 
 	if(Image)
 	{
-		launcher_frame_ready &= video_launcher_screen(vscreen, Image,
-		                                              isWide ? 286 : 155, isWide ? 32:21);
+		launcher_frame_ready &= video_launcher_preview(vscreen, Image,
+		                                               isWide ? 286 : 155, isWide ? 32 : 21,
+		                                               LAUNCHER_PREVIEW_WIDTH, LAUNCHER_PREVIEW_HEIGHT);
 		freescreen(&Image);
 	}
 	else

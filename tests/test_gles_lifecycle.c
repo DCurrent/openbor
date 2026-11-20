@@ -76,7 +76,6 @@ static void lifecycle_retire_suspended(s_screen *survivor)
         deleted = lifecycle_deletions;
         lifecycle_ready = 0;
         assert(!gpu_draw_box(survivor, 0, 0, 4, 4, 0, &plainmethod));
-        assert(!gpu_allow_cpu_operation(survivor, GPU_OPERATION_BOX));
         assert(gpu_gl_get_stats()->readbacks == before.readbacks);
         gpu_release_yuv(source.owner);
         release_test_screen(transient);
@@ -120,7 +119,6 @@ static void lifecycle_preserve(SDL_Window *window, SDL_GLContext *context,
     assert(gpu_gl_abandon());
     assert(lifecycle_deletions == deleted);
     assert(!gpu_is_active());
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     lifecycle_ready = 1;
     assert(gpu_gl_init());
     gpu_gl_set_context_guard(lifecycle_guard);
@@ -214,7 +212,6 @@ static void lifecycle_reject_lost(SDL_Window *window, SDL_GLContext *context,
     assert(lifecycle_deletions == deleted);
     assert(gpu_gl_get_stats()->readbacks == reads);
     assert(!gpu_is_active());
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     for(pixel = 0; pixel < 16; ++pixel)
         assert(((unsigned *)screen->data)[pixel] == 0xA14D27u);
 }

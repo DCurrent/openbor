@@ -28,13 +28,13 @@
 #include "gpu_renderer.h"
 #include "gpu_shader.h"
 #include "gpu_test_context.h"
+#include "gpu_material_reference.h"
 
 /* Exercise the production queue's filtering, offsets, locking and sort. */
 #include "../engine/source/gamelib/spriteq.c"
 
 int pixelbytes[5] = {1, 1, 0, 0, 4};
 int pixelformat = PIXEL_32;
-int useclip, clipx1, clipx2, clipy1, clipy2;
 unsigned char *blendtables[MAX_BLENDINGS];
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
@@ -473,7 +473,7 @@ static void test_reused_affine_feedback(void)
                 unsigned color = 0;
                 for(shift = 0; shift < 24; shift += 8)
                 {
-                    color |= gpu_shader_blend_reference(6, previous[y * 8 + x - repeat] >> shift,
+                    color |= reference_blend_byte(6, previous[y * 8 + x - repeat] >> shift,
                                                         previous[y * 8 + x] >> shift) << shift;
                 }
                 expected[y * 8 + x] = color;
@@ -559,7 +559,7 @@ static void test_blend_modes(void)
         gpu_sync_cpu(target);
         for(shift = 0; shift < 24; shift += 8)
         {
-            expected |= gpu_shader_blend_reference(mode, src >> shift, dst >> shift) << shift;
+            expected |= reference_blend_byte(mode, src >> shift, dst >> shift) << shift;
         }
         assert(test_pixel(target, 2, 2) == expected);
     }
@@ -630,7 +630,7 @@ static void test_sprite_mask(void)
         unsigned expected = 0;
         for(shift = 0; shift < 24; shift += 8)
         {
-            expected |= gpu_shader_channel_reference(source >> shift, destination >> shift, opacities[x]) << shift;
+            expected |= reference_channel_byte(source >> shift, destination >> shift, opacities[x]) << shift;
         }
         assert(test_pixel(target, x, 0) == expected);
     }
@@ -830,15 +830,15 @@ static void test_row_palette_materials(void)
                                 unsigned value = color >> channel;
                                 if(method.tintmode)
                                 {
-                                    value = gpu_shader_blend_reference((int)method.tintmode, method.tintcolor >> channel, value);
+                                    value = reference_blend_byte((int)method.tintmode, method.tintcolor >> channel, value);
                                 }
                                 if(policy == 3)
                                 {
-                                    value = gpu_shader_channel_reference(value, background >> channel, opacity[channel / 8]);
+                                    value = reference_channel_byte(value, background >> channel, opacity[channel / 8]);
                                 }
                                 else if(method.alpha > 0)
                                 {
-                                    value = gpu_shader_blend_reference(method.alpha, value, background >> channel);
+                                    value = reference_blend_byte(method.alpha, value, background >> channel);
                                 }
                                 expected |= (value & 255u) << channel;
                             }
@@ -951,7 +951,7 @@ static void test_row_sprite_masks(void)
                         expected = 0;
                         for(channel = 0; channel < 24; channel += 8)
                         {
-                            expected |= gpu_shader_channel_reference(remap[index] >> channel,
+                            expected |= reference_channel_byte(remap[index] >> channel,
                                 background >> channel, opacity[offset]) << channel;
                         }
                         if(!expected)
@@ -1007,8 +1007,8 @@ static void test_row_queue_capture(void)
         assert(gpu_gl_get_stats()->plane_draws == before.plane_draws + (effect >= 2 ? 2 : 0));
         for(channel = 0; channel < 24; channel += 8)
         {
-            unsigned once = gpu_shader_blend_reference(6, foreground >> channel, background >> channel);
-            twice |= gpu_shader_blend_reference(6, foreground >> channel, once) << channel;
+            unsigned once = reference_blend_byte(6, foreground >> channel, background >> channel);
+            twice |= reference_blend_byte(6, foreground >> channel, once) << channel;
         }
         gpu_sync_cpu(output);
         for(y = 0; y < output->height; ++y)
@@ -1253,13 +1253,13 @@ static void test_shear_palette_materials(void)
                             {
                                 unsigned value = color >> channel;
                                 if(method.tintmode)
-                                    value = gpu_shader_blend_reference((int)method.tintmode,
+                                    value = reference_blend_byte((int)method.tintmode,
                                             method.tintcolor >> channel, value);
                                 if(policy == 3)
-                                    value = gpu_shader_channel_reference(value, background >> channel,
+                                    value = reference_channel_byte(value, background >> channel,
                                                                         opacity[channel / 8]);
                                 else if(method.alpha > 0)
-                                    value = gpu_shader_blend_reference(method.alpha, value, background >> channel);
+                                    value = reference_blend_byte(method.alpha, value, background >> channel);
                                 expected |= (value & 255u) << channel;
                             }
                             if(policy == 2 && expected == method.colors.substitute[3].match)
@@ -1350,7 +1350,7 @@ static void test_shear_sprite_mask(void)
                             unsigned color = remap[indices[sx]];
                             expected = 0;
                             for(channel = 0; channel < 24; channel += 8)
-                                expected |= gpu_shader_channel_reference(color >> channel, background >> channel,
+                                expected |= reference_channel_byte(color >> channel, background >> channel,
                                                                          opacities[sx]) << channel;
                         }
                     }
@@ -1454,17 +1454,17 @@ static void test_affine_palette_materials(void)
                         unsigned channel = color >> shift;
                         if(method.tintmode)
                         {
-                            channel = gpu_shader_blend_reference((int)method.tintmode,
+                            channel = reference_blend_byte((int)method.tintmode,
                                       method.tintcolor >> shift, channel);
                         }
                         if(material == 4)
                         {
-                            channel = gpu_shader_channel_reference(channel, background >> shift,
+                            channel = reference_channel_byte(channel, background >> shift,
                                                                    opacity[shift / 8]);
                         }
                         else if(method.alpha > 0)
                         {
-                            channel = gpu_shader_blend_reference(method.alpha, channel, background >> shift);
+                            channel = reference_blend_byte(method.alpha, channel, background >> shift);
                         }
                         expected |= (channel & 255u) << shift;
                     }
@@ -1526,7 +1526,7 @@ static void test_affine_sprite_mask(void)
                 expected = 0;
                 for(shift = 0; shift < 24; shift += 8)
                 {
-                    expected |= gpu_shader_channel_reference(color >> shift, background >> shift,
+                    expected |= reference_channel_byte(color >> shift, background >> shift,
                                                              opacities[y / 2]) << shift;
                 }
             }
@@ -1576,9 +1576,9 @@ static void test_affine_queue_replay(void)
         for(pixel = 0; pixel < 4; ++pixel) ((unsigned *)source->data)[pixel] = colors[replay];
         for(shift = 0; shift < 24; shift += 8)
         {
-            unsigned first = gpu_shader_blend_reference(6, colors[replay] >> shift, background >> shift);
+            unsigned first = reference_blend_byte(6, colors[replay] >> shift, background >> shift);
             once |= first << shift;
-            twice |= gpu_shader_blend_reference(6, colors[replay] >> shift, first) << shift;
+            twice |= reference_blend_byte(6, colors[replay] >> shift, first) << shift;
         }
         readbacks = gpu_gl_get_stats()->readbacks;
         assert(gpu_draw_box(capture, 0, 0, 10, 5, background, &plainmethod));

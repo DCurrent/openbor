@@ -25,7 +25,6 @@
 #include	"video.h"
 #include	"vga.h"
 #include	"screen.h"
-#include	"transform.h"
 #include	"loadimg.h"
 #include	"bitmap.h"
 #include	"sprite.h"

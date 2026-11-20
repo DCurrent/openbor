@@ -26,7 +26,6 @@
 
 int pixelbytes[5] = {1, 1, 0, 0, 4};
 int pixelformat = PIXEL_32;
-int useclip, clipx1, clipx2, clipy1, clipy2;
 unsigned char *blendtables[MAX_BLENDINGS];
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
@@ -1140,7 +1139,6 @@ int main(void)
     }
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
-    gpu_set_native_required(1);
     resample_test_kernels();
     resample_test_rows();
     resample_test_plane_scroll();

@@ -6,759 +6,81 @@
  * Copyright (c)  OpenBOR Team
  */
 
-/////////////////////////////////////////////////////////////////////////////
-/*#include <stdio.h>
-#include <string.h>*/
-#include <limits.h>
 #include "globals.h"
 #include "types.h"
 #include "sprite.h"
-#include "transform.h"
 #include "gpu.h"
-#include "engine_profile.h"
-/////////////////////////////////////////////////////////////////////////////
 
-
-static void putsprite_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth
-)
+enum
 {
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx < xmax)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx += count;
-            if(lx >= xmax)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx + count) <= xmin)
-            {
-                lx += count;
-                data += count;
-                continue;
-            }
-            if(lx < xmin)
-            {
-                int diff = lx - xmin;
-                count += diff;
-                data -= diff;
-                lx = xmin;
-            }
-            if((lx + count) > xmax)
-            {
-                count = xmax - lx;
-            }
-            memcpy(dest + lx, data, count);
-            data += count;
-            lx += count;
-        }
-    }
-}
-
-static void putsprite_flip_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx > xmin)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx -= count;
-            if(lx <= xmin)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx - count) >= xmax)
-            {
-                lx -= count;
-                data += count;
-                continue;
-            }
-            if(lx > xmax)
-            {
-                int diff = (lx - xmax);
-                count -= diff;
-                data += diff;
-                lx = xmax;
-            }
-            if((lx - count) < xmin)
-            {
-                count = lx - xmin;
-            }
-            for(; count > 0; count--)
-            {
-                dest[--lx] = *data++;
-            }
-            //lx--;
-            //u8revcpy(dest+lx, data, count);
-            //lx-=count-1;
-            //data+=count;
-        }
-    }
-}
-
-static void putsprite_remap_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *remap
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx < xmax)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx += count;
-            if(lx >= xmax)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx + count) <= xmin)
-            {
-                lx += count;
-                data += count;
-                continue;
-            }
-            if(lx < xmin)
-            {
-                int diff = lx - xmin;
-                count += diff;
-                data -= diff;
-                lx = xmin;
-            }
-            if((lx + count) > xmax)
-            {
-                count = xmax - lx;
-            }
-            for(; count > 0; count--)
-            {
-                dest[lx++] = remap[((int)(*data++)) & 0xFF];
-            }
-            //u8pcpy(dest+lx, data, remap, count);
-            //lx+=count;
-            //data+=count;
-        }
-    }
-}
-
-static void putsprite_remap_flip_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *remap
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx > xmin)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx -= count;
-            if(lx <= xmin)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx - count) >= xmax)
-            {
-                lx -= count;
-                data += count;
-                continue;
-            }
-            if(lx > xmax)
-            {
-                int diff = (lx - xmax);
-                count -= diff;
-                data += diff;
-                lx = xmax;
-            }
-            if((lx - count) < xmin)
-            {
-                count = lx - xmin;
-            }
-            for(; count > 0; count--)
-            {
-                dest[--lx] = remap[((int)(*data++)) & 0xFF];
-            }
-            //lx--;
-            //u8revpcpy(dest+lx, data, remap, count);
-            //lx-=count-1;
-            //data+=count;
-        }
-    }
-}
-
-//src high dest low
-static void putsprite_remapblend_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *remap, unsigned char *blend
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx < xmax)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx += count;
-            if(lx >= xmax)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx + count) <= xmin)
-            {
-                lx += count;
-                data += count;
-                continue;
-            }
-            if(lx < xmin)
-            {
-                int diff = lx - xmin;
-                count += diff;
-                data -= diff;
-                lx = xmin;
-            }
-            if((lx + count) > xmax)
-            {
-                count = xmax - lx;
-            }
-            for(; count > 0; count--)
-            {
-                dest[lx] = blend[(remap[(((int)(*data++)) & 0xFF)] << 8) | dest[lx]];
-                lx++;
-            }
-        }
-    }
-}
-
-static void putsprite_remapblend_flip_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *remap, unsigned char *blend
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx > xmin)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx -= count;
-            if(lx <= xmin)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx - count) >= xmax)
-            {
-                lx -= count;
-                data += count;
-                continue;
-            }
-            if(lx > xmax)
-            {
-                int diff = (lx - xmax);
-                count -= diff;
-                data += diff;
-                lx = xmax;
-            }
-            if((lx - count) < xmin)
-            {
-                count = lx - xmin;
-            }
-            for(; count > 0; count--)
-            {
-                --lx;
-                dest[lx] = blend[(remap[(((int)(*data++)) & 0xFF)] << 8) | dest[lx]];
-            }
-        }
-    }
-}
-
-static void putsprite_blend_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *blend
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx < xmax)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx += count;
-            if(lx >= xmax)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx + count) <= xmin)
-            {
-                lx += count;
-                data += count;
-                continue;
-            }
-            if(lx < xmin)
-            {
-                int diff = lx - xmin;
-                count += diff;
-                data -= diff;
-                lx = xmin;
-            }
-            if((lx + count) > xmax)
-            {
-                count = xmax - lx;
-            }
-            for(; count > 0; count--)
-            {
-                dest[lx] = blend[((((int)(*data++)) & 0xFF) << 8) | dest[lx]];
-                lx++;
-            }
-        }
-    }
-}
-
-static void putsprite_blend_flip_(
-    unsigned char *dest, int x, int xmin, int xmax, int *linetab, int h, int screenwidth,
-    unsigned char *blend
-)
-{
-    for(; h > 0; h--, dest += screenwidth)
-    {
-        int lx = x;
-        unsigned char *data = ((unsigned char *)linetab) + (*linetab);
-        linetab++;
-        while(lx > xmin)
-        {
-            int count = *data++;
-            if(count == 0xFF)
-            {
-                break;
-            }
-            lx -= count;
-            if(lx <= xmin)
-            {
-                break;
-            }
-            count = *data++;
-            if(!count)
-            {
-                continue;
-            }
-            if((lx - count) >= xmax)
-            {
-                lx -= count;
-                data += count;
-                continue;
-            }
-            if(lx > xmax)
-            {
-                int diff = (lx - screenwidth);
-                count -= diff;
-                data += diff;
-                lx = screenwidth;
-            }
-            if((lx - count) < xmin)
-            {
-                count = lx - xmin;
-            }
-            for(; count > 0; count--)
-            {
-                --lx;
-                dest[lx] = blend[((((int)(*data++)) & 0xFF) << 8) | dest[lx]];
-            }
-        }
-    }
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-void putsprite_8(
-    int x, int y, int is_flip, s_sprite *sprite, s_screen *screen,
-    unsigned char *remap, unsigned char *blend
-)
-{
-    int *linetab;
-    int w, h;
-    unsigned char *dest;
-    // Get screen size
-    int screenwidth = screen->width;
-    int xmin = useclip ? MAX(clipx1, 0) : 0,
-        xmax = useclip ? MIN(clipx2, screen->width) : screen->width,
-        ymin = useclip ? MAX(clipy1, 0) : 0,
-        ymax = useclip ? MIN(clipy2, screen->height) : screen->height;
-    // Adjust coords for centering
-    if(is_flip)
-    {
-        x += sprite->centerx;
-    }
-    else
-    {
-        x -= sprite->centerx;
-    }
-    y -= sprite->centery;
-    // Get sprite dimensions
-    w = sprite->width;
-    h = sprite->height;
-    // trivial clip all directions
-    if(is_flip)
-    {
-        if(x - w >= xmax)
-        {
-            return;
-        }
-        if(x <= xmin)
-        {
-            return;
-        }
-    }
-    else
-    {
-        if(x >= xmax)
-        {
-            return;
-        }
-        if((x + w) <= xmin)
-        {
-            return;
-        }
-    }
-    if(y >= ymax)
-    {
-        return;
-    }
-    if((y + h) <= ymin)
-    {
-        return;
-    }
-    // Init line table pointer
-    linetab = (int *)(sprite->data);
-    // clip top
-    if(y < ymin)
-    {
-        h += y - ymin; // subtract from height
-        linetab -= y - ymin; // add to linetab
-        y = ymin; // add to y
-    }
-    // clip bottom
-    if((y + h) > ymax)
-    {
-        h = ymax - y;
-    }
-    // calculate destination pointer
-    gpu_prepare_cpu_write(screen);
-    dest = ((unsigned char *)(screen->data)) + y * screenwidth;
-
-    if(blend && remap)
-    {
-        if(is_flip)
-        {
-            putsprite_remapblend_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, remap, blend);
-        }
-        else
-        {
-            putsprite_remapblend_     (dest, x, xmin, xmax  , linetab, h, screenwidth, remap, blend);
-        }
-    }
-    else if(blend)
-    {
-        if(is_flip)
-        {
-            putsprite_blend_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, blend);
-        }
-        else
-        {
-            putsprite_blend_     (dest, x, xmin, xmax  , linetab, h, screenwidth, blend);
-        }
-    }
-    else if(remap)
-    {
-        if(is_flip)
-        {
-            putsprite_remap_flip_(dest, x, xmin, xmax, linetab, h, screenwidth, remap);
-        }
-        else
-        {
-            putsprite_remap_     (dest, x, xmin, xmax  , linetab, h, screenwidth, remap);
-        }
-    }
-    else
-    {
-        if(is_flip)
-        {
-            putsprite_flip_      (dest, x, xmin, xmax, linetab, h, screenwidth);
-        }
-        else
-        {
-            putsprite_           (dest, x, xmin, xmax  , linetab, h, screenwidth);
-        }
-    }
-}
-
-/////////////////////////////////////////////////////////////////////////////
+    SPRITE_RLE_END_OF_LINE = 0xFF
+};
 
 /*
  * Damon V. Caskey
- * 2026-11-13
- * 2026-11-15 - Retain only indexed artwork and RGB32 dispatch.
- * Select software sprite geometry, including the opt-in affine matrix.
- * The common transform initializer synchronizes affine fallback pixels.
- */
-void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod)
-{
-    /* Validate indexed artwork and masks before either renderer sees them. */
-    if(!screen || !frame || !pixel_format_supported(screen->pixelformat) ||
-       !pixel_format_indexed(frame->pixelformat) ||
-       (frame->mask && !pixel_format_indexed(frame->mask->pixelformat)))
-    {
-        return;
-    }
-
-    gfx_entry gfx;
-
-    if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
-    {
-        /* The affine matrix replaces the legacy transform, even at zero scale. */
-        gfx.sprite = frame;
-        gfx_draw_affine(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-        return;
-    }
-
-    if(!drawmethod->scalex || !drawmethod->scaley)
-    {
-        return;    // zero size
-    }
-
-    /* This public software entry may be called without the root dispatcher. */
-    gpu_prepare_cpu_write(screen);
-
-    // no scale, no shift, no flip, no fill, so use common method
-    if(!drawmethod->water.watermode 
-        && drawmethod->scalex == 256 
-        && drawmethod->scaley == 256 
-        && !(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y) 
-        && !drawmethod->shiftx 
-        && drawmethod->fillcolor == TRANSPARENT_IDX 
-        && !drawmethod->rotate)
-    {
-        if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X)
-        {
-            x += drawmethod->centerx;
-        }
-        else
-        {
-            x -= drawmethod->centerx;
-        }
-        y -= drawmethod->centery;
-        switch(screen->pixelformat)
-        {
-        case PIXEL_8:
-            putsprite_8(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, drawmethod->table, drawmethod->alpha > 0 ? blendtables[drawmethod->alpha - 1] : NULL);
-            break;
-        case PIXEL_32:
-            putsprite_x8p32(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, (unsigned *)drawmethod->table, getblendfunction32(drawmethod->alpha));
-            break;
-        }
-        return;
-    }
-
-    gfx.sprite = frame;
-
-    if(drawmethod->water.watermode == 3 && drawmethod->water.beginsize > 0)
-    {
-        gfx_draw_plane(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-    }
-    else if(drawmethod->water.watermode && drawmethod->water.amplitude)
-    {
-        gfx_draw_water(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-    }
-    else if(drawmethod->rotate)
-    {
-        gfx_draw_rotate(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-    }
-    else
-    {
-        gfx_draw_scale(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
-    }
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-15
- * Dispatch byte RLE sprites to the remaining indexed and RGB32 writers.
- */
-static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
-{
-    if(!drawmethod || !(drawmethod->config & DRAWMETHOD_CONFIG_ENABLED))
-    {
-        switch (screen->pixelformat)
-        {
-        case PIXEL_8:
-            putsprite_8(x, y, 0, sprite, screen, NULL, NULL);
-            break;
-        case PIXEL_32:
-            putsprite_x8p32(x, y, 0, sprite, screen, (unsigned*)sprite->palette, NULL);
-            break;
-        }
-    }
-    else
-    {
-        putsprite_ex(x, y, sprite, screen, drawmethod);
-    }
-}
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
- * 2026-11-15 - Initialize CPU state only when the selected mode requires it.
- * 2026-11-15 - Keep explicit non-nearest resampling GPU-only after rejection.
- * Dispatch a sprite and its repetitions through the selected renderer.
- * Native RGB32 failures stop without CPU retry, state changes or readbacks.
+ * 2026-11-20
+ * Submit indexed artwork, masks and repetitions exclusively to the GPU.
+ * Source indices remain asset data; the scene destination is always RGB32.
+ * Rejection leaves the CPU shadow and its ownership unchanged.
  */
 void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
-    /* Validate indexed artwork and masks before either renderer sees them. */
-    if(!screen || !sprite || !pixel_format_supported(screen->pixelformat) ||
+    if(!screen || !sprite || screen->pixelformat != PIXEL_32 ||
        !pixel_format_indexed(sprite->pixelformat) ||
        (sprite->mask && !pixel_format_indexed(sprite->mask->pixelformat)))
     {
         return;
     }
 
-    ep_scope software;
-    int xrepeat, yrepeat, xspan, yspan, i, j;
-    s64 dx, dy;
+    if(!gpu_draw_sprite(screen, sprite, x, y, drawmethod))
+    {
+        gpu_report_rejected_image_operation(screen, GPU_OPERATION_SPRITE, drawmethod);
+    }
+}
 
-    /* The native backend handles repeats as part of this draw operation. */
-    if(gpu_draw_sprite(screen, sprite, x, y, drawmethod))
-    {
-        return;
-    }
-    if(!gpu_allow_cpu_image_operation(screen, GPU_OPERATION_SPRITE, drawmethod))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
-    /* Native materials read the supplied method; shared globals belong only
-     * to low-level CPU blitters in configurations not yet migrated. */
-    drawmethod_global_init(drawmethod);
-    gpu_prepare_cpu_write(screen);
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Read a source-artwork index for explicit script image access. This decodes
+ * one RLE row without drawing to a scene or changing GPU resource ownership.
+ * Preserve the public char result used by the script pixel-reading API.
+ */
+char sprite_get_pixel(s_sprite *sprite, int x, int y)
+{
+    int *linetab;
+    int lx = 0, count;
+    unsigned char *data;
 
-    if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
+    if(!sprite || !pixel_format_indexed(sprite->pixelformat) ||
+       x < 0 || x >= sprite->width || y < 0 || y >= sprite->height)
     {
-        xrepeat = drawmethod->xrepeat;
-        yrepeat = drawmethod->yrepeat;
-        xspan = drawmethod->xspan;
-        yspan = drawmethod->yspan;
-    }
-    else
-    {
-        xrepeat = yrepeat = 1;
-        xspan = yspan = 0;
+        return TRANSPARENT_IDX;
     }
 
-    /* Preserve repeat order while calculating each position in 64 bits.
-     * Out-of-range instances cannot be submitted to the integer pixel API. */
-    for(j = 0; j < yrepeat; j++)
+    linetab = ((int *)sprite->data) + y;
+    data = ((unsigned char *)linetab) + (*linetab);
+
+    while(1)
     {
-        dy = (s64)y + (s64)j * yspan;
-        if(dy < INT_MIN || dy > INT_MAX)
+        count = *data++;
+        if(count == SPRITE_RLE_END_OF_LINE || lx + count > x)
+        {
+            return TRANSPARENT_IDX;
+        }
+        lx += count;
+        count = *data++;
+        if(!count)
         {
             continue;
         }
-        for(i = 0; i < xrepeat; i++)
+        if(lx + count > x)
         {
-            dx = (s64)x + (s64)i * xspan;
-            if(dx < INT_MIN || dx > INT_MAX)
-            {
-                continue;
-            }
-            _putsprite((int)dx, (int)dy, sprite, screen, drawmethod);
+            return data[x - lx];
         }
+        lx += count;
+        data += count;
     }
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
-
-
 
 /*
  * Damon V. Caskey

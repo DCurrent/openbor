@@ -47,6 +47,9 @@ int video_ensure_context(void);
  * the resident image without reading its CPU shadow. */
 int video_launcher_begin(s_screen *target);
 int video_launcher_screen(s_screen *target, s_screen *source, int x, int y);
+/* Damon V. Caskey - 2026-11-20: resize original preview assets on the GPU. */
+int video_launcher_preview(s_screen *target, s_screen *source,
+                            int x, int y, int width, int height);
 int video_launcher_box(s_screen *target, int x, int y, int width, int height,
                        unsigned color);
 #if defined(ANDROID) || defined(OPENBOR_ANDROID_SCENE_TEST)

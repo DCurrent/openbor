@@ -42,6 +42,14 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
  * Failure leaves caller outputs unchanged and never selects a CPU path. */
 int gpu_gl_get_filtered_screen_texture(s_screen *screen, int filter,
                                        unsigned *texture, int *width, int *height);
+/* Damon V. Caskey - 2026-11-20
+ * Draw an opaque source into exact destination bounds with nearest sampling.
+ * Indexed sources retain their palette, including opaque index zero. The
+ * native quad preserves top-left sample phase without requiring affine support.
+ * Preview-only boundary stabilization can choose an adjacent source texel for
+ * extreme ratios; clamped source edges always retain opaque destination coverage. */
+int gpu_gl_draw_screen_scaled(s_screen *target, s_screen *source,
+                              int x, int y, int width, int height);
 /* Pre-mapped launcher glyphs use an immutable 160-glyph, 5x10 bitmap font.
  * Text clips only to the RGB32 screen and submits one ordered native batch.
  * Empty/clipped runs succeed without upload; rejected runs have no CPU retry. */

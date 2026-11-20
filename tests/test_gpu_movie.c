@@ -24,7 +24,6 @@
 
 int pixelbytes[5] = {1, 1, 0, 0, 4};
 int pixelformat = PIXEL_32;
-int useclip, clipx1, clipx2, clipy1, clipy2;
 unsigned char *blendtables[MAX_BLENDINGS];
 const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
@@ -367,7 +366,7 @@ static void movie_compare(s_screen *target, const gpu_yuv_source *source,
  * Damon V. Caskey
  * 2026-11-15
  * Exercise every static kernel at native, enlarged, reduced, thin and clipped
- * sizes. Source filtering remains independent of global sprite clipping.
+ * sizes. Source filtering retains its phase across destination clipping.
  */
 static void movie_test_reconstruction(void)
 {
@@ -380,7 +379,6 @@ static void movie_test_reconstruction(void)
     s_screen *target = movie_screen(37, 29);
     int mode, index;
     movie_pattern(&fixture, 6, 10, 0);
-    useclip = 1; clipx1 = 12; clipy1 = 12; clipx2 = 15; clipy2 = 15;
     for(mode = DC_RESAMPLE_NEAREST; mode <= DC_RESAMPLE_LANCZOS_3; ++mode)
         for(index = 0; index < (int)(sizeof(rectangles)/sizeof(rectangles[0])); ++index)
         {
@@ -388,7 +386,6 @@ static void movie_test_reconstruction(void)
                 rectangles[index][2], rectangles[index][3], (e_drawmethod_resample)mode, 0, 0, 0};
             movie_compare(target, &fixture.source, &draw, "independent YUV plane reconstruction");
         }
-    useclip = 0;
     gpu_release_yuv(fixture.source.owner);
     movie_release_screen(target);
 }
@@ -898,7 +895,6 @@ static void movie_test_context(SDL_Window *window, SDL_GLContext *context)
     before = *gpu_gl_get_stats();
     assert(!gpu_draw_yuv(target, &fixture.source, &draw));
     assert(gpu_gl_get_stats()->readbacks == before.readbacks);
-    assert(!gpu_allow_cpu_operation(target, GPU_OPERATION_SCREEN));
     movie_verify_pixels((const unsigned *)target->data, expected, 17, 13, 0,
                          "backend loss leaves captured pixels intact", draw.resample);
     gpu_release_yuv(fixture.source.owner);
@@ -907,7 +903,6 @@ static void movie_test_context(SDL_Window *window, SDL_GLContext *context)
     assert(*context);
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
-    gpu_set_native_required(1);
     before = *gpu_gl_get_stats();
     movie_compare(target, &fixture.source, &draw, "retained decoder frame after context recreation");
     assert(gpu_gl_get_stats()->movie_uploads == before.movie_uploads+1);
@@ -940,7 +935,6 @@ int main(void)
     }
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
-    gpu_set_native_required(1);
     movie_test_reconstruction();
     movie_test_color();
     movie_test_black();

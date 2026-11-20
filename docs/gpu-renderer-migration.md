@@ -20,10 +20,11 @@ renderer fails that video mode. `OPENBOR_GPU=0`
 disables native initialization and therefore fails a required native mode; it
 no longer selects a software comparison renderer.
 
-Once native RGB32 drawing is selected, a rejected draw, clear, or copy logs a
-warning and returns without a CPU rendering retry, readback, or software-state
-setup. Warnings are bounded to one per operation type for that mode selection.
-Losing or unregistering the native backend does not restore CPU eligibility.
+Scene rendering is GPU-only from process startup through context teardown.
+Rejected draws, clears and copies log a warning and return without CPU rendering
+or readback. Warnings are bounded to one per operation type for each registered
+backend; unregistering it preserves those warning bits. The production software
+scene rasterizers and the policy switch that enabled them have been removed.
 Android and desktop share the scene renderer, including arbitrary RGB32
 subscreens, material operations, transforms, filters, glyphs and YUV movies.
 Output filters consume resident scene textures without readback. Filter
@@ -67,7 +68,7 @@ formats.
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
-| Launcher text and composition | Resident glyph atlas and ordered GPU backgrounds, previews and boxes on desktop and Android; no CPU glyph implementation |
+| Launcher text and composition | Resident glyph atlas and ordered GPU backgrounds, resized previews and boxes on desktop and Android; no CPU glyph or thumbnail scaler |
 | Native geometry submission | Contiguous vertex uploads and cached triangle indices; draw order and material boundaries retained |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
 | Capture into screens and reuse of captured screens | GPU-to-GPU rendering without CPU readback |
@@ -86,8 +87,8 @@ The affine contract from the separate transform experiment is available through
 and curve mappings and public programmable shaders remain
 separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
 for opt-in chroma coverage and final-output substitutions. Color rules execute
-only on supported native RGB32 draws. Software draws and unsupported native
-color capabilities ignore those settings while retaining ordinary drawing.
+only on supported native RGB32 draws. Unsupported native color capabilities
+ignore those settings while retaining ordinary GPU drawing.
 Engine frame delays, game ticks and input scheduling remain unchanged. Android's
 native presenter now requests VSync when the existing FPS-limit setting selects it.
 
@@ -259,19 +260,30 @@ The **Native Drawing Limits** section distinguishes retained indexed image
 operations and required CPU work from rejected RGB32 operations. Unsupported draw
 methods, numerically extreme transforms, images exceeding the reported
 texture-size limit, and resource allocation failures do not select CPU
-rendering in a native-required mode. Root drawing entry points log the
-rejected operation without changing
-its destination. Failure after partial native submission remains fatal rather
+rendering. Root drawing entry points log the rejected operation without
+changing its destination. Failure after partial native submission remains fatal rather
 than retrying over a partially rendered result.
 
 ## Where the boundary moved
 
 `gpu.c`/`gpu.h` provide window-system-independent dispatch and synchronization.
-The public gamelib drawing entry points attempt native drawing first. Native
-RGB32 rejection returns before CPU pixel synchronization or raster setup.
-The retained CPU branches support indexed image operations and reference tests,
-rather than serving as automatic RGB32 retries. Backend
-registration selects the native requirement; backend removal preserves it.
+The public gamelib drawing entry points submit only GPU operations. RGB32
+rejection returns before CPU pixel synchronization or image writes. Backend
+registration supplies the callbacks; there is no policy toggle or CPU scene
+dispatch to restore when that backend is unavailable.
+
+`draw32.c`, `screen32.c`, `spritex8p32.c`, `transform.c`, `transform.h` and
+`writepixel.h` are deleted. The surviving screen, sprite and primitive modules
+contain GPU dispatch plus allocation and source-asset helpers. Software-only
+scanline blitters, transform rasterizers, RGB32 pixel blend functions, material
+globals, unused bitmap blitting and obsolete software profiler fields are also
+removed. Test executables no longer link the deleted renderer as their oracle.
+
+Indexed cached backgrounds retain narrow byte-copy and zero-reset operations.
+Sprite RLE encoding and explicit source-pixel reads remain CPU work. Decoding,
+palette/blend lookup preparation, explicit image editing and screenshot encoding
+also retain CPU data access. None of these operations implements scene rendering.
+Tests verify their ownership boundaries separately from GPU draw dispatch.
 
 `engine/sdl/gpu_renderer.c` owns shared desktop/GLES resources, shaders, native draws,
 and GPU/CPU transfer boundaries. `gpu_transform.c` prepares transform geometry;
@@ -343,10 +355,10 @@ profiling is still needed to establish the frame-time benefit.
 
 ## Stage 4: avoid redundant preparation and uploads
 
-Successful native screen, sprite, box, line, and pixel dispatch no longer
-initializes software opacity, tint, or clipping globals. Explicitly retained
-CPU operations still establish their own state before rasterization. Rejected
-native-required RGB32 operations return before that setup as well.
+Screen, sprite, box, line and pixel dispatch pass each drawmethod directly to
+the native backend. Software opacity, tint and clipping globals have been
+removed together with their initialization and pixel writers. Failed operations
+only report the rejection.
 
 Repeated affine draws validate every placement before the first destination
 write. The renderer retains each validated quad and its exact shader sampling
@@ -540,6 +552,17 @@ This covers the logo, module list, music player and log viewer. The former CPU
 glyph rasterizer is removed completely. Removing the Android launcher itself
 remains a separate future decision.
 
+Preview loading retains the original decoded title image. One GPU quad resizes
+it directly into the existing 160-by-120 rectangle, without a CPU thumbnail or
+an affine-capability requirement. Indexed palette entry zero stays opaque;
+RGB32 sources can remain GPU-resident. Nearest sampling keeps the top-left
+phase and uses the true source/destination ratio. Preview-only stabilization
+accounts for large-source interpolation precision, then clamps to the source
+edge so rounding cannot leave holes in an opaque preview. Its adjustment is
+bounded to an adjacent source texel; tiny differences from the retired scaler's
+accumulated coordinate rounding are accepted. Ordinary scene samplers are
+unchanged. The source texture-size limit applies and rejected previews are logged.
+
 The original 160-glyph font retains its five-by-ten-pixel cells, five-pixel
 advance and bit-exact nearest sampling. One private 80-by-100 index texture
 stores all glyphs. The renderer uploads it on first use, reuses it across
@@ -570,8 +593,8 @@ Android uses ordinary native RGB32 screen storage for the launcher. Each
 composition begins with a GPU clear, then submits backgrounds, glyphs, previews
 and boxes in their original order. Indexed previews use the shared index texture
 and palette lookup, including opaque palette index zero. Source data is consumed
-during the draw, so previews can be freed immediately afterward. File decoding
-and existing preview asset preparation remain CPU work.
+during the draw, so previews can be freed immediately afterward. Resizing uses
+the same shared GPU preview path as desktop. File decoding remains CPU work.
 
 The completed target passes through the existing GPU output filter, aspect
 handling, brightness and touch overlays. Idle presentation reuses it without
@@ -837,8 +860,11 @@ The suites cover:
 - Chroma/Substitute native complete-image checks, all five slots, palette/fill
   ordering, blend-created matches, zero-opacity exclusions, primitive source
   colors, queue snapshots, repeats, affine draws, and overlapping self-draws;
-  ignored-rule checks preserve CPU reference output and native availability.
-- Native transform output compared with production CPU rendering.
+  ignored-rule checks preserve ordinary native output and availability.
+- Native transform output compared with independent scalar sampling expectations.
+- Native dispatch rejection with no backend, missing callbacks and backend loss;
+  RGB32 CPU shadows remain unchanged and explicit image access still works.
+- Linked-symbol validation rejects retired software-renderer entry points.
 - One-quad water/plane submission, clipped wave phase, bounded horizontal wave
   differences, exact plane vertical recurrence, and preserved material sampling.
 - Strict plane sampling with large positive/negative scrolling, plus compact
@@ -874,15 +900,13 @@ platform build results remain release gates for further renderer migration.
 
 ## Follow-on migration work
 
-Normal RGB32 scene dispatch no longer uses software as a fallback on any
-supported platform. Remaining work includes animated-GIF palette/frame
-composition, optional GPU preview resizing, sloped-line geometry and additional
-batching. Retained software rasterizers should be removed from production after
-separating required asset operations and independent test references. Launcher
-availability on Android remains a separate product decision. Remove CPU
-rendering implementations as their required functionality moves to the GPU;
-retired-port compatibility is not a reason to keep them. Preserving drawing
-capabilities on the supported platforms remains the migration goal.
+Production software scene rendering has been retired on every supported
+platform. Animated GIF composition and launcher preview resizing also use the
+shared GPU backend. The next optimization steps are sloped-line geometry and
+batching compatible draw calls while preserving painter order and feedback.
+Remaining presentation, menu and build cleanup can follow those changes.
+Launcher availability on Android remains a separate product decision.
+Preserving drawing capabilities on the supported platforms remains the goal.
 
 Future programmable materials should apply after source color decoding so
 indexed palettes and direct RGB assets can share geometry and material effects.

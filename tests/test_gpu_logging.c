@@ -40,7 +40,9 @@ int main(void)
     char driver_diagnostic[8192];
     size_t length, index;
     s_screen native_screen = {.pixelformat = PIXEL_32};
-    s_screen indexed_screen = {.pixelformat = PIXEL_x8};
+    s_screen invalid_screen = {.pixelformat = 2};
+    gpu_backend backend = {0};
+    s_drawmethod method = {.config = DRAWMETHOD_CONFIG_ENABLED};
     unsigned before;
     int operation, repeat;
 
@@ -68,29 +70,49 @@ int main(void)
     gpu_log(NULL);
     assert(ordinary_log_calls == 2 && strlen(ordinary_log) == length);
 
-    /* Native selection precedes backend initialization. Failures log once
-     * per operation even when every attempted draw has no active backend. */
-    gpu_set_native_required(1);
+    /* Failed scene operations log once even before backend initialization.
+     * Reporting is diagnostic only and never offers a software policy. */
     before = ordinary_log_calls;
     for(operation = 0; operation < GPU_OPERATION_COUNT; operation++)
     {
         for(repeat = 0; repeat < 3; repeat++)
         {
-            assert(!gpu_allow_cpu_operation(&native_screen, (gpu_operation)operation));
+            gpu_report_rejected_operation(&native_screen, (gpu_operation)operation);
         }
         assert(ordinary_log_calls == before + (unsigned)operation + 1);
-        assert(strstr(ordinary_log, "CPU rendering retry is disabled"));
+        assert(strstr(ordinary_log, "CPU scene rendering is unavailable"));
     }
     gpu_unregister_backend();
-    assert(!gpu_allow_cpu_operation(&native_screen, GPU_OPERATION_SCREEN));
+    gpu_report_rejected_operation(&native_screen, GPU_OPERATION_SCREEN);
+    gpu_report_rejected_operation(NULL, GPU_OPERATION_SCREEN);
+    gpu_report_rejected_operation(&invalid_screen, GPU_OPERATION_SCREEN);
+    gpu_report_rejected_operation(&native_screen, (gpu_operation)-1);
+    gpu_report_rejected_operation(&native_screen, GPU_OPERATION_COUNT);
     assert(ordinary_log_calls == before + GPU_OPERATION_COUNT);
 
-    /* Indexed data and explicitly selected unmigrated CPU rendering do not
-     * generate rejection logs or inherit the RGB32 native requirement. */
-    assert(gpu_allow_cpu_operation(&indexed_screen, GPU_OPERATION_CLEAR));
-    gpu_set_native_required(0);
-    assert(gpu_allow_cpu_operation(&native_screen, GPU_OPERATION_SCREEN));
-    assert(ordinary_log_calls == before + GPU_OPERATION_COUNT);
+    /* New backend registration permits fresh diagnostics. Filter failures
+     * remain bounded by operation across all filters and backend loss. */
+    gpu_register_backend(&backend);
+    before = ordinary_log_calls;
+    for(operation = DC_RESAMPLE_BILINEAR; operation < DC_RESAMPLE_END; ++operation)
+    {
+        method.resample = (e_drawmethod_resample)operation;
+        for(repeat = 0; repeat < 3; ++repeat)
+        {
+            gpu_report_rejected_image_operation(&native_screen, GPU_OPERATION_SCREEN, &method);
+            gpu_report_rejected_image_operation(&native_screen, GPU_OPERATION_SPRITE, &method);
+        }
+        assert(ordinary_log_calls == before + 2);
+        assert(strstr(ordinary_log, "CPU resampling is unavailable"));
+    }
+    gpu_unregister_backend();
+    gpu_report_rejected_image_operation(&native_screen, GPU_OPERATION_SCREEN, &method);
+    assert(ordinary_log_calls == before + 2);
+    method.config = DRAWMETHOD_CONFIG_NONE;
+    gpu_report_rejected_image_operation(&native_screen, GPU_OPERATION_SCREEN, &method);
+    gpu_report_rejected_image_operation(&native_screen, GPU_OPERATION_SPRITE, NULL);
+    assert(ordinary_log_calls == before + 4);
+    assert(strstr(ordinary_log, "CPU scene rendering is unavailable"));
 
     puts("GPU ordinary log tests passed with profiling disabled.");
     return 0;

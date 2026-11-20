@@ -319,7 +319,6 @@ static void output_filter_test_rejections(void)
     assert(output_filter_rejected_framebuffers > 0);
     assert(texture == 123456 && width == -11 && height == -7);
     assert(gpu_is_active());
-    assert(!gpu_allow_cpu_operation(screen, GPU_OPERATION_SCREEN));
     assert(gpu_gl_get_stats()->uploads == before.uploads);
     assert(gpu_gl_get_stats()->readbacks == before.readbacks);
     /* The historical counter records rejected native operations even when
@@ -357,7 +356,6 @@ static void output_filter_test_context(SDL_Window *window, SDL_GLContext *contex
     assert(*context);
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
-    gpu_set_native_required(1);
     assert(gpu_gl_get_stats()->output_filter_resources == 0);
     assert(gpu_gl_get_screen_texture(screen, &texture, &width, &height));
     output_filter_compare(screen, expected, BLITTER_BILINEAR, "new context");
@@ -391,7 +389,6 @@ int main(void)
     }
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
-    gpu_set_native_required(1);
     assert(gpu_gl_get_stats()->output_filter_resources == 0);
     output_filter_test_images();
     output_filter_test_scale2x_neighbors();

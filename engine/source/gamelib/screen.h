@@ -13,23 +13,7 @@
 s_screen *allocscreen(int width, int height, int pixelformat);
 void freescreen(s_screen **screen);
 void copyscreen(s_screen *dest, s_screen *src);
-void copyscreen_o(s_screen *dest, s_screen *src, int x, int y);
-
 void clearscreen(s_screen *s);
-void scalescreen(s_screen *dest, s_screen *src);
-
-void copyscreen_trans(s_screen *dest, s_screen *src, int x, int y);
-void copyscreen_remap(s_screen *dest, s_screen *src, int x, int y, unsigned char *remap);
-void blendscreen(s_screen *dest, s_screen *src, int x, int y, unsigned char *lut);
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod);
-void zoomscreen(s_screen *dest, s_screen *src, int centerx, int centery, int scalex, int scaley);
-
-//------------------------------32
-
-void putscreenx8p32(s_screen *dest, s_screen *src, int x, int y, int key, u32 *remap, u32(*blendfp)(u32, u32));
-void blendscreen32(s_screen *dest, s_screen *src, int x, int y, int key, u32(*blendfp)(u32, u32));
-void scalescreen32(s_screen *dest, s_screen *src);
-
-
 #endif
 

@@ -6,511 +6,67 @@
  * Copyright (c)  OpenBOR Team
  */
 
-// Primitive drawing functions. Should really be done in ASM...
-// Last update: 24-jun-2002
-
 #include "types.h"
 #include "draw.h"
 #include "gpu.h"
-#include "engine_profile.h"
 
-#ifndef		NULL
-#define		NULL	 ((void*)0)
-#endif
-
-
-#define		abso(x)		(x<0?-x:x)
-
-
-// Not a particularly fast line function, but it works, and clips!
-void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alpha)
+enum
 {
-
-    int diffx, diffy;
-    int absdiffx, absdiffy;
-    int xdir, ydir;
-    int thres;
-    int d;
-    unsigned char *lut;
-
-    // Some off-screen lines may slip through this test!
-    if(sx < 0 && ex < 0)
-    {
-        return;
-    }
-    if(sy < 0 && ey < 0)
-    {
-        return;
-    }
-    if(sx >= screen->width && ex >= screen->width)
-    {
-        return;
-    }
-    if(sy >= screen->height && ey >= screen->height)
-    {
-        return;
-    }
-
-
-    // Check clipping and calculate new coords if necessary
-
-    diffx = ex - sx;
-    diffy = ey - sy;
-
-    if(sx < 0)
-    {
-        sy -= (sx * diffy / diffx);
-        sx = 0;
-    }
-    if(sy < 0)
-    {
-        sx -= (sy * diffx / diffy);
-        sy = 0;
-    }
-    if(sx >= screen->width)
-    {
-        sy -= ((sx - screen->width) * diffy / diffx);
-        sx = screen->width - 1;
-    }
-    if(sy >= screen->height)
-    {
-        sx -= ((sy - screen->height) * diffx / diffy);
-        sy = screen->height - 1;
-    }
-
-    if(ex < 0)
-    {
-        ey -= (ex * diffy / diffx);
-        ex = 0;
-    }
-    if(ey < 0)
-    {
-        ex -= (ey * diffx / diffy);
-        ey = 0;
-    }
-    if(ex >= screen->width)
-    {
-        ey -= ((ex - screen->width) * diffy / diffx);
-        ex = screen->width - 1;
-    }
-    if(ey >= screen->height)
-    {
-        ex -= ((ey - screen->height) * diffx / diffy);
-        ey = screen->height - 1;
-    }
-
-
-    // Second test: the lines that passed test 1 won't pass this time!
-    if(sx < 0 || ex < 0)
-    {
-        return;
-    }
-    if(sy < 0 || ey < 0)
-    {
-        return;
-    }
-    if(sx >= screen->width || ex >= screen->width)
-    {
-        return;
-    }
-    if(sy >= screen->height || ey >= screen->height)
-    {
-        return;
-    }
-
-
-    // Recalculate directions
-    diffx = ex - sx;
-    diffy = ey - sy;
-
-    absdiffx = abso(diffx);
-    absdiffy = abso(diffy);
-
-    sy *= screen->width;
-    ey *= screen->width;
-
-    gpu_prepare_cpu_write(screen);
-    lut = alpha > 0 ? blendtables[alpha - 1] : NULL;
-
-    if(lut)
-    {
-        lut += (colour << 8);
-    }
-
-    if(absdiffx > absdiffy)
-    {
-        // Draw a flat line
-        thres = absdiffx >> 1;
-        xdir = 1;
-        if(diffx < 0)
-        {
-            xdir = -xdir;
-        }
-        ydir = screen->width;
-        if(diffy < 0)
-        {
-            ydir = -ydir;
-        }
-        while(sx != ex)
-        {
-            d = sx + sy;
-            screen->data[d] = (lut && screen->data[d]) ? (lut[screen->data[d]]) : colour;
-            sx += xdir;
-            if((thres -= absdiffy) <= 0)
-            {
-                sy += ydir;
-                thres += absdiffx;
-            }
-        }
-        d = ex + ey;
-        screen->data[d] = (lut && screen->data[d]) ? (lut[screen->data[d]]) : colour;
-        return;
-    }
-
-    // Draw a high line
-    thres = absdiffy >> 1;
-    xdir = 1;
-    if(diffx < 0)
-    {
-        xdir = -1;
-    }
-    ydir = screen->width;
-    if(diffy < 0)
-    {
-        ydir = -ydir;
-    }
-    while(sy != ey)
-    {
-        d = sx + sy;
-        screen->data[d] = (lut && screen->data[d]) ? (lut[screen->data[d]]) : colour;;
-        sy += ydir;
-        if((thres -= absdiffx) <= 0)
-        {
-            sx += xdir;
-            thres += absdiffy;
-        }
-    }
-    d = ex + ey;
-    screen->data[d] = (lut && screen->data[d]) ? (lut[screen->data[d]]) : colour;
-}
-
-
-
-
-
-void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, int alpha)
-{
-    unsigned char *cp;
-    unsigned char *lut;
-
-    if(width <= 0)
-    {
-        return;
-    }
-    if(height <= 0)
-    {
-        return;
-    }
-    if(screen == NULL)
-    {
-        return;
-    }
-
-    if(x < 0)
-    {
-        if((width += x) <= 0)
-        {
-            return;
-        }
-        x = 0;
-    }
-    else if(x >= screen->width)
-    {
-        return;
-    }
-    if(y < 0)
-    {
-        if((height += y) <= 0)
-        {
-            return;
-        }
-        y = 0;
-    }
-    else if(y >= screen->height)
-    {
-        return;
-    }
-    if(x + width > screen->width)
-    {
-        width = screen->width - x;
-    }
-    if(y + height > screen->height)
-    {
-        height = screen->height - y;
-    }
-
-    gpu_prepare_cpu_write(screen);
-    cp = (unsigned char *)screen->data + y * screen->width + x;
-    lut = alpha > 0 ? blendtables[alpha - 1] : NULL;
-    if(lut)
-    {
-        lut += (colour << 8);
-    }
-    while(--height >= 0)
-    {
-        for(x = 0; x < width; x++)
-        {
-            *cp = (lut && *cp) ? (lut[((int)(*cp)) & 0xFF]) : colour;
-            ++cp;
-        }
-        cp += screen->width - width;
-    }
-}
-
-
-
-// Putpixel used by circle function
-void _putpixel(int x, int y, int colour, s_screen *screen, int alpha)
-{
-    int pixind;
-    unsigned char *lut;
-    if((unsigned)x >= (unsigned)screen->width || (unsigned)y >= (unsigned)screen->height)
-    {
-        return;
-    }
-    gpu_prepare_cpu_write(screen);
-    pixind = x + y * screen->width;
-    lut = alpha > 0 ? blendtables[alpha - 1] + (colour << 8) : NULL;
-    screen->data[pixind] = (lut && screen->data[pixind]) ? (lut[(int)(screen->data[pixind]) & 0xFF]) : colour;
-}
-
-
-
-
-// Code to draw a circle.
-// I ripped this, not sure how it works...
-// It seems it divides the circle into 8 parts, which are drawn
-// simultaneously.
-// Not much optimization, though, since every pixel is clipped
-// separately.
-
-void circle(int x, int y, int rad, int col, s_screen *screen, int alpha)
-{
-    int cx = 0;				// 'Circle X'
-    int cy = rad;				// 'Circle Y'
-    int df = 1 - rad;
-    int d_e = 3;
-    int d_se = -2 * rad + 5;
-
-    do
-    {
-        _putpixel(x + cx, y + cy, col, screen, alpha);
-        if(cx)
-        {
-            _putpixel(x - cx, y + cy, col, screen, alpha);
-        }
-        if(cy)
-        {
-            _putpixel(x + cx, y - cy, col, screen, alpha);
-        }
-        if(cx && cy)
-        {
-            _putpixel(x - cx, y - cy, col, screen, alpha);
-        }
-
-        if(cx != cy)
-        {
-            _putpixel(x + cy, y + cx, col, screen, alpha);
-            if(cx)
-            {
-                _putpixel(x + cy, y - cx, col, screen, alpha);
-            }
-            if(cy)
-            {
-                _putpixel(x - cy, y + cx, col, screen, alpha);
-            }
-            if(cx && cy)
-            {
-                _putpixel(x - cy, y - cx, col, screen, alpha);
-            }
-        }
-
-        if(df < 0)
-        {
-            df   += d_e;
-            d_e  += 2;
-            d_se += 2;
-        }
-        else
-        {
-            df   += d_se;
-            d_e  += 2;
-            d_se += 4;
-            --cy;
-        }
-        ++cx;
-    }
-    while(cx <= cy);
-}
-
-
+    DRAW_PIXEL_SIZE = 1
+};
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Prepare primitive alpha and shared raster state only after root dispatch
- * selects an explicitly required CPU operation.
- */
-static int draw_init(s_drawmethod *drawmethod)
-{
-    int alpha = 0;
-    /* Primitive CPU loops use globals for tint, channel opacity and clipping. */
-    drawmethod_global_init(drawmethod);
-
-    if (drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
-    {
-        alpha = drawmethod->alpha;
-    }
-
-    return alpha;
-}
-
-//======================== root methods ==================================
-
-/*
- * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Prepare software state only for explicitly required CPU work.
- * Draw a filled rectangle through the selected renderer. Native RGB32
- * failures stop before CPU state preparation or destination synchronization.
+ * 2026-11-20
+ * Submit primitive drawing exclusively to the GPU. Rejected operations log
+ * through the common bounded diagnostic without reading or writing CPU pixels.
  */
 void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
-    if(!screen || !pixel_format_supported(screen->pixelformat))
+    if(!screen || screen->pixelformat != PIXEL_32)
     {
         return;
     }
 
-    int alpha;
-    ep_scope software;
-
-    if(gpu_draw_box(screen, x, y, width, height, (unsigned)colour, drawmethod))
+    if(!gpu_draw_box(screen, x, y, width, height, (unsigned)colour, drawmethod))
     {
-        return;
+        gpu_report_rejected_operation(screen, GPU_OPERATION_BOX);
     }
-    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_BOX))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
-    /* The native material reads drawmethod directly; only CPU rasterizers
-     * need shared tint, channel, clipping and alpha state. */
-    alpha = draw_init(drawmethod);
-    gpu_prepare_cpu_write(screen);
-
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        drawbox(x, y, width, height, colour, screen, alpha);
-        break;
-    case PIXEL_32:
-        drawbox32(x, y, width, height, colour, screen, alpha);
-        break;
-    }
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
-/*
- * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Keep native line dispatch independent of software globals.
- * Draw a line through the selected renderer. Unmigrated CPU pixel loops and
- * their state preparation stay inside one measured software dispatch.
- */
 void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
-    if(!screen || !pixel_format_supported(screen->pixelformat))
+    if(!screen || screen->pixelformat != PIXEL_32)
     {
         return;
     }
 
-    int alpha;
-    ep_scope software;
-
-    if(gpu_draw_line(screen, sx, sy, ex, ey, (unsigned)colour, drawmethod))
+    if(!gpu_draw_line(screen, sx, sy, ex, ey, (unsigned)colour, drawmethod))
     {
-        return;
+        gpu_report_rejected_operation(screen, GPU_OPERATION_LINE);
     }
-    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_LINE))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
-    /* Initialize CPU globals only after this mode selects CPU drawing. */
-    alpha = draw_init(drawmethod);
-    gpu_prepare_cpu_write(screen);
-
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        line(sx, sy, ex, ey, colour, screen, alpha);
-        break;
-    case PIXEL_32:
-        line32(sx, sy, ex, ey, colour, screen, alpha);
-        break;
-    }
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-12
- * 2026-11-15 - Avoid software state setup for native or clipped pixels.
- * Draw one in-bounds pixel with no CPU retry in the native RGB32 mode.
- * Clipped pixels leave both renderers and their drawing state untouched.
+ * 2026-11-20
+ * Single pixels share the native rectangle material. Reject unsigned off-screen
+ * coordinates before converting them to the signed rectangle API coordinates.
  */
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
-    /* Invalid formats cannot enter a rasterizer or change GPU ownership. */
-    if(!screen || !pixel_format_supported(screen->pixelformat))
+    if(!screen || screen->pixelformat != PIXEL_32)
     {
         return;
     }
 
-    int alpha;
-    ep_scope software;
-
-    /* Reject unsigned off-screen coordinates before the rectangle API's
-     * signed conversion. Single pixels share its native drawing operation. */
     if(x >= (unsigned)screen->width || y >= (unsigned)screen->height)
     {
         return;
     }
-    if(gpu_draw_box(screen, (int)x, (int)y, 1, 1, (unsigned)colour, drawmethod))
+    if(!gpu_draw_box(screen, (int)x, (int)y, DRAW_PIXEL_SIZE, DRAW_PIXEL_SIZE,
+                     (unsigned)colour, drawmethod))
     {
-        return;
+        gpu_report_rejected_operation(screen, GPU_OPERATION_PIXEL);
     }
-    if(!gpu_allow_cpu_operation(screen, GPU_OPERATION_PIXEL))
-    {
-        return;
-    }
-    software = engine_profile_span_begin();
-    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
-    /* Keep state initialization beside the CPU operation that consumes it. */
-    alpha = draw_init(drawmethod);
-    gpu_prepare_cpu_write(screen);
-    switch(screen->pixelformat)
-    {
-    case PIXEL_8:
-        _putpixel(x, y, colour, screen, alpha);
-        break;
-    case PIXEL_32:
-        _putpixel32(x, y, colour, screen, alpha);
-        break;
-    }
-    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
