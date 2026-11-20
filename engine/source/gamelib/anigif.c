@@ -3,12 +3,11 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c)  OpenBOR Team
+ * Copyright (c) OpenBOR Team
  */
 
-// Animated GIF player.
-
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include "packfile.h"
 #include "borendian.h"
@@ -17,612 +16,738 @@
 #include "anigif.h"
 #include "gpu.h"
 
-// Animated GIF player.
-
-
-static unsigned char readbyte(int handle)
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * GIF compression remains a CPU operation. Its decoded indices are staged in
+ * reusable byte buffers; palette expansion, persistent frame composition and
+ * the optional RGB stream merge write only native RGB32 render targets.
+ */
+enum
 {
-    unsigned char c = 0;
-    readpackfile(handle, &c, 1);
-    return c;
-}
+    ANIGIF_PALETTE_COLORS = 256,
+    ANIGIF_PALETTE_COMPONENTS = 3,
+    ANIGIF_PIXEL_BYTES = 4,
+    ANIGIF_BLOCK_BYTES = 255,
+    ANIGIF_CONTROL_BYTES = 4,
+    ANIGIF_CONTROL_FLAGS = 0,
+    ANIGIF_CONTROL_DELAY_LOW = 1,
+    ANIGIF_CONTROL_DELAY_HIGH = 2,
+    ANIGIF_CONTROL_KEY = 3,
+    ANIGIF_LZW_MIN_BITS = 2,
+    ANIGIF_LZW_LITERAL_BITS = 8,
+    ANIGIF_LZW_MAX_BITS = 12,
+    ANIGIF_LZW_CODES = 1 << ANIGIF_LZW_MAX_BITS,
+    ANIGIF_LZW_RESERVED_CODES = 2,
+    ANIGIF_COLOR_TABLE = 0x80,
+    ANIGIF_INTERLACED = 0x40,
+    ANIGIF_COLOR_BITS_MASK = 0x07,
+    ANIGIF_CONTROL_EXTENSION = 0xf9,
+    ANIGIF_CONTROL_TRANSPARENT = 0x01,
+    ANIGIF_DELAY_MILLISECONDS = 10,
+    ANIGIF_INTERLACE_PASSES = 4,
+    ANIGIF_INTERLACE_FIRST_STEP = 8,
+    ANIGIF_SIGNATURE_BYTES = 3,
+    ANIGIF_EXTENSION_LENGTH = 4,
+    ANIGIF_SUFFIX_CHANNEL_OFFSET = 0,
+    ANIGIF_RED = 0,
+    ANIGIF_GREEN = 1,
+    ANIGIF_BLUE = 2
+};
 
-static void passgifblock(anigif_info *info, int n)
+typedef struct anigif_lzw_reader
 {
-    int len;
+    int handle;
+    unsigned char block[ANIGIF_BLOCK_BYTES];
+    unsigned int accumulator;
+    unsigned int bit_count;
+    unsigned int block_size;
+    unsigned int block_position;
+    int terminated;
+    int failed;
+} anigif_lzw_reader;
 
-    // Skip all contained blocks
-    while((len = readbyte(info->info[n].handle)) != 0)
-    {
-        seekpackfile(info->info[n].handle, len, SEEK_CUR);
-    }
-}
-
-static void handle_gfx_control(anigif_info *info, int n)
+typedef struct anigif_dictionary
 {
-    int len;
-    int skip;
-    unsigned char buf[4];
+    unsigned short prefix[ANIGIF_LZW_CODES];
+    unsigned char suffix[ANIGIF_LZW_CODES];
+    unsigned char stack[ANIGIF_LZW_CODES];
+} anigif_dictionary;
 
-    // Handle all contained blocks
-    while((len = readbyte(info->info[n].handle)) != 0)
-    {
-        skip = len - 4;
-        if(len > 4)
-        {
-            len = 4;
-        }
-        readpackfile(info->info[n].handle, buf, len);
-        if(skip > 0)
-        {
-            seekpackfile(info->info[n].handle, skip, SEEK_CUR);
-        }
-
-        if(buf[0] & 1)
-        {
-            info->info[n].transparent = buf[3];
-        }
-        info->info[n].lastdelay = (buf[2] << 8) | buf[1];
-
-        // disposal = (buf[0]>>2) & 7;
-        // inputflag = (buf[0]>>1) & 1;
-    }
-}
-
-static void gifextension(anigif_info *info, int n)
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Distinguish a real zero subblock terminator from a truncated input stream.
+ */
+static int readbyte(int handle)
 {
-    int function;
-
-    // Get extension function code
-    function = readbyte(info->info[n].handle);
-
-    // Note: function may be repeated multiple times (size, data, size, data)
-    switch(function)
-    {
-    case 0xF9:
-        // Graphic control
-        handle_gfx_control(info, n);
-        return;
-    default:
-        // 0x01 = text
-        // 0xFF = app. extension
-        // 0xFE = comment
-        passgifblock(info, n);
-        return;
-    }
+    unsigned char byte;
+    return readpackfile(handle, &byte, 1) == 1 ? byte : -1;
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Decode GIF indices into the indexed source buffer or its RGB32 image.
- * GIF code widths remain independent of the engine's scene color format.
+ * 2026-11-20
+ * Consume complete extension/image subblocks, rejecting truncated payloads.
  */
-static int decodegifblock(anigif_info *info, gifblockstruct *gb, int n)
+static int passgifblock(int handle)
 {
+    unsigned char block[ANIGIF_BLOCK_BYTES];
+    int length;
 
-    unsigned char bits;
-    short bits2;
-    short codesize;
-    short codesize2;
-    short nextcode;
-    short thiscode;
-    short oldtoken;
-    short currentcode;
-    short oldcode;
-    short bitsleft;
-    short blocksize;
-    int line = 0, lineb;
-    int byte = gb->left;
-    int pass = 0;
-    int transparent = info->info[n].transparent;
-    int handle = info->info[n].handle;
-    s_screen *buf = info->gifbuffer[n];
-    int width = buf->width;
-    int height = buf->height;
-    unsigned char *pal = info->info[n].local_pal ? info->info[n].local_pal : info->info[n].global_pal;
+    while((length = readbyte(handle)) > 0)
+    {
+        if(readpackfile(handle, block, length) != length)
+        {
+            return 0;
+        }
+    }
+    return length == 0;
+}
 
-    unsigned char *p;
-    unsigned char *u;
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Preserve OpenBOR's control semantics: a set transparency flag replaces the
+ * key; an unset flag leaves the previous key, and disposal remains ignored.
+ * Validate the control payload before accessing its delay and key fields.
+ */
+static int handle_gfx_control(anigif_info *info, int n)
+{
+    unsigned char block[ANIGIF_BLOCK_BYTES];
+    int length;
 
-    unsigned char *q;
-    unsigned char b[255];
+    while((length = readbyte(info->info[n].handle)) > 0)
+    {
+        if(length < ANIGIF_CONTROL_BYTES ||
+           readpackfile(info->info[n].handle, block, length) != length)
+        {
+            return 0;
+        }
+        if(block[ANIGIF_CONTROL_FLAGS] & ANIGIF_CONTROL_TRANSPARENT)
+        {
+            info->info[n].transparent = block[ANIGIF_CONTROL_KEY];
+        }
+        info->info[n].lastdelay =
+            (block[ANIGIF_CONTROL_DELAY_HIGH] << ANIGIF_LZW_LITERAL_BITS) |
+            block[ANIGIF_CONTROL_DELAY_LOW];
+    }
+    return length == 0;
+}
 
-    static unsigned char firstcodestack[4096];
-    static unsigned char lastcodestack[4096];
-    static short codestack[4096];
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Route graphic controls and skip unrelated GIF extensions without changing
+ * the existing playback model or introducing disposal/background operations.
+ */
+static int gifextension(anigif_info *info, int n)
+{
+    int function = readbyte(info->info[n].handle);
 
-    static short wordmasktable[] = {0x0000, 0x0001, 0x0003, 0x0007,
-                                    0x000f, 0x001f, 0x003f, 0x007f,
-                                    0x00ff, 0x01ff, 0x03ff, 0x07ff,
-                                    0x0fff, 0x1fff, 0x3fff, 0x7fff
-                                   };
-
-    static short inctable[] = { 8, 8, 4, 2, 0 };
-    static short startable[] = { 0, 4, 2, 1, 0 };
-
-
-    // get the initial LZW code bits
-    bits = readbyte(handle);
-    if(bits < 2 || bits > 8)
+    if(function < 0)
     {
         return 0;
     }
+    if(function == ANIGIF_CONTROL_EXTENSION)
+    {
+        return handle_gfx_control(info, n);
+    }
+    return passgifblock(info->info[n].handle);
+}
 
-    /* GIF disposal/transparency can preserve pixels from a previous frame. */
-    gpu_prepare_cpu_write(buf);
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Read LZW bytes from length-prefixed GIF subblocks. The file position always
+ * follows the entire current block, so an end code can drain later blocks.
+ */
+static int anigif_data_byte(anigif_lzw_reader *reader)
+{
+    int length;
 
-    p = q = b;
-    bitsleft = 8;
+    if(reader->block_position == reader->block_size)
+    {
+        length = readbyte(reader->handle);
+        if(length <= 0)
+        {
+            reader->terminated = length == 0;
+            reader->failed = length < 0;
+            return -1;
+        }
+        if(readpackfile(reader->handle, reader->block, length) != length)
+        {
+            reader->failed = 1;
+            return -1;
+        }
+        reader->block_size = (unsigned int)length;
+        reader->block_position = 0;
+    }
+    return reader->block[reader->block_position++];
+}
 
-    bits2 = 1 << bits;
-    nextcode = bits2 + 2;
-    codesize2 = 1 << (codesize = bits + 1);
-    oldcode = oldtoken = NO_CODE;
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Reassemble little-endian variable-width codes without reading beyond a
+ * subblock or carrying undefined bits into the next dictionary lookup.
+ */
+static int anigif_lzw_code(anigif_lzw_reader *reader, unsigned int width)
+{
+    unsigned int code;
+    int byte;
 
-    lineb = gb->top * width;
+    while(reader->bit_count < width)
+    {
+        byte = anigif_data_byte(reader);
+        if(byte < 0)
+        {
+            return -1;
+        }
+        reader->accumulator |= (unsigned int)byte << reader->bit_count;
+        reader->bit_count += ANIGIF_LZW_LITERAL_BITS;
+    }
+    code = reader->accumulator & ((1u << width) - 1u);
+    reader->accumulator >>= width;
+    reader->bit_count -= width;
+    return (int)code;
+}
 
-    // loop until something breaks
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Decode a complete indexed frame before publishing any pixels. Narrow
+ * interlaced images skip empty passes; malformed chains, surplus pixels and
+ * truncated payloads cannot leave a partly initialized GPU upload rectangle.
+ * A proper subblock terminator after all pixels retains the old decoder's
+ * tolerance for streams that omit an explicit LZW end code.
+ */
+static int decodegifblock(anigif_info *info, const gifblockstruct *block, int n)
+{
+    anigif_lzw_reader reader = {0};
+    anigif_dictionary dictionary;
+    unsigned char *indices;
+    size_t pixels, written = 0;
+    unsigned int clear_code, end_code, next_code, code_width;
+    unsigned int code, incoming, first = 0, stack_size;
+    unsigned int column = 0, row = 0, pass = 0, step = ANIGIF_INTERLACE_FIRST_STEP;
+    int minimum_bits, old_code = NO_CODE, value;
+
+    if(!block->width || !block->height)
+    {
+        return 0;
+    }
+    if((size_t)block->width > SIZE_MAX / block->height)
+    {
+        return 0;
+    }
+    pixels = (size_t)block->width * block->height;
+    if(info->info[n].indices_capacity < pixels)
+    {
+        indices = realloc(info->info[n].indices, pixels);
+        if(!indices)
+        {
+            return 0;
+        }
+        info->info[n].indices = indices;
+        info->info[n].indices_capacity = pixels;
+    }
+    indices = info->info[n].indices;
+    reader.handle = info->info[n].handle;
+    minimum_bits = readbyte(reader.handle);
+    if(minimum_bits < ANIGIF_LZW_MIN_BITS || minimum_bits > ANIGIF_LZW_LITERAL_BITS)
+    {
+        return 0;
+    }
+    clear_code = 1u << minimum_bits;
+    end_code = clear_code + 1;
+    next_code = clear_code + ANIGIF_LZW_RESERVED_CODES;
+    code_width = (unsigned int)minimum_bits + 1;
+
     for(;;)
     {
-        if(bitsleft == 8)
+        value = anigif_lzw_code(&reader, code_width);
+        if(value < 0)
         {
-            if(++p >= q && (((blocksize = readbyte(handle)) < 1) ||
-                            (q = (p = b) + readpackfile(handle, b, blocksize)) < (b + blocksize)))
-            {
-                return 1;	// Done
-            }
-            bitsleft = 0;
+            return reader.terminated && !reader.failed && written == pixels;
         }
-        thiscode = *p;
-        if((currentcode = (codesize + bitsleft)) <= 8)
+        code = incoming = (unsigned int)value;
+        if(code == clear_code)
         {
-            *p >>= codesize;
-            bitsleft = currentcode;
-        }
-        else
-        {
-            if(++p >= q && (((blocksize = readbyte(handle)) < 1) ||
-                            (q = (p = b) + readpackfile(handle, b, blocksize)) < (b + blocksize)))
-            {
-                return 1;	// Done
-            }
-
-            thiscode |= *p << (8 - bitsleft);
-            if(currentcode <= 16)
-            {
-                *p >>= (bitsleft = currentcode - 8);
-            }
-            else
-            {
-                if(++p >= q && (((blocksize = readbyte(handle)) < 1) ||
-                                (q = (p = b) + readpackfile(handle, b, blocksize)) < (b + blocksize)))
-                {
-                    return 1;	// Done
-                }
-
-                thiscode |= *p << (16 - bitsleft);
-                *p >>= (bitsleft = currentcode - 16);
-            }
-        }
-        thiscode &= wordmasktable[codesize];
-        currentcode = thiscode;
-
-        if(thiscode == (bits2 + 1))
-        {
-            break;
-        }
-        if(thiscode > nextcode)
-        {
-            return 0;			// Bad code
-        }
-
-        if(thiscode == bits2)
-        {
-            nextcode = bits2 + 2;
-            codesize2 = 1 << (codesize = (bits + 1));
-            oldtoken = oldcode = NO_CODE;
+            next_code = clear_code + ANIGIF_LZW_RESERVED_CODES;
+            code_width = (unsigned int)minimum_bits + 1;
+            old_code = NO_CODE;
             continue;
         }
-
-        u = firstcodestack;
-
-        if(thiscode == nextcode)
+        if(code == end_code)
         {
-            if(oldcode == NO_CODE)
-            {
-                return 0;		// Bad code
-            }
-            *u++ = oldtoken;
-            thiscode = oldcode;
+            return written == pixels && passgifblock(reader.handle);
         }
-
-        while(thiscode >= bits2)
+        if(code > next_code || code >= ANIGIF_LZW_CODES)
         {
-            *u++ = lastcodestack [thiscode];
-            thiscode = codestack[thiscode];
+            return 0;
         }
-
-        oldtoken = thiscode;
-        do
+        stack_size = 0;
+        if(code == next_code)
         {
-            if(byte < width && byte >= 0 && gb->top + line >= 0 && line < (height - gb->top) && thiscode != transparent)
+            if(old_code == NO_CODE)
             {
-                switch(buf->pixelformat)
-                {
-                case PIXEL_8:
-                    ((unsigned char *)buf->data)[lineb + byte] = thiscode;
-                    break;
-                case PIXEL_32:
-                    ((unsigned *)buf->data)[lineb + byte] = ((unsigned *)pal)[thiscode & 0xff];
-                    //printf("%08x, %02x, %ld\n", ((unsigned*)buf->data)[lineb + byte], thiscode&0xff, info->handle);
-                    break;
-                }
+                return 0;
             }
-            byte++;
-            if(byte >= gb->left + gb->width)
+            dictionary.stack[stack_size++] = (unsigned char)first;
+            code = (unsigned int)old_code;
+        }
+        while(code >= clear_code)
+        {
+            if(code < clear_code + ANIGIF_LZW_RESERVED_CODES || code >= next_code ||
+               stack_size >= ANIGIF_LZW_CODES)
             {
-                byte = gb->left;
-                // check for interlaced image
-                if(gb->flags & 0x40)
+                return 0;
+            }
+            dictionary.stack[stack_size++] = dictionary.suffix[code];
+            code = dictionary.prefix[code];
+        }
+        first = code;
+        if(stack_size >= ANIGIF_LZW_CODES)
+        {
+            return 0;
+        }
+        dictionary.stack[stack_size++] = (unsigned char)first;
+        while(stack_size)
+        {
+            if(written >= pixels || row >= block->height)
+            {
+                return 0;
+            }
+            indices[(size_t)row * block->width + column] = dictionary.stack[--stack_size];
+            ++written;
+            if(++column == block->width)
+            {
+                column = 0;
+                if(block->flags & ANIGIF_INTERLACED)
                 {
-                    line += inctable[pass];
-                    if(line >= gb->height)
+                    row += step;
+                    while(row >= block->height && pass < ANIGIF_INTERLACE_PASSES)
                     {
-                        line = startable[++pass];
+                        ++pass;
+                        if(pass == 1)
+                        {
+                            row = ANIGIF_INTERLACE_FIRST_STEP / 2;
+                        }
+                        else
+                        {
+                            step /= 2;
+                            row = step / 2;
+                        }
                     }
                 }
                 else
                 {
-                    ++line;
+                    ++row;
                 }
-                lineb = width * (gb->top + line);
             }
-            if (u <= firstcodestack)
+        }
+        if(old_code != NO_CODE && next_code < ANIGIF_LZW_CODES)
+        {
+            dictionary.prefix[next_code] = (unsigned short)old_code;
+            dictionary.suffix[next_code] = (unsigned char)first;
+            ++next_code;
+            if(next_code == (1u << code_width) && code_width < ANIGIF_LZW_MAX_BITS)
             {
-                break;
-            }
-            thiscode = *--u;
-        }
-        while(1);
-
-        if(nextcode < 4096 && oldcode != NO_CODE)
-        {
-            codestack[nextcode] = oldcode;
-            lastcodestack[nextcode] = oldtoken;
-            if(++nextcode >= codesize2 && codesize < 12)
-            {
-                codesize2 = 1 << ++codesize;
+                ++code_width;
             }
         }
-        oldcode = currentcode;
-    }
-
-    return 1;
-}
-
-
-void anigif_close(anigif_info *info)
-{
-    int i;
-    for(i = 0; i < 3; i++)
-    {
-        if(info->info[i].handle >= 0)
-        {
-            closepackfile(info->info[i].handle);
-            info->info[i].handle = -1;
-        }
-        if(info->info[i].global_pal)
-        {
-            free(info->info[i].global_pal);
-            info->info[i].global_pal = NULL;
-        }
-        if(info->info[i].local_pal)
-        {
-            free(info->info[i].local_pal);
-            info->info[i].local_pal = NULL;
-        }
-        if(info->gifbuffer[i])
-        {
-            freescreen(&info->gifbuffer[i]);
-        }
-
-    }
-    if(info->backbuffer)
-    {
-        freescreen(&info->backbuffer);
+        old_code = (int)incoming;
     }
 }
 
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Open a GIF stream and prepare its source palette for RGB32 color lookup.
- * Indexed decoding and GIF file bit depths retain their existing behavior.
+ * 2026-11-20
+ * Retire render targets through normal screen coherence hooks, then release
+ * palettes and reusable LZW storage. Closing a partially opened GIF is safe.
  */
-static int test_anigif_open(anigif_info *info, char *tname, char *packfilename, int n)
+void anigif_close(anigif_info *info)
 {
-    int i, j;
-    unsigned char tpal[1024];
-    unsigned char *pal;
-    if(
-        (info->info[n].handle = openpackfile(tname, packfilename)) == -1 ||
-        readpackfile(info->info[n].handle, &info->info[n].gif_header, sizeof_gifheaderstruct) != sizeof_gifheaderstruct ||
-        info->info[n].gif_header.magic[0] != 'G' || info->info[n].gif_header.magic[1] != 'I' || info->info[n].gif_header.magic[2] != 'F'
-    )
+    int n;
+
+    if(!info)
     {
-        anigif_close(info);
-        return 0;
+        return;
     }
-
-    info->info[n].gif_header.screenwidth = SwapLSB16(info->info[n].gif_header.screenwidth);
-    info->info[n].gif_header.screenheight = SwapLSB16(info->info[n].gif_header.screenheight);
-
-    if(info->info[n].gif_header.flags & 0x80)
+    for(n = 0; n < ANIGIF_CHANNEL_COUNT; ++n)
     {
-        info->info[n].bitdepth = (info->info[n].gif_header.flags & 7) + 1;
-        info->info[n].numcolours = 1 << info->info[n].bitdepth ;
-    }
-    else
-    {
-        info->info[n].bitdepth = 8;
-        info->info[n].numcolours = 0;
-    }
-    info->info[n].lastdelay = 1;
-    info->info[n].code = ANIGIF_DECODE_RETRY;
-
-    //info->current_res[0] = SwapLSB16(info->gif_header.screenwidth);
-    //info->current_res[1] = SwapLSB16(info->gif_header.screenheight);
-
-    //printf("numcolours:%d\n", info->numcolours);
-
-    // Get global palette, if present and if wanted
-    if(info->info[n].gif_header.flags & 0x80)
-    {
-        pal = info->info[n].global_pal = calloc(1, PAL_BYTES);
-
-        if(readpackfile(info->info[n].handle, tpal, info->info[n].numcolours * 3) != info->info[n].numcolours * 3)
+        if(info->info[n].handle >= 0)
         {
-            anigif_close(info);
-            return 0;
+            closepackfile(info->info[n].handle);
+            info->info[n].handle = -1;
         }
-        if(!info->isRGB)
-        {
-            tpal[0] = tpal[1] = tpal[2] = 0;
-        }
-        switch(PAL_BYTES)
-        {
-        case 768:
-            memcpy(pal, tpal, 768);
-            break;
-        case 1024:
-            for(i = 0, j = 0; i < 1024; i += 4, j += 3)
-            {
-                *(unsigned *)(pal + i) = colour32(tpal[j], tpal[j + 1], tpal[j + 2]);
-            }
-            break;
-        }
+        freescreen(&info->gifbuffer[n]);
+        free(info->info[n].global_pal);
+        free(info->info[n].local_pal);
+        free(info->info[n].indices);
+        info->info[n].global_pal = NULL;
+        info->info[n].local_pal = NULL;
+        info->info[n].indices = NULL;
+        info->info[n].indices_capacity = 0;
     }
-    return 1;
-
+    freescreen(&info->backbuffer);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Convert at most 256 palette entries once per table. This is source metadata;
+ * per-pixel palette lookup is performed by the native composition shader.
+ * Unused entries are deterministic black, and ordinary GIFs retain OpenBOR's
+ * established black-at-index-zero convention. RGB triplets keep every color.
+ */
+static int anigif_read_palette(int handle, unsigned char **destination, int colors, int rgb)
+{
+    unsigned char source[ANIGIF_PALETTE_COLORS * ANIGIF_PALETTE_COMPONENTS] = {0};
+    unsigned int *palette;
+    int color;
 
-// Returns true on success
+    if(!*destination)
+    {
+        *destination = calloc(1, PAL_BYTES);
+        if(!*destination)
+        {
+            return 0;
+        }
+    }
+    if(readpackfile(handle, source, colors * ANIGIF_PALETTE_COMPONENTS) !=
+       colors * ANIGIF_PALETTE_COMPONENTS)
+    {
+        return 0;
+    }
+    if(!rgb)
+    {
+        source[0] = source[1] = source[2] = 0;
+    }
+    palette = (unsigned int *)*destination;
+    for(color = 0; color < ANIGIF_PALETTE_COLORS; ++color)
+    {
+        int offset = color * ANIGIF_PALETTE_COMPONENTS;
+        palette[color] = colour32(source[offset], source[offset + 1], source[offset + 2]);
+    }
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Validate the stream header and read its optional global palette. Native
+ * canvas allocation is deferred until every requested channel is open.
+ */
+static int test_anigif_open(anigif_info *info, char *name, char *packfilename, int n)
+{
+    gifheaderstruct *header = &info->info[n].gif_header;
+
+    info->info[n].handle = openpackfile(name, packfilename);
+    if(info->info[n].handle < 0 ||
+       readpackfile(info->info[n].handle, header, sizeof_gifheaderstruct) != sizeof_gifheaderstruct ||
+       memcmp(header->magic, "GIF", ANIGIF_SIGNATURE_BYTES))
+    {
+        return 0;
+    }
+    header->screenwidth = SwapLSB16(header->screenwidth);
+    header->screenheight = SwapLSB16(header->screenheight);
+    if(!header->screenwidth || !header->screenheight)
+    {
+        return 0;
+    }
+    info->info[n].bitdepth = (header->flags & ANIGIF_COLOR_TABLE) ?
+        (header->flags & ANIGIF_COLOR_BITS_MASK) + 1 : ANIGIF_LZW_LITERAL_BITS;
+    info->info[n].numcolours = (header->flags & ANIGIF_COLOR_TABLE) ?
+        1 << info->info[n].bitdepth : 0;
+    info->info[n].lastdelay = 1;
+    info->info[n].code = ANIGIF_DECODE_RETRY;
+    return !(header->flags & ANIGIF_COLOR_TABLE) ||
+        anigif_read_palette(info->info[n].handle, &info->info[n].global_pal,
+                           info->info[n].numcolours, info->isRGB);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Keep GIF logical dimensions exact: general allocscreen() rounds widths down
+ * to four pixels, which cannot represent narrow GIF canvases. Allocate the
+ * normal RGB32 screen layout with checked size arithmetic and initialize its
+ * image on the GPU; its CPU shadow stays untouched until explicit readback.
+ */
+static s_screen *anigif_canvas(unsigned int width, unsigned int height)
+{
+    s_screen *screen;
+    size_t pixels, bytes;
+
+    if(!width || !height || (size_t)width > SIZE_MAX / height)
+    {
+        return NULL;
+    }
+    pixels = (size_t)width * height;
+    if(pixels > (SIZE_MAX - sizeof(*screen)) / ANIGIF_PIXEL_BYTES)
+    {
+        return NULL;
+    }
+    bytes = sizeof(*screen) + pixels * ANIGIF_PIXEL_BYTES;
+    screen = malloc(bytes);
+    if(!screen)
+    {
+        return NULL;
+    }
+    screen->magic = screen_magic;
+    screen->width = (int)width;
+    screen->height = (int)height;
+    screen->pixelformat = PIXEL_32;
+    screen->palette = NULL;
+    if(!gpu_clear_screen(screen))
+    {
+        gpu_log("ERROR: Animated GIF native canvas initialization failed; GIF stopped without a CPU retry.");
+        freescreen(&screen);
+    }
+    return screen;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Name the optional RGB component files without a fixed filename-size limit.
+ */
+static char anigif_channel_name(int n)
+{
+    switch(n)
+    {
+    case ANIGIF_RED: return 'r';
+    case ANIGIF_GREEN: return 'g';
+    default: return 'b';
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Open the existing single-GIF or indexed-asset RGB-triplet format. Every
+ * public image remains a persistent RGB32 screen and therefore keeps script
+ * drawing, explicit CPU reads, frame timing and resource ownership intact.
+ */
 int anigif_open(char *filename, char *packfilename, anigif_info *info)
 {
-    char tname[256] = {""};
-    int i;
+    char *name = NULL;
+    size_t length, stem_length;
+    int n, channels;
+    const char suffix[] = "r.gif";
 
-    memset(info, 0, sizeof(anigif_info));
-    info->isRGB = (pixelformat == PIXEL_x8);
-    strcpy(tname, filename);
-    if(stricmp(tname + strlen(tname) - 4, ".gif") == 0)
+    if(!info)
     {
-        tname[strlen(tname) - 4] = 0;
+        return 0;
     }
+    memset(info, 0, sizeof(*info));
+    for(n = 0; n < ANIGIF_CHANNEL_COUNT; ++n)
+    {
+        info->info[n].handle = -1;
+        info->info[n].transparent = NO_CODE;
+    }
+    if(!filename)
+    {
+        return 0;
+    }
+    length = strlen(filename);
+    stem_length = length;
+    if(length >= ANIGIF_EXTENSION_LENGTH &&
+       stricmp(filename + length - ANIGIF_EXTENSION_LENGTH, ".gif") == 0)
+    {
+        stem_length -= ANIGIF_EXTENSION_LENGTH;
+    }
+    if(stem_length > SIZE_MAX - sizeof(suffix))
+    {
+        return 0;
+    }
+    name = malloc(stem_length + sizeof(suffix));
+    if(!name)
+    {
+        return 0;
+    }
+    memcpy(name, filename, stem_length);
+    memcpy(name + stem_length, suffix, sizeof(suffix));
 
-    strcat(tname, "_.gif");
-
+    /* Source artwork mode remains independent of the RGB32 scene format. */
+    info->isRGB = pixelformat == PIXEL_x8;
     if(info->isRGB)
     {
-        tname[strlen(tname) - 5] = 'r';
-        if(testpackfile(tname, packfilename) < 0)
+        for(n = 0; n < ANIGIF_CHANNEL_COUNT; ++n)
         {
-            info->isRGB = 0;
-        }
-        tname[strlen(tname) - 5] = 'g';
-        if(testpackfile(tname, packfilename) < 0)
-        {
-            info->isRGB = 0;
-        }
-        tname[strlen(tname) - 5] = 'b';
-        if(testpackfile(tname, packfilename) < 0)
-        {
-            info->isRGB = 0;
+            name[stem_length + ANIGIF_SUFFIX_CHANNEL_OFFSET] = anigif_channel_name(n);
+            if(testpackfile(name, packfilename) < 0)
+            {
+                info->isRGB = 0;
+                break;
+            }
         }
     }
-
-    for(i = 0; i < 3; i++)
+    channels = info->isRGB ? ANIGIF_CHANNEL_COUNT : 1;
+    for(n = 0; n < channels; ++n)
     {
-        info->info[i].handle = -1;
-        info->info[i].transparent = -1;
+        name[stem_length + ANIGIF_SUFFIX_CHANNEL_OFFSET] = anigif_channel_name(n);
+        if(!test_anigif_open(info, info->isRGB ? name : filename, packfilename, n))
+        {
+            goto failed;
+        }
     }
+    free(name);
+    name = NULL;
 
+    for(n = 0; n < channels; ++n)
+    {
+        info->gifbuffer[n] = anigif_canvas(info->info[0].gif_header.screenwidth,
+                                         info->info[0].gif_header.screenheight);
+        if(!info->gifbuffer[n])
+        {
+            goto failed;
+        }
+    }
     if(info->isRGB)
     {
-        tname[strlen(tname) - 5] = 'r';
-        if(!test_anigif_open(info, tname, packfilename, 0))
+        info->backbuffer = anigif_canvas(info->info[0].gif_header.screenwidth,
+                                        info->info[0].gif_header.screenheight);
+        if(!info->backbuffer)
         {
-            return 0;
+            goto failed;
         }
-        tname[strlen(tname) - 5] = 'g';
-        if(!test_anigif_open(info, tname, packfilename, 1))
-        {
-            return 0;
-        }
-        tname[strlen(tname) - 5] = 'b';
-        if(!test_anigif_open(info, tname, packfilename, 2))
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        if(!test_anigif_open(info, filename, packfilename, 0))
-        {
-            return 0;
-        }
-    }
-
-    if(info->isRGB)
-    {
-        info->backbuffer = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, PIXEL_32);
-        clearscreen(info->backbuffer);
-    }
-    for(i = info->isRGB ? 2 : 0; i >= 0; i--)
-    {
-        info->gifbuffer[i] = allocscreen(info->info[0].gif_header.screenwidth, info->info[0].gif_header.screenheight, PIXEL_32);
-        clearscreen(info->gifbuffer[i]);
     }
     info->frame = -1;
     return 1;
+
+failed:
+    free(name);
+    anigif_close(info);
+    return 0;
 }
 
-
-// Returns type of action to take (frame, retry, end)
 /*
  * Damon V. Caskey
- * 2026-11-15
- * Decode the next GIF record, converting local palettes for RGB32 lookup
- * while retaining indexed source images and their file-format metadata.
+ * 2026-11-20
+ * Decode one record into indices, then publish a complete frame through the
+ * palette shader. Transparency preserves resident destination pixels, even
+ * after scripts have drawn into that public canvas. Failed decoding or GPU
+ * composition ends this stream without CPU rendering or a partial upload.
  */
 int anigif_decode(anigif_info *info, int n)
 {
+    gifblockstruct block;
+    gpu_indexed_frame frame;
+    int record, colors;
+    const unsigned char *palette;
 
-    gifblockstruct iblock;
-    unsigned char tpal[1024];
-    unsigned char *pal;
-    unsigned char c;
-    int i, j, numcolours;
-
-    if(info->info[n].handle < 0 || info->gifbuffer[n] == NULL ||
-            readpackfile(info->info[n].handle, &c, 1) != 1)
+    if(info->info[n].handle < 0 || !info->gifbuffer[n])
     {
-        goto decode_end;
+        return ANIGIF_DECODE_END;
     }
-
-    switch(c)
+    record = readbyte(info->info[n].handle);
+    switch(record)
     {
     case ',':
-        // An image block
-        if(readpackfile(info->info[n].handle, &iblock, sizeof_iblock) != sizeof_iblock)
+        if(readpackfile(info->info[n].handle, &block, sizeof_iblock) != sizeof_iblock)
         {
-            goto decode_end;
+            goto failed;
         }
-
-        if(iblock.flags & 0x80)
+        if(block.flags & ANIGIF_COLOR_TABLE)
         {
-            if(!info->info[n].local_pal)
+            colors = 1 << ((block.flags & ANIGIF_COLOR_BITS_MASK) + 1);
+            if(!anigif_read_palette(info->info[n].handle, &info->info[n].local_pal,
+                                   colors, info->isRGB))
             {
-                info->info[n].local_pal = calloc(1, PAL_BYTES);
-            }
-            pal = info->info[n].local_pal;
-            numcolours = 1 << ((iblock.flags & 7) + 1);
-            if(readpackfile(info->info[n].handle, tpal, numcolours * 3) != numcolours * 3)
-            {
-                goto decode_end;
-            }
-            if(!info->isRGB)
-            {
-                tpal[0] = tpal[1] = tpal[2] = 0;
-            }
-            switch(PAL_BYTES)
-            {
-            case 768:
-                memcpy(pal, tpal, 768);
-                break;
-            case 1024:
-                for(i = 0, j = 0; i < 1024; i += 4, j += 3)
-                {
-                    *(unsigned *)(pal + i) = colour32(tpal[j], tpal[j + 1], tpal[j + 2]);
-                }
-                break;
+                goto failed;
             }
         }
-        else if (info->info[n].local_pal)
+        else
         {
             free(info->info[n].local_pal);
             info->info[n].local_pal = NULL;
         }
-
-        iblock.left = SwapLSB16(iblock.left);
-        iblock.top = SwapLSB16(iblock.top);
-        iblock.width = SwapLSB16(iblock.width);
-        iblock.height = SwapLSB16(iblock.height);
-
-        decodegifblock(info, &iblock, n);
-
-        // lastdelay = 0;
-
-        return ANIGIF_DECODE_FRAME | ((iblock.flags & 0x80) ? ANIGIF_DECODE_PAL : 0);
+        block.left = SwapLSB16(block.left);
+        block.top = SwapLSB16(block.top);
+        block.width = SwapLSB16(block.width);
+        block.height = SwapLSB16(block.height);
+        palette = info->info[n].local_pal ? info->info[n].local_pal : info->info[n].global_pal;
+        if(!palette || !decodegifblock(info, &block, n))
+        {
+            goto failed;
+        }
+        frame.indices = info->info[n].indices;
+        frame.palette = palette;
+        frame.width = block.width;
+        frame.height = block.height;
+        frame.x = block.left;
+        frame.y = block.top;
+        frame.transparent = info->info[n].transparent;
+        if(!gpu_compose_indexed(info->gifbuffer[n], &frame))
+        {
+            gpu_log("ERROR: Animated GIF native frame composition failed on channel %d; GIF stopped without a CPU retry.", n);
+            return ANIGIF_DECODE_END;
+        }
+        return ANIGIF_DECODE_FRAME | ((block.flags & ANIGIF_COLOR_TABLE) ? ANIGIF_DECODE_PAL : 0);
 
     case '!':
-        // Handle GIF extension
-        gifextension(info, n);
-        // if(delay) *delay = lastdelay;
-        // lastdelay = 0;
+        if(!gifextension(info, n))
+        {
+            goto failed;
+        }
         return ANIGIF_DECODE_RETRY;
 
-//		case 0:
+    case -1:
+    case ';':
+        return ANIGIF_DECODE_END;
+
     default:
-        // Isn't this an EOF?
         return ANIGIF_DECODE_RETRY;
-//			anigif_close();
-//			return ANIGIF_DECODE_END;
     }
 
-decode_end:
-    //anigif_close(info);
+failed:
+    gpu_log("ERROR: Animated GIF frame data is incomplete or invalid on channel %d; GIF stopped before frame composition.", n);
     return ANIGIF_DECODE_END;
 }
 
-static void anigif_updatebuffer(anigif_info *info)
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Preserve the original bitwise RGB union on resident channel textures,
+ * including arbitrary script edits to the public RGB32 channel screens.
+ */
+static int anigif_updatebuffer(anigif_info *info)
 {
-    s_screen *backbuffer = info->backbuffer;
-    s_screen **gifbuffer = info->gifbuffer;
-    int i, l = backbuffer->width * backbuffer->height;
-    unsigned int *ps32, *ppr32, *ppg32, *ppb32;
-
-    /* The public GIF buffers can also be script render targets. Resolve
-     * channel reads, then replace the combined CPU image without readback. */
-    gpu_sync_cpu(gifbuffer[0]);
-    gpu_sync_cpu(gifbuffer[1]);
-    gpu_sync_cpu(gifbuffer[2]);
-    gpu_mark_cpu_dirty(backbuffer);
-    ps32 = (unsigned int *)(backbuffer->data);
-    ppr32 = (unsigned int *)(gifbuffer[0]->data);
-    ppg32 = (unsigned int *)(gifbuffer[1]->data);
-    ppb32 = (unsigned int *)(gifbuffer[2]->data);
-    for(i = 0; i < l; i++)
+    if(gpu_merge_channels(info->backbuffer, info->gifbuffer[ANIGIF_RED],
+                          info->gifbuffer[ANIGIF_GREEN], info->gifbuffer[ANIGIF_BLUE]))
     {
-        ps32[i] = ppr32[i] | ppg32[i] | ppb32[i];
-        //printf(" %u %u %u\n", ppr32[i], ppg32[i], ppb32[i]);
+        return 1;
     }
-
+    gpu_log("ERROR: Animated GIF native RGB merge failed; GIF stopped without a CPU retry.");
+    return 0;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Advance channels together and retain their existing centisecond timing.
+ * The frame number advances only after all palette draws and any RGB merge
+ * succeed; ending any component ends the combined animation as before.
+ */
 int anigif_decode_frame(anigif_info *info)
 {
-    int n, num = info->isRGB ? 3 : 1;
+    int n, channels = info->isRGB ? ANIGIF_CHANNEL_COUNT : 1;
+
     if(!info->done)
     {
-        for(n = 0; n < num; n++)
+        for(n = 0; n < channels; ++n)
         {
             if(info->info[n].code != ANIGIF_DECODE_END)
             {
-                while((info->info[n].code = anigif_decode(info, n)) == ANIGIF_DECODE_RETRY);
-                info->info[n].nextframe += info->info[n].lastdelay * 10;
+                do
+                {
+                    info->info[n].code = anigif_decode(info, n);
+                }
+                while(info->info[n].code == ANIGIF_DECODE_RETRY);
+                info->info[n].nextframe += info->info[n].lastdelay * ANIGIF_DELAY_MILLISECONDS;
             }
             if(info->info[n].code == ANIGIF_DECODE_END)
             {
@@ -632,25 +757,34 @@ int anigif_decode_frame(anigif_info *info)
         }
         if(!info->done)
         {
-            if(info->isRGB)
+            if(info->isRGB && !anigif_updatebuffer(info))
             {
-                anigif_updatebuffer(info);
+                info->done = 1;
             }
-            info->frame++;
+            else
+            {
+                ++info->frame;
+            }
         }
     }
     return info->done;
 }
 
-
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Return the same persistent public screen without resolving its CPU shadow.
+ * Explicit pixel readers still trigger synchronization through normal screen
+ * APIs; GPU consumers can sample the current image without a round trip.
+ */
 s_screen *anigif_getbuffer(anigif_info *info)
 {
     s_screen *buffer = info->isRGB ? info->backbuffer : info->gifbuffer[0];
+
     if(buffer)
     {
-        buffer->palette = info->isRGB ? NULL : (info->info[0].local_pal ? info->info[0].local_pal : info->info[0].global_pal);
+        buffer->palette = info->isRGB ? NULL :
+            (info->info[0].local_pal ? info->info[0].local_pal : info->info[0].global_pal);
     }
     return buffer;
 }
-
-

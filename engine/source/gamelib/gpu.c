@@ -17,6 +17,7 @@ static int native_required;
 static unsigned declined_operation_warnings;
 static unsigned declined_resample_warnings;
 static int declined_movie_warning;
+static int declined_gif_frame_warning, declined_gif_merge_warning;
 static const char *const operation_names[GPU_OPERATION_COUNT] = {
     "screen draw", "sprite draw", "rectangle draw", "line draw",
     "pixel draw", "screen clear", "screen copy", "scene presentation"
@@ -62,6 +63,7 @@ void gpu_register_backend(const gpu_backend *backend)
     /* Publish callbacks only after their context, shaders and resources are ready. */
     active_backend = backend;
     declined_movie_warning = 0;
+    declined_gif_frame_warning = declined_gif_merge_warning = 0;
     if(backend)
     {
         gpu_set_native_required(1);
@@ -394,6 +396,58 @@ void gpu_release_yuv(const void *owner)
     {
         active_backend->release_yuv(owner);
     }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Resolve indexed GIF colors and transparent patches on the native canvas.
+ * Failure leaves its logical contents unchanged and has no CPU substitute.
+ */
+int gpu_compose_indexed(s_screen *dest, const gpu_indexed_frame *frame)
+{
+    if(dest && dest->pixelformat == PIXEL_32 && frame &&
+       active_backend && active_backend->compose_indexed &&
+       active_backend->compose_indexed(dest, frame))
+    {
+        return 1;
+    }
+    if(!active_backend || !active_backend->compose_indexed)
+    {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
+    }
+    if(!declined_gif_frame_warning)
+    {
+        declined_gif_frame_warning = 1;
+        gpu_log("WARNING: Native GIF frame composition unavailable or rejected; frame unchanged. CPU palette conversion and rendering retry are disabled.");
+    }
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Assemble OpenBOR's three GIF streams without downloading their canvases.
+ * All RGB bytes retain the established bitwise OR, including script edits.
+ */
+int gpu_merge_channels(s_screen *dest, s_screen *red, s_screen *green, s_screen *blue)
+{
+    if(dest && dest->pixelformat == PIXEL_32 && red && green && blue &&
+       active_backend && active_backend->merge_channels &&
+       active_backend->merge_channels(dest, red, green, blue))
+    {
+        return 1;
+    }
+    if(!active_backend || !active_backend->merge_channels)
+    {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
+    }
+    if(!declined_gif_merge_warning)
+    {
+        declined_gif_merge_warning = 1;
+        gpu_log("WARNING: Native GIF channel composition unavailable or rejected; frame unchanged. CPU merging and rendering retry are disabled.");
+    }
+    return 0;
 }
 
 /*

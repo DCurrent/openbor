@@ -1046,6 +1046,63 @@ const char *gpu_output_filter_fragment_shader_source =
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Keep GIF palette expansion, transparent patch coverage and RGB stream
+ * assembly on the GPU. The bytewise OR uses exact small float integers so
+ * the same equations compile on desktop GLSL 1.20 and GLES 3.00.
+ */
+const char *gpu_gif_fragment_shader_source =
+    "#version 120\n"
+    "uniform vec2 sourceSize;\n"
+    "uniform sampler2D firstTexture, secondTexture, thirdTexture;\n"
+    "uniform sampler2D paletteTexture;\n"
+    "uniform float paletteRow;\n"
+    "uniform int composeMode, transparentIndex;\n"
+    "varying vec2 sourcePosition;\n"
+    "const int GIF_INDEXED = 0;\n"
+    "const int GIF_BYTE_BITS = 8;\n"
+    "const float GIF_BYTE_MAX = 255.0;\n"
+    "const float GIF_PALETTE_COLORS = 256.0;\n"
+    "vec3 gifBytes(vec3 value)\n"
+    "{\n"
+    "    return floor(clamp(value, 0.0, 1.0) * GIF_BYTE_MAX + 0.5);\n"
+    "}\n"
+    "vec3 gifOr(vec3 first, vec3 second, vec3 third)\n"
+    "{\n"
+    "    vec3 result = vec3(0.0);\n"
+    "    float place = 1.0;\n"
+    "    for(int bit = 0; bit < GIF_BYTE_BITS; ++bit)\n"
+    "    {\n"
+    "        vec3 present = mod(first, 2.0) + mod(second, 2.0) + mod(third, 2.0);\n"
+    "        result += step(vec3(0.5), present) * place;\n"
+    "        first = floor(first * 0.5);\n"
+    "        second = floor(second * 0.5);\n"
+    "        third = floor(third * 0.5);\n"
+    "        place *= 2.0;\n"
+    "    }\n"
+    "    return result;\n"
+    "}\n"
+    "void main()\n"
+    "{\n"
+    "    vec2 texel = (floor(sourcePosition) + 0.5) / sourceSize;\n"
+    "    vec3 color;\n"
+    "    if(composeMode == GIF_INDEXED)\n"
+    "    {\n"
+    "        float index = floor(texture2D(firstTexture, texel).r * GIF_BYTE_MAX + 0.5);\n"
+    "        if(index == float(transparentIndex)) discard;\n"
+    "        color = texture2D(paletteTexture, vec2((index + 0.5) / GIF_PALETTE_COLORS, paletteRow)).rgb;\n"
+    "    }\n"
+    "    else\n"
+    "    {\n"
+    "        color = gifOr(gifBytes(texture2D(firstTexture, texel).rgb),\n"
+    "                      gifBytes(texture2D(secondTexture, texel).rgb),\n"
+    "                      gifBytes(texture2D(thirdTexture, texel).rgb)) / GIF_BYTE_MAX;\n"
+    "    }\n"
+    "    gl_FragColor = vec4(color, 1.0);\n"
+    "}\n";
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Expose the canonical byte equations without SDL/OpenGL for regression tests.

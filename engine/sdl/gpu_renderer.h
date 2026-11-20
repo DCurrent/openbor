@@ -83,6 +83,9 @@ typedef struct gpu_renderer_stats
     uint64_t plane_map_uploads, plane_map_upload_bytes, plane_rows_prepared;
     /* One upload counts a complete three-plane frame, not each GL transfer. */
     uint64_t movie_uploads, movie_draws, movie_cache_hits, movie_resources;
+    /* Indexed patches upload only their visible bytes; RGB canvases and
+     * three-stream assembly stay resident until explicit CPU access. */
+    uint64_t gif_frame_uploads, gif_frame_draws, gif_merge_draws, gif_frame_resources;
     /* Filter targets are private GPU-only storage; resources is 0 or 1. */
     uint64_t output_filter_draws, output_filter_allocations, output_filter_resources;
     /* Launcher font storage is shared by every text run in this context.

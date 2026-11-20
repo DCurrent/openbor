@@ -44,6 +44,9 @@
 #define GPU_FIXED_RASTER_CALLS 6
 #endif
 #define GPU_GEOMETRY_STATE_CALLS 6
+#define GPU_GIF_QUAD_VERTICES 4
+#define GPU_GIF_QUAD_INDICES 6
+#define GPU_GIF_UNIFORM_CALLS 9
 #define GPU_STREAM_INITIAL_QUADS 1024
 #define GPU_AFFINE_PREPARED_LIMIT 8192
 #define GPU_PLANE_CACHE_CAPACITY 16
@@ -132,6 +135,9 @@ typedef struct gpu_image
      * the CPU shadow and GPU texture describe the same screen version. */
     int cpu_dirty, gpu_dirty;
     GLuint texture, framebuffer, snapshot;
+    /* GIF frame indices are reusable decoder input, owned by this canvas. */
+    GLuint gif_indices;
+    int gif_width, gif_height;
     struct gpu_image *next;
 } gpu_image;
 
@@ -149,6 +155,26 @@ typedef struct gpu_movie_uniforms
     GLint target_size, source_size, y, u, v;
     GLint resample, black_filter, gamma, brightness;
 } gpu_movie_uniforms;
+
+typedef enum gpu_gif_mode
+{
+    GPU_GIF_INDEXED,
+    GPU_GIF_MERGE
+} gpu_gif_mode;
+
+typedef enum gpu_gif_texture_unit
+{
+    GPU_GIF_FIRST_UNIT,
+    GPU_GIF_SECOND_UNIT,
+    GPU_GIF_THIRD_UNIT,
+    GPU_GIF_PALETTE_UNIT
+} gpu_gif_texture_unit;
+
+typedef struct gpu_gif_uniforms
+{
+    GLint target_size, source_size, first, second, third, palette;
+    GLint palette_row, mode, transparent;
+} gpu_gif_uniforms;
 
 typedef struct gpu_output_filter_uniforms
 {
@@ -291,6 +317,9 @@ static gpu_movie_source *retired_movie_sources;
 static GLuint movie_program;
 static gpu_movie_uniforms movie_uniforms;
 static int movie_program_attempted, movie_present_warning;
+static GLuint gif_program;
+static gpu_gif_uniforms gif_uniforms;
+static int gif_program_attempted;
 /* Presentation filters never acquire a CPU-backed screen identity. Their
  * single reusable intermediate remains private to this graphics context. */
 static GLuint output_filter_program, output_filter_texture, output_filter_framebuffer;
@@ -1597,6 +1626,11 @@ static void gpu_delete_image(gpu_image *image)
     {
         glDeleteTextures(1, &image->texture);
     }
+    if(image->gif_indices)
+    {
+        glDeleteTextures(1, &image->gif_indices);
+        --stats.gif_frame_resources;
+    }
     free(image);
 }
 
@@ -1990,6 +2024,7 @@ void gpu_gl_discard_screen(s_screen *screen)
         if(!entry->sprite && entry->owner == screen)
         {
             *link = entry->next;
+            if(entry->gif_indices) --stats.gif_frame_resources;
             free(entry);
             gpu_gl_invalidate_state();
             return;
@@ -3848,6 +3883,380 @@ int gpu_gl_draw_launcher_text(s_screen *screen, int x, int y,
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Validate GIF composition lazily without changing ordinary scene support.
+ * Failed compilation remains rejected for this context and is logged once.
+ */
+static int gpu_gif_program_ready(void)
+{
+    GLuint vertex = 0, fragment = 0;
+    GLint linked = 0;
+    char message[4096];
+    if(gif_program) return 1;
+    if(gif_program_attempted) return 0;
+    gif_program_attempted = 1;
+    vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
+    fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_gif_fragment_shader_source);
+    if(!vertex || !fragment) goto failed;
+    gif_program = gpu_CreateProgram();
+    if(!gif_program) goto failed;
+    gpu_AttachShader(gif_program, vertex);
+    gpu_AttachShader(gif_program, fragment);
+    gpu_BindAttribLocation(gif_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
+    gpu_BindAttribLocation(gif_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_LinkProgram(gif_program);
+    gpu_GetProgramiv(gif_program, GL_LINK_STATUS, &linked);
+    if(!linked)
+    {
+        message[0] = '\0';
+        gpu_GetProgramInfoLog(gif_program, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = '\0';
+        gpu_log("WARNING: Native GIF shader link failed.\n\tDriver diagnostic:\n%s",
+                message[0] ? message : "not provided");
+        goto failed;
+    }
+#define GPU_GIF_UNIFORM(member, name) \
+    do { gif_uniforms.member = gpu_GetUniformLocation(gif_program, name); \
+         if(gif_uniforms.member < 0) goto failed; } while(0)
+    GPU_GIF_UNIFORM(target_size, "targetSize");
+    GPU_GIF_UNIFORM(source_size, "sourceSize");
+    GPU_GIF_UNIFORM(first, "firstTexture");
+    GPU_GIF_UNIFORM(second, "secondTexture");
+    GPU_GIF_UNIFORM(third, "thirdTexture");
+    GPU_GIF_UNIFORM(palette, "paletteTexture");
+    GPU_GIF_UNIFORM(palette_row, "paletteRow");
+    GPU_GIF_UNIFORM(mode, "composeMode");
+    GPU_GIF_UNIFORM(transparent, "transparentIndex");
+#undef GPU_GIF_UNIFORM
+    if(glGetError() != GL_NO_ERROR) goto failed;
+    gpu_DeleteShader(vertex);
+    gpu_DeleteShader(fragment);
+    gpu_log("Native animated GIF rendering enabled: indexed patch uploads, GPU palette lookup and exact RGB stream composition.");
+    return 1;
+failed:
+    if(vertex) gpu_DeleteShader(vertex);
+    if(fragment) gpu_DeleteShader(fragment);
+    if(gif_program) gpu_DeleteProgram(gif_program);
+    gif_program = 0;
+    native_failure = EP_FALLBACK_RESOURCE;
+    gpu_log("WARNING: Native GIF shader unavailable; GIF composition is disabled without CPU palette conversion or merging.");
+    gpu_gl_invalidate_state();
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Retire the context's shared GIF program. Index textures belong to their
+ * RGB32 canvas images and follow the normal screen release/preservation path.
+ */
+static void gpu_gif_shutdown(void)
+{
+    if(gif_program)
+    {
+        gpu_gl_invalidate_state();
+        gpu_DeleteProgram(gif_program);
+    }
+    gif_program = 0;
+    gif_program_attempted = 0;
+    memset(&gif_uniforms, 0, sizeof(gif_uniforms));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Transfer only the visible index rectangle, including odd-width source
+ * rows, into one reusable byte texture. Capacity only grows, avoiding
+ * reallocations as optimized GIF patch sizes vary. No palette expansion or
+ * retained CPU pointer is required; failure leaves the RGB canvas unchanged.
+ */
+static int gpu_gif_upload_indices(gpu_image *target, const gpu_indexed_frame *frame,
+                                  int source_x, int source_y, int width, int height)
+{
+    GLuint texture = target->gif_indices;
+    int replace = !texture || target->gif_width < width || target->gif_height < height;
+    int texture_width = target->gif_width > width ? target->gif_width : width;
+    int texture_height = target->gif_height > height ? target->gif_height : height;
+    const unsigned char *pixels = frame->indices + (size_t)source_y * frame->width + source_x;
+    ep_scope upload_scope;
+    if(replace)
+    {
+        texture = gpu_new_texture(texture_width, texture_height, GPU_INDEX_INTERNAL_FORMAT,
+                                  GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, NULL);
+        if(!texture) return 0;
+    }
+    upload_scope = engine_profile_span_begin();
+    gpu_edit_texture(GPU_GIF_FIRST_UNIT, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, frame->width);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
+                   GPU_INDEX_FORMAT, GL_UNSIGNED_BYTE, pixels);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+    if(glGetError() != GL_NO_ERROR)
+    {
+        native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
+        if(replace) glDeleteTextures(1, &texture);
+        return 0;
+    }
+    if(replace)
+    {
+        if(target->gif_indices)
+        {
+            gpu_gl_invalidate_state();
+            glDeleteTextures(1, &target->gif_indices);
+        }
+        else
+        {
+            ++stats.gif_frame_resources;
+        }
+        target->gif_indices = texture;
+        target->gif_width = texture_width;
+        target->gif_height = texture_height;
+    }
+    ++stats.uploads;
+    ++stats.gif_frame_uploads;
+    engine_profile_count(EP_COUNT_IMAGE_UPLOADS, 1);
+    engine_profile_count(EP_COUNT_IMAGE_UPLOAD_BYTES, (uint64_t)width * height);
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Submit one prepared GIF operation in painter order. Independent samplers
+ * avoid framebuffer feedback, and discarded transparent fragments preserve
+ * prior canvas pixels without a destination copy or CPU readback.
+ */
+static int gpu_gif_submit(gpu_image *target, GLuint first, GLuint second, GLuint third,
+                          int width, int height, gpu_gif_mode mode, int transparent,
+                          const gpu_vertex vertices[GPU_GIF_QUAD_VERTICES])
+{
+    size_t stream_first = 0;
+    uint64_t previous_state_changes = stats.state_changes;
+    uint64_t previous_state_reuses = stats.state_reuses;
+    ep_scope state_scope, submit_scope;
+    quad_count = 0;
+    if(!gpu_collect_quad(vertices, 0, NULL)) return 0;
+    submit_scope = engine_profile_span_begin();
+    if(!gpu_upload_geometry(&stream_first))
+    {
+        engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+        return 0;
+    }
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+
+    state_scope = engine_profile_span_begin();
+    gpu_bind_framebuffer(target->framebuffer);
+    gpu_set_viewport(target->width, target->height);
+    gpu_set_scissor_enabled(0);
+    gpu_set_draw_raster();
+    gpu_set_color_mask();
+    gpu_UseProgram(gif_program);
+    gl_state.program = gif_program;
+    gl_state.program_valid = 1;
+    ++stats.state_changes;
+    gpu_bind_texture(GPU_GIF_FIRST_UNIT, first);
+    gpu_bind_texture(GPU_GIF_SECOND_UNIT, second);
+    gpu_bind_texture(GPU_GIF_THIRD_UNIT, third);
+    gpu_bind_texture(GPU_GIF_PALETTE_UNIT, palette_texture);
+    gpu_select_texture_unit(GPU_GIF_FIRST_UNIT);
+    gpu_bind_geometry();
+    gpu_Uniform2f(gif_uniforms.target_size, (float)target->width, (float)target->height);
+    gpu_Uniform2f(gif_uniforms.source_size, (float)width, (float)height);
+    gpu_Uniform1i(gif_uniforms.first, GPU_GIF_FIRST_UNIT);
+    gpu_Uniform1i(gif_uniforms.second, GPU_GIF_SECOND_UNIT);
+    gpu_Uniform1i(gif_uniforms.third, GPU_GIF_THIRD_UNIT);
+    gpu_Uniform1i(gif_uniforms.palette, GPU_GIF_PALETTE_UNIT);
+    gpu_Uniform1f(gif_uniforms.palette_row,
+                  ((float)(palette_selected_slot == GPU_PALETTE_NO_SLOT
+                           ? 0 : palette_selected_slot) + 0.5f) / GPU_PALETTE_CACHE_CAPACITY);
+    gpu_Uniform1i(gif_uniforms.mode, mode);
+    gpu_Uniform1i(gif_uniforms.transparent, transparent);
+    stats.state_changes += GPU_GIF_UNIFORM_CALLS;
+    if(glGetError() != GL_NO_ERROR)
+    {
+        engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+        native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
+        return 0;
+    }
+    engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+
+    submit_scope = engine_profile_span_begin();
+    gpu_DrawElements(GL_TRIANGLES, GPU_GIF_QUAD_INDICES, GL_UNSIGNED_INT,
+                     (const void *)(uintptr_t)(stream_first * GPU_GIF_QUAD_INDICES * sizeof(GLuint)));
+    if(glGetError() != GL_NO_ERROR) gpu_fatal("animated GIF composition");
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    target->gpu_dirty = 1;
+    target->cpu_dirty = 0;
+    ++stats.draws;
+    engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    engine_profile_count(EP_COUNT_NATIVE_QUADS, 1);
+    engine_profile_count(EP_COUNT_NATIVE_BATCHES, 1);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, stats.state_changes - previous_state_changes);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, stats.state_reuses - previous_state_reuses);
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Composite a decoded patch with independent palette-index transparency.
+ * Clip in wide integers before offsets or texture allocation; this permits
+ * large offscreen descriptors while uploading only the visible source bytes.
+ */
+static int gpu_gif_compose_body(s_screen *dest, const gpu_indexed_frame *frame)
+{
+    gpu_image *target;
+    gpu_vertex vertices[GPU_GIF_QUAD_VERTICES];
+    int64_t left, top, right, bottom;
+    int width, height, source_x, source_y, discard_destination;
+    native_failure = EP_FALLBACK_OTHER;
+    if(!dest || dest->pixelformat != PIXEL_32)
+    {
+        native_failure = EP_FALLBACK_TARGET_FORMAT;
+        goto failed;
+    }
+    if(!frame || !frame->indices || !frame->palette ||
+       frame->transparent < GPU_INDEXED_OPAQUE || frame->transparent > GPU_INDEXED_MAX_INDEX ||
+       frame->width <= 0 || frame->height <= 0 ||
+       (size_t)frame->width > SIZE_MAX / (size_t)frame->height ||
+       dest->width <= 0 || dest->height <= 0 ||
+       dest->width > maximum_texture_size || dest->height > maximum_texture_size)
+    {
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
+        goto failed;
+    }
+    left = frame->x < 0 ? 0 : frame->x;
+    top = frame->y < 0 ? 0 : frame->y;
+    right = (int64_t)frame->x + frame->width;
+    bottom = (int64_t)frame->y + frame->height;
+    if(right > dest->width) right = dest->width;
+    if(bottom > dest->height) bottom = dest->height;
+    if(right <= left || bottom <= top) return 1;
+    width = (int)(right - left);
+    height = (int)(bottom - top);
+    source_x = (int)(left - frame->x);
+    source_y = (int)(top - frame->y);
+    discard_destination = frame->transparent == GPU_INDEXED_OPAQUE &&
+                          !left && !top && right == dest->width && bottom == dest->height;
+    if(!gpu_gif_program_ready() || !gpu_set_palette(frame->palette)) goto failed;
+    target = gpu_screen_image(dest, !discard_destination);
+    if(!target || !gpu_gif_upload_indices(target, frame, source_x, source_y, width, height))
+        goto failed;
+    vertices[0] = (gpu_vertex){ (float)left, (float)top, 0.0f, 0.0f };
+    vertices[1] = (gpu_vertex){ (float)right, (float)top, (float)width, 0.0f };
+    vertices[2] = (gpu_vertex){ (float)right, (float)bottom, (float)width, (float)height };
+    vertices[3] = (gpu_vertex){ (float)left, (float)bottom, 0.0f, (float)height };
+    if(!gpu_gif_submit(target, target->gif_indices, white_texture, white_texture,
+                       target->gif_width, target->gif_height, GPU_GIF_INDEXED, frame->transparent, vertices))
+        goto failed;
+    ++stats.gif_frame_draws;
+    return 1;
+failed:
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Hold one owning-context lifetime throughout indexed patch composition.
+ */
+static int gpu_gif_compose(s_screen *dest, const gpu_indexed_frame *frame)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gif_compose_body(dest, frame);
+    --context_guard_busy;
+    return result;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Merge every RGB bit from three public GIF canvases. Reading resident
+ * versions preserves script edits, and a GPU snapshot supports target/source
+ * aliasing without changing the original bytewise OR semantics.
+ */
+static int gpu_gif_merge_body(s_screen *dest, s_screen *red, s_screen *green, s_screen *blue)
+{
+    gpu_image *target, *first, *second, *third;
+    GLuint first_texture, second_texture, third_texture;
+    gpu_vertex vertices[GPU_GIF_QUAD_VERTICES];
+    int rectangle[4], self_draw;
+    native_failure = EP_FALLBACK_OTHER;
+    if(!dest || !red || !green || !blue || dest->pixelformat != PIXEL_32 ||
+       red->pixelformat != PIXEL_32 || green->pixelformat != PIXEL_32 ||
+       blue->pixelformat != PIXEL_32)
+    {
+        native_failure = EP_FALLBACK_SOURCE_FORMAT;
+        goto failed;
+    }
+    if(dest->width <= 0 || dest->height <= 0 ||
+       red->width != dest->width || red->height != dest->height ||
+       green->width != dest->width || green->height != dest->height ||
+       blue->width != dest->width || blue->height != dest->height)
+    {
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
+        goto failed;
+    }
+    if(!gpu_gif_program_ready()) goto failed;
+    first = gpu_screen_image(red, 1);
+    second = gpu_screen_image(green, 1);
+    third = gpu_screen_image(blue, 1);
+    target = gpu_screen_image(dest, 0);
+    if(!first || !second || !third || !target) goto failed;
+    self_draw = dest == red || dest == green || dest == blue;
+    if(self_draw)
+    {
+        rectangle[0] = rectangle[1] = 0;
+        rectangle[2] = dest->width;
+        rectangle[3] = dest->height;
+        if(!gpu_snapshot_target(target, rectangle, 1)) goto failed;
+    }
+    first_texture = first == target ? target->snapshot : first->texture;
+    second_texture = second == target ? target->snapshot : second->texture;
+    third_texture = third == target ? target->snapshot : third->texture;
+    vertices[0] = (gpu_vertex){ 0.0f, 0.0f, 0.0f, 0.0f };
+    vertices[1] = (gpu_vertex){ (float)dest->width, 0.0f, (float)dest->width, 0.0f };
+    vertices[2] = (gpu_vertex){ (float)dest->width, (float)dest->height,
+                                (float)dest->width, (float)dest->height };
+    vertices[3] = (gpu_vertex){ 0.0f, (float)dest->height, 0.0f, (float)dest->height };
+    if(!gpu_gif_submit(target, first_texture, second_texture, third_texture,
+                       dest->width, dest->height, GPU_GIF_MERGE, GPU_INDEXED_OPAQUE, vertices))
+        goto failed;
+    ++stats.gif_merge_draws;
+    return 1;
+failed:
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Hold one owning-context lifetime throughout the three-source merge.
+ */
+static int gpu_gif_merge(s_screen *dest, s_screen *red, s_screen *green, s_screen *blue)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_gif_merge_body(dest, red, green, blue);
+    --context_guard_busy;
+    return result;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-16
  * Compile the common output-filter equations only when an active filter is
  * presented. Failure disables this pass without retiring scene resources.
@@ -4434,7 +4843,8 @@ static const gpu_backend renderer_backend = {
     gpu_screen_draw, gpu_sprite_draw, gpu_box_draw, gpu_line_draw,
     gpu_screen_clear, gpu_screen_copy, gpu_read_screen, gpu_dirty_screen,
     gpu_free_screen, gpu_free_sprite, gpu_dirty_tables,
-    gpu_movie_draw_screen, gpu_movie_release
+    gpu_movie_draw_screen, gpu_movie_release,
+    gpu_gif_compose, gpu_gif_merge
 };
 
 /*
@@ -4608,6 +5018,16 @@ static void gpu_log_capability_result(int native_available)
             "\tColor conversion:                  Established hardware matrix and plane sampling\n"
             "\tSoftware implementation:           None; unavailable movie draws logged and skipped\n",
             native_available ? "Shared native screen/fullscreen pipeline; shader pending first use" :
+                               "UNAVAILABLE - native scene backend required");
+    gpu_log("Animated GIF Composition\n"
+            "\tRendering path:                    %s\n"
+            "\tShader validation:                 Compiled and linked on first GIF operation\n"
+            "\tSource transfer:                   Visible decoded indices; one reusable byte texture per canvas\n"
+            "\tPalette and transparency:          GPU lookup; independent transparent index\n"
+            "\tRGB stream assembly:               Exact bytewise OR of three resident canvases\n"
+            "\tCPU work:                          Parsing, LZW decompression and palette-table packing\n"
+            "\tSoftware implementation:           None; failed composition logged and rejected\n",
+            native_available ? "NATIVE - shared desktop/GLES equations; shader pending first use" :
                                "UNAVAILABLE - native scene backend required");
     gpu_log("Color Rules\n"
             "\tChroma key execution:              %s\n"
@@ -5193,6 +5613,10 @@ int gpu_gl_abandon(void)
     movie_program = 0;
     movie_program_attempted = movie_present_warning = 0;
     memset(&movie_uniforms, 0, sizeof(movie_uniforms));
+    gif_program = 0;
+    gif_program_attempted = 0;
+    memset(&gif_uniforms, 0, sizeof(gif_uniforms));
+    stats.gif_frame_resources = 0;
     output_filter_program = output_filter_texture = output_filter_framebuffer = 0;
     output_filter_width = output_filter_height = 0;
     output_filter_program_attempted = output_filter_warning = 0;
@@ -5265,6 +5689,7 @@ void gpu_gl_shutdown(void)
     gpu_unregister_backend();
     gpu_gl_prepare_present();
     gpu_movie_shutdown();
+    gpu_gif_shutdown();
     gpu_output_filter_shutdown();
     gpu_launcher_font_shutdown();
     gpu_DeleteProgram(program);

@@ -71,6 +71,9 @@ extern const char *gpu_vertex_shader_source;
 extern const char *gpu_fragment_shader_source;
 /* Shared direct YUV reconstruction for screen targets and window output. */
 extern const char *gpu_movie_fragment_shader_source;
+/* GIF mode 0 performs palette lookup/keying; mode 1 merges three RGB32
+ * canvases with exact bytewise OR. Neither mode samples its draw attachment. */
+extern const char *gpu_gif_fragment_shader_source;
 /* Output filters use the same RGB8 equations on both native APIs. The renderer
  * supplies its desktop or GLES3 declarations during compilation. Uniforms:
  * sourceTexture, sourceSize and filterMode (1..6). sourcePosition carries

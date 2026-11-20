@@ -40,6 +40,27 @@ typedef struct gpu_movie_draw
 } gpu_movie_draw;
 
 /*
+ * Damon V. Caskey
+ * 2026-11-20
+ * One decoded GIF patch in tightly packed, top-to-bottom index order.
+ * Palette holds 256 packed RGB32 colors. Transparency index -1 disables
+ * keying; otherwise that exact source index preserves the canvas.
+ * Addresses are borrowed only for this call, and never retained by the GPU.
+ */
+typedef struct gpu_indexed_frame
+{
+    const unsigned char *indices;
+    const unsigned char *palette;
+    int width, height, x, y, transparent;
+} gpu_indexed_frame;
+
+enum
+{
+    GPU_INDEXED_OPAQUE = -1,
+    GPU_INDEXED_MAX_INDEX = 255
+};
+
+/*
  * Rendering dispatch is independent of the window system. Draw/clear/copy
  * callbacks return zero only before modifying their target. RGB32 callers
  * selected for native rendering log and stop after failure; they never retry
@@ -79,6 +100,10 @@ typedef struct gpu_backend
     /* Movie planes stay resident across screen and fullscreen draws. */
     int (*draw_yuv)(s_screen *, const gpu_yuv_source *, const gpu_movie_draw *);
     void (*release_yuv)(const void *owner);
+
+    /* GIF patches retain their RGB32 canvas; RGB streams merge bytewise OR. */
+    int (*compose_indexed)(s_screen *, const gpu_indexed_frame *);
+    int (*merge_channels)(s_screen *, s_screen *, s_screen *, s_screen *);
 } gpu_backend;
 
 /* Root dispatch uses separate warning bits so a failed operation logs once,
@@ -119,5 +144,7 @@ void gpu_release_sprite(s_sprite *sprite);
 void gpu_invalidate_tables(void);
 int gpu_draw_yuv(s_screen *dest, const gpu_yuv_source *source, const gpu_movie_draw *draw);
 void gpu_release_yuv(const void *owner);
+int gpu_compose_indexed(s_screen *dest, const gpu_indexed_frame *frame);
+int gpu_merge_channels(s_screen *dest, s_screen *red, s_screen *green, s_screen *blue);
 
 #endif

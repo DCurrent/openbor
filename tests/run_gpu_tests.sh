@@ -288,6 +288,13 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_gpu_movie_tests.sh
 
+# Keep GIF palette expansion and retained channel composition native while
+# checking real decoder streams, exact colors and explicit CPU-read coherence.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_anigif_tests.sh
+
 # Verify movie controller generation, presentation acknowledgement and script
 # property validation without media workers or a software drawing substitute.
 OPENBOR_TEST_BUILD_DIR="$test_build_dir" \

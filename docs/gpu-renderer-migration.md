@@ -79,6 +79,7 @@ formats.
 | Output filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
 | Android gameplay | Shared native scene renderer on GLES 3.0, resident RGB32 screens and direct GPU presentation |
 | Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
+| Animated GIF playback | CPU LZW decoding to indices; native palette lookup, retained RGB32 frame composition and exact three-stream RGB merging |
 
 The affine contract from the separate transform experiment is available through
 `changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
@@ -105,6 +106,13 @@ formulas, edge handling and platform transfer boundaries. They apply after
 scene composition and before final window scaling/color correction. Movies
 composed into scene screens receive that final filter; direct fullscreen movie
 output retains its independent YUV presentation path.
+
+Animated GIFs use a separate indexed-image pipeline. Their decoded rectangles
+are uploaded as palette indices and composed into resident RGB32 canvases;
+OpenBOR's three-stream GIF format is merged on the GPU. Existing script handles,
+buffer access and frame timing remain in place. Normal playback does not read
+canvases back to the CPU. See [GPU animated GIF playback](gpu-animated-gif.md)
+for source conventions, ownership, retained behavior and verification.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
 palette reuse and subsequent context-local state caching. Palette-only commit

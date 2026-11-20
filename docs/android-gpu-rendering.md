@@ -144,8 +144,9 @@ claimed from these tests.
 
 ## Remaining migration work
 
-Animated GIF palette expansion and retained-frame/channel composition still
-run on the CPU. Launcher preview preparation still resizes assets before their
-GPU draw. Production software rasterizer retirement, sloped-line geometry and
+Animated GIF palette expansion and retained-frame/channel composition now use
+the shared native backend; see [GPU animated GIF playback](gpu-animated-gif.md).
+Launcher preview preparation still resizes assets before its GPU draw.
+Production software rasterizer retirement, sloped-line geometry and
 batching across compatible draw calls remain separate follow-ups. Removing the
 Android pack launcher is also a separate product decision.

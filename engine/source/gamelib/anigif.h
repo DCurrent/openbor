@@ -9,6 +9,7 @@
 #ifndef		ANIGIF_H
 #define		ANIGIF_H
 
+#include <stddef.h>
 
 
 
@@ -24,6 +25,12 @@
 #define			ANIGIF_DECODE_PAL		4
 
 #define			NO_CODE				-1
+
+/* Damon V. Caskey - 2026-11-20: one RGB32 canvas per optional RGB stream. */
+enum
+{
+    ANIGIF_CHANNEL_COUNT = 3
+};
 
 
 #pragma pack(1)
@@ -49,7 +56,12 @@ typedef struct
 
 #define anigif_magic 0x464947
 
-#pragma pack(4)
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Runtime state is not GIF wire data. Keep native pointer alignment so
+ * screen/palette pointer slots are safe to pass to ownership helpers.
+ */
 typedef struct
 {
     int magic;
@@ -65,14 +77,16 @@ typedef struct
         u32 nextframe;
         unsigned char	*global_pal;
         unsigned char	*local_pal;
-    } info[3];
+        /* CPU LZW output only. Palette lookup/composition stays on the GPU. */
+        unsigned char *indices;
+        size_t indices_capacity;
+    } info[ANIGIF_CHANNEL_COUNT];
     int isRGB;
     int frame;
     int done;
     s_screen *backbuffer;
-    s_screen *gifbuffer[3];
+    s_screen *gifbuffer[ANIGIF_CHANNEL_COUNT];
 } anigif_info;
-#pragma pack()
 
 
 //Gif file format should be always the same, so no need to use sizeof
