@@ -4246,6 +4246,7 @@ static int gpu_gif_program_ready(void)
     gpu_AttachShader(gif_program, fragment);
     gpu_BindAttribLocation(gif_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
     gpu_BindAttribLocation(gif_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_BindAttribLocation(gif_program, GPU_CURVE_DEPTH_ATTRIBUTE, "vertexDepth");
     gpu_LinkProgram(gif_program);
     gpu_GetProgramiv(gif_program, GL_LINK_STATUS, &linked);
     if(!linked)
@@ -4620,6 +4621,7 @@ static int gpu_output_filter_program_ready(void)
     gpu_AttachShader(output_filter_program, fragment);
     gpu_BindAttribLocation(output_filter_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
     gpu_BindAttribLocation(output_filter_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_BindAttribLocation(output_filter_program, GPU_CURVE_DEPTH_ATTRIBUTE, "vertexDepth");
     gpu_LinkProgram(output_filter_program);
     gpu_GetProgramiv(output_filter_program, GL_LINK_STATUS, &linked);
     if(!linked)
@@ -4739,6 +4741,7 @@ static int gpu_movie_program_ready(void)
     gpu_AttachShader(movie_program, fragment);
     gpu_BindAttribLocation(movie_program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
     gpu_BindAttribLocation(movie_program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_BindAttribLocation(movie_program, GPU_CURVE_DEPTH_ATTRIBUTE, "vertexDepth");
     gpu_LinkProgram(movie_program);
     gpu_GetProgramiv(movie_program, GL_LINK_STATUS, &linked);
     if(!linked)
