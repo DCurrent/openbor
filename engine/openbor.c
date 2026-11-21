@@ -2985,6 +2985,7 @@ void saveasdefault()
 void loadsettings()
 {
     FILE *handle = NULL;
+    s_savedata loaded;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
@@ -3001,18 +3002,20 @@ void loadsettings()
     {
         return;
     }
-    fread(&savedata, 1, sizeof(savedata), handle);
-    fclose(handle);
-    if(savedata.compatibleversion != COMPATIBLEVERSION)
+    /* Damon V. Caskey, 2026-11-20: retain defaults after an incomplete read. */
+    if(fread(&loaded, 1, sizeof(loaded), handle) == sizeof(loaded) &&
+       loaded.compatibleversion == COMPATIBLEVERSION)
     {
-        clearsettings();
+        savedata = loaded;
     }
+    fclose(handle);
     video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
 }
 
 void loadfromdefault()
 {
     FILE *handle = NULL;
+    s_savedata loaded;
     char path[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     strcat(path, "default.cfg");
@@ -3022,12 +3025,12 @@ void loadfromdefault()
     {
         return;
     }
-    fread(&savedata, 1, sizeof(savedata), handle);
-    fclose(handle);
-    if(savedata.compatibleversion != COMPATIBLEVERSION)
+    if(fread(&loaded, 1, sizeof(loaded), handle) == sizeof(loaded) &&
+       loaded.compatibleversion == COMPATIBLEVERSION)
     {
-        clearsettings();
+        savedata = loaded;
     }
+    fclose(handle);
     video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
 }
 

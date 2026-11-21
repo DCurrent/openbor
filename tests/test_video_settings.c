@@ -46,6 +46,7 @@ static int last_stretch;
 static void clearbuttons(int player)
 {
     assert(player >= 0 && player < MAX_PLAYERS);
+    savedata.joyrumble[player] = 0;
     memset(savedata.keys[player], 0, sizeof(savedata.keys[player]));
 }
 
@@ -365,6 +366,69 @@ static void test_saved_round_trips(void)
     assert(unlink(path) == 0);
 }
 
+static void test_incomplete_and_incompatible_files(void)
+{
+    static const size_t lengths[] = {0, sizeof(s_savedata) / 2, sizeof(s_savedata) - 1,
+                                     sizeof(s_savedata)};
+    int defaults, player;
+    size_t sample;
+    for(defaults = 0; defaults <= 1; ++defaults)
+    {
+        char path[MAX_BUFFER_LEN];
+        settings_path(path, defaults ? "default.cfg" : "module.cfg");
+        for(sample = 0; sample < sizeof(lengths) / sizeof(lengths[0]); ++sample)
+        {
+            s_savedata incoming = example_settings();
+            s_savedata prior, expected;
+            FILE *file;
+
+            /* Partial records retain a valid version, so version checking
+             * alone cannot reject them. The complete record is incompatible. */
+            incoming.compatibleversion = sample == 3 ? COMPATIBLEVERSION ^ 1u : COMPATIBLEVERSION;
+            incoming.gamma = 168;
+            incoming.brightness = -224;
+            incoming.soundvol = 17;
+            incoming.swfilter = BLITTER_DOTMATRIX;
+            incoming.usegl = 0;
+            incoming.hwfilter = VIDEO_SCALING_NEAREST;
+            incoming.hwscale = 8.0f;
+            incoming.videoNTSC = 99;
+            incoming.screen[0][0] = 333;
+            incoming.screen[0][1] = 444;
+            for(player = 0; player < MAX_PLAYERS; ++player)
+                incoming.joyrumble[player] = 97 + player;
+
+            file = fopen(path, "wb");
+            assert(file);
+            assert(fwrite(&incoming, 1, lengths[sample], file) == lengths[sample]);
+            assert(fclose(file) == 0);
+
+            prior = example_settings();
+            prior.videoNTSC = 7;
+            prior.screen[0][0] = 811;
+            prior.screen[0][1] = 613;
+            savedata = prior;
+            clearsettings();
+            expected = savedata;
+            savedata = prior;
+            if(defaults) loadfromdefault();
+            else loadsettings();
+
+            /* Rejection leaves exactly the pre-read defaults, including
+             * unrelated fields clearsettings deliberately does not reset.
+             * No prefix of an unusable record may become live settings. */
+            assert_settings_equal(&expected);
+            assert(savedata.videoNTSC == prior.videoNTSC);
+            assert(memcmp(savedata.screen, prior.screen, sizeof(prior.screen)) == 0);
+            for(player = 0; player < MAX_PLAYERS; ++player)
+                assert(savedata.joyrumble[player] == 0);
+            assert(savedata.soundvol == 100 && savedata.gamma == 0 && savedata.brightness == 0);
+            assert(savedata.swfilter == BLITTER_NONE && savedata.usegl == VIDEO_SETTINGS_NATIVE);
+        }
+        assert(unlink(path) == 0);
+    }
+}
+
 static void test_menu_scale(void)
 {
     s_savedata expected = example_settings();
@@ -552,11 +616,12 @@ int main(int argc, char **argv)
     test_defaults();
     test_normalization();
     test_saved_round_trips();
+    test_incomplete_and_incompatible_files();
     test_menu_scale();
     test_menu_filter_independence();
     test_menu_remaining_actions();
     test_menu_zero_direction();
     test_menu_availability();
-    printf("Video controls %s: packed compatibility, migration, persistence and independent menu actions passed.\n", TEST_PLATFORM);
+    printf("Video controls %s: packed compatibility, migration, persistence, invalid-file rejection and independent menu actions passed.\n", TEST_PLATFORM);
     return 0;
 }

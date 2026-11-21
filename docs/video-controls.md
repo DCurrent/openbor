@@ -123,6 +123,9 @@ later loads. Final Filter IDs, controls, audio preferences and other packed
 fields retain their existing positions and values. Module-specific saves and
 the default configuration both use the same migration.
 
+Incomplete or incompatible configuration files leave the engine defaults in
+place. Loading never applies a partial settings record before migration.
+
 Finite scale values are bounded to the supported range. Android retains zero
 as Automatic. Nonfinite values fall back to 1x on desktop and Automatic on
 Android before any window-size conversion. Fractional values in range remain
