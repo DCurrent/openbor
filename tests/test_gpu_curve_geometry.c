@@ -354,6 +354,68 @@ static void test_clipping_and_perspective_sampling(void)
     gpu_curve_free(&mesh);
 }
 
+/* Damon V. Caskey - 2026-11-21
+ * The 16k finite race plane exposed cancellation at a nearly cardinal source
+ * corner. Its low/high cross-section bounds differed by 1.88e-7 even though
+ * one endpoint was within 1e-12 source texel of the actual corner. Keep the
+ * recorded camera and exercise both sides of each cardinal at other sizes. */
+static void check_near_cardinal_ground(int size, double x, double z, double yaw)
+{
+    gpu_transform_parameters p = {size, size, 1920, 1080, 960, 540, 0, 0, 1};
+    s_drawmethod m = curve_method();
+    gpu_curve_mesh mesh = {0};
+    double sine = sin(yaw * TEST_PI / 180), cosine = cos(yaw * TEST_PI / 180);
+    double pitch = 8 * TEST_PI / 180, height = 135, focal = 960;
+    double distance = height / sin(pitch), look = height / tan(pitch);
+    double aim_x = x + look * sine, aim_z = z + look * cosine;
+    double scale = focal / distance, depth = 200 * cos(pitch) + height * sin(pitch);
+    double source_x = x + 200 * sine + 60 * cosine;
+    double source_z = z + 200 * cosine - 60 * sine;
+    gpu_curve_vertex point;
+    size_t vertex;
+    m.config |= DRAWMETHOD_CONFIG_AFFINE;
+    m.centerx = (int)floor(aim_x);
+    m.centery = (int)floor(aim_z);
+    m.curve.axis = (float)(90 - yaw);
+    m.curve.tilt = 82;
+    m.curve.perspective = (float)(distance / size);
+    m.curve.scrollx = (float)(aim_x - m.centerx);
+    m.curve.scrolly = (float)(aim_z - m.centery);
+    m.affine = (affine_transform){(float)(scale * cosine), (float)(-scale * sine),
+                                  (float)(-scale * sine), (float)(-scale * cosine), 0, 0};
+    assert(gpu_curve_build(&p, &m, &mesh) == GPU_TRANSFORM_DRAWN);
+    assert(mesh.quad_count < 20);
+    bounded_mesh(&p, &m, &mesh);
+    for(vertex = 0; vertex < mesh.quad_count * 4; ++vertex)
+    {
+        const gpu_curve_vertex *v = &mesh.vertices[vertex];
+        assert(v->u >= -0.001 && v->u <= size + 1.001);
+        assert(v->v >= -0.001 && v->v <= size + 1.001);
+    }
+    point = mapped(&p, &m, source_x - m.curve.scrollx, source_z - m.curve.scrolly);
+    near_value(point.x, 960 + focal * 60 / depth, 0.001);
+    near_value(point.y, 540 - focal * (200 * sin(pitch) - height * cos(pitch)) / depth, 0.001);
+    near_value(point.u, source_x, 0.002);
+    near_value(point.v, source_z, 0.002);
+    gpu_curve_free(&mesh);
+}
+
+static void test_near_cardinal_source_corners(void)
+{
+    static const int sizes[] = {512, 4096, 8192, 16384, 32768};
+    static const double offsets[] = {0, -0.000283085193004, 0.000283085193004,
+                                     -1e-6, 1e-6, -1e-9, 1e-9, -1e-12, 1e-12};
+    size_t size, offset;
+    int cardinal;
+    check_near_cardinal_ground(16384, 8219.9881675797642, 13491.278131234938,
+                              90.000283085193004);
+    for(size = 0; size < sizeof(sizes) / sizeof(sizes[0]); ++size)
+        for(cardinal = -180; cardinal <= 180; cardinal += 90)
+            for(offset = 0; offset < sizeof(offsets) / sizeof(offsets[0]); ++offset)
+                check_near_cardinal_ground(sizes[size], sizes[size] * 0.5,
+                                          sizes[size] * 0.5, cardinal + offsets[offset]);
+}
+
 static void test_adaptive_accuracy_and_shared_edges(void)
 {
     gpu_transform_parameters p = parameters();
@@ -496,9 +558,10 @@ int main(void)
     test_planar_width_and_transform();
     test_oblique_smooth_fold();
     test_clipping_and_perspective_sampling();
+    test_near_cardinal_source_corners();
     test_adaptive_accuracy_and_shared_edges();
     test_adaptive_interior_accuracy();
     test_invalid_and_oblique_sources();
-    printf("GPU curve geometry: %u independent numeric checks; identity, circular/smooth profiles, focus, width, projection, clipping, reflections and shared edges passed.\n", checks);
+    printf("GPU curve geometry: %u independent numeric checks; identity, circular/smooth profiles, focus, width, projection, clipping, near-cardinal source corners, reflections and shared edges passed.\n", checks);
     return 0;
 }

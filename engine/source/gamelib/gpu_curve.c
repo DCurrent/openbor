@@ -285,6 +285,7 @@ static int curve_cross_section(const curve_setup *setup, double s, double *low, 
     double direction[2] = {setup->bx, setup->by};
     double width[2] = {setup->tx, setup->ty};
     double extent[2] = {setup->parameters->source_width, setup->parameters->source_height};
+    double tolerance = 32.0 * DBL_EPSILON * fmax(extent[0], extent[1]);
     int axis;
     *low = -DBL_MAX;
     *high = DBL_MAX;
@@ -293,7 +294,7 @@ static int curve_cross_section(const curve_setup *setup, double s, double *low, 
         double coordinate = center[axis] + s * direction[axis];
         if(fabs(width[axis]) < 1e-14)
         {
-            if(coordinate < -1e-7 || coordinate > extent[axis] + 1e-7) return 0;
+            if(coordinate < -tolerance || coordinate > extent[axis] + tolerance) return 0;
         }
         else
         {
@@ -303,7 +304,29 @@ static int curve_cross_section(const curve_setup *setup, double s, double *low, 
             *high = fmin(*high, fmax(first, last));
         }
     }
-    if(*low > *high && *low - *high <= 1e-7) *high = *low;
+    if(*low > *high)
+    {
+        /* Damon V. Caskey - 2026-11-21
+         * Near a cardinal axis, dividing corner roundoff by a tiny width
+         * component can invert a valid point intersection. Measure both
+         * candidate endpoints in source texels, whose precision scales with
+         * the image, and retain the endpoint with less boundary error. This
+         * never enlarges a real gap or rounds the authored curve direction. */
+        double candidates[2] = {*low, *high};
+        double errors[2] = {0.0, 0.0};
+        int candidate, best;
+        for(candidate = 0; candidate < 2; ++candidate)
+            for(axis = 0; axis < 2; ++axis)
+            {
+                double coordinate = center[axis] + s * direction[axis] +
+                                    candidates[candidate] * width[axis];
+                errors[candidate] = fmax(errors[candidate],
+                                         fmax(-coordinate, coordinate - extent[axis]));
+            }
+        best = errors[0] <= errors[1] ? 0 : 1;
+        if(errors[best] > tolerance) return 0;
+        *low = *high = candidates[best];
+    }
     return *low <= *high;
 }
 
