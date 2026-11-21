@@ -18,6 +18,8 @@
 #include "gpu.h"
 #include "gpu_shader.h"
 #include "gpu_transform.h"
+#include "gpu_curve.h"
+#include "drawmethod_curve.h"
 #include "gpu_renderer.h"
 #include "engine_profile.h"
 
@@ -43,7 +45,7 @@
 #else
 #define GPU_FIXED_RASTER_CALLS 6
 #endif
-#define GPU_GEOMETRY_STATE_CALLS 6
+#define GPU_GEOMETRY_STATE_CALLS 7
 #define GPU_GIF_QUAD_VERTICES 4
 #define GPU_GIF_QUAD_INDICES 6
 #define GPU_GIF_UNIFORM_CALLS 9
@@ -53,6 +55,8 @@
 #define GPU_PLANE_MAX_ROWS 16384
 #define GPU_POSITION_ATTRIBUTE 0
 #define GPU_TEXCOORD_ATTRIBUTE 1
+#define GPU_CURVE_DEPTH_ATTRIBUTE 2
+#define GPU_CURVE_CACHE_CAPACITY 8
 #define GPU_LAUNCHER_GLYPH_WIDTH 5
 #define GPU_LAUNCHER_GLYPH_HEIGHT 10
 #define GPU_LAUNCHER_GLYPHS 160
@@ -183,7 +187,7 @@ typedef struct gpu_output_filter_uniforms
 
 typedef struct gpu_uniforms
 {
-    GLint target_size, source_size;
+    GLint target_size, source_size, curve_geometry;
     GLint source, palette, mask, destination, tables;
     GLint palette_row;
     GLint indexed, masked, color_key, fill, has_destination, wrap, resample;
@@ -209,7 +213,7 @@ typedef struct gpu_uniform_value
 
 typedef struct gpu_material_state
 {
-    gpu_uniform_value target_size, source_size;
+    gpu_uniform_value target_size, source_size, curve_geometry;
     gpu_uniform_value source, palette, mask, destination, tables;
     gpu_uniform_value palette_row;
     gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap, resample;
@@ -275,6 +279,34 @@ typedef struct gpu_plane_map
     GLuint texture;
     uint64_t last_used;
 } gpu_plane_map;
+
+/* Damon V. Caskey - 2026-11-20
+ * Eight geometry-only entries bound retained curve preparation. Material,
+ * source image identity, texture phase and resampling never enter the key. */
+typedef struct gpu_cached_curve
+{
+    int occupied, result;
+    uint64_t age;
+    gpu_transform_parameters parameters;
+    s_drawmethod method;
+    gpu_curve_mesh mesh;
+} gpu_cached_curve;
+static gpu_cached_curve curve_cache[GPU_CURVE_CACHE_CAPACITY];
+static uint64_t curve_cache_clock;
+static float *curve_depths;
+static size_t curve_depth_capacity, curve_depth_gpu_capacity;
+static GLuint curve_depth_buffer;
+
+static void gpu_clear_curve_cache(void)
+{
+    int i;
+    for(i = 0; i < GPU_CURVE_CACHE_CAPACITY; ++i) gpu_curve_free(&curve_cache[i].mesh);
+    memset(curve_cache, 0, sizeof(curve_cache));
+    curve_cache_clock = 0;
+    free(curve_depths);
+    curve_depths = NULL;
+    curve_depth_capacity = curve_depth_gpu_capacity = 0;
+}
 
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
 /* Owners are detached immediately, but paused contexts may defer GL deletion.
@@ -910,6 +942,9 @@ static void gpu_bind_geometry(void)
     gpu_BindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
     gpu_EnableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
     gpu_EnableVertexAttribArray(GPU_TEXCOORD_ATTRIBUTE);
+    /* External owners may leave the optional depth attribute enabled. Curve
+     * uploads enable it explicitly after restoring this common layout. */
+    gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
     gpu_VertexAttribPointer(GPU_POSITION_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE,
                             sizeof(gpu_vertex), (const void *)offsetof(gpu_vertex, x));
     gpu_VertexAttribPointer(GPU_TEXCOORD_ATTRIBUTE, 2, GL_FLOAT, GL_FALSE,
@@ -1034,6 +1069,36 @@ static int gpu_upload_geometry(size_t *first_quad)
     return 1;
 }
 
+/* Damon V. Caskey - 2026-11-20
+ * Curves add homogeneous depth without enlarging ordinary 16-byte vertices.
+ * The auxiliary stream shares the existing indexed vertex offsets. */
+static int gpu_upload_curve_depth(size_t first_quad, const float *weights)
+{
+    if(!curve_depth_buffer) gpu_GenBuffers(1, &curve_depth_buffer);
+    if(!curve_depth_buffer) return gpu_geometry_failure();
+    gpu_BindBuffer(GL_ARRAY_BUFFER, curve_depth_buffer);
+    if(curve_depth_gpu_capacity < stream_capacity || first_quad == 0)
+    {
+        gpu_BufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(stream_capacity * 4 * sizeof(float)),
+                       NULL, GL_STREAM_DRAW);
+        curve_depth_gpu_capacity = stream_capacity;
+    }
+    gpu_BufferSubData(GL_ARRAY_BUFFER, (GLintptr)(first_quad * 4 * sizeof(float)),
+                      (GLsizeiptr)(quad_count * 4 * sizeof(float)), weights);
+    gpu_EnableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+    gpu_VertexAttribPointer(GPU_CURVE_DEPTH_ATTRIBUTE, 1, GL_FLOAT, GL_FALSE,
+                            sizeof(float), (const void *)0);
+    gpu_BindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
+    if(glGetError() != GL_NO_ERROR)
+    {
+        gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+        curve_depth_gpu_capacity = 0;
+        return gpu_geometry_failure();
+    }
+    stats.curve_depth_upload_bytes += quad_count * 4 * sizeof(float);
+    return 1;
+}
+
 /*
  * Damon V. Caskey
  * 2026-11-14
@@ -1042,6 +1107,13 @@ static int gpu_upload_geometry(size_t *first_quad)
  */
 static void gpu_release_geometry(void)
 {
+    gpu_clear_curve_cache();
+    if(curve_depth_buffer)
+    {
+        gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+        gpu_DeleteBuffers(1, &curve_depth_buffer);
+        curve_depth_buffer = 0;
+    }
     if(vertex_buffer_object || index_buffer_object)
     {
         gpu_DisableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
@@ -2600,7 +2672,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                             int source_is_sprite, int primitive, unsigned color,
                             const gpu_affine_sampling *affine, const gpu_shear_sampling *shear,
                             const gpu_water_sampling *water, const gpu_plane_sampling *plane,
-                            GLuint plane_texture)
+                            GLuint plane_texture, const float *curve_weights)
 {
     int rectangle[4], i, wrap, geometry_ready;
     int indexed = source && source->format == PIXEL_x8;
@@ -2665,6 +2737,8 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
      * material setup and the existing GPU-to-GPU snapshot measurement. */
     submit_scope = engine_profile_span_begin();
     geometry_ready = gpu_upload_geometry(&stream_first);
+    if(geometry_ready && curve_weights)
+        geometry_ready = gpu_upload_curve_depth(stream_first, curve_weights);
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     if(!geometry_ready)
     {
@@ -2693,6 +2767,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_set_draw_raster();
     gpu_set_color_mask();
     gpu_use_program();
+    gpu_uniform_integer(uniforms.curve_geometry, &gl_state.material.curve_geometry, curve_weights != NULL);
     gpu_bind_texture(0, texture);
     gpu_bind_texture(1, palette_texture);
     gpu_bind_texture(2, masked ? mask->texture : white_texture);
@@ -2858,6 +2933,11 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
      * logical row quads while sharing one indexed triangle draw. */
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    if(curve_weights)
+    {
+        gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+        ++stats.curve_draws;
+    }
     if(water)
     {
         ++stats.water_draws;
@@ -2889,6 +2969,148 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     target->gpu_dirty = 1;
     target->cpu_dirty = 0;
     stats.draws++;
+    return 1;
+}
+
+/* Damon V. Caskey - 2026-11-20
+ * Retain geometry independently of palette, sampling and texture motion.
+ * Every field in the key is initialized, including unused struct padding. */
+static gpu_cached_curve *gpu_prepare_curve(const gpu_transform_parameters *parameters,
+                                           const s_drawmethod *method)
+{
+    s_drawmethod key;
+    gpu_cached_curve *slot = NULL;
+    int i;
+    if(!drawmethod_curve_valid(&method->curve)) return NULL;
+    memset(&key, 0, sizeof(key));
+    key.config = method->config & (DRAWMETHOD_CONFIG_ENABLED | DRAWMETHOD_CONFIG_CURVE |
+        DRAWMETHOD_CONFIG_AFFINE | DRAWMETHOD_CONFIG_FLIP_X | DRAWMETHOD_CONFIG_FLIP_Y |
+        DRAWMETHOD_CONFIG_FLIP_ROTATE);
+    key.scalex = method->scalex;
+    key.scaley = method->scaley;
+    key.rotate = method->rotate;
+    key.shiftx = method->shiftx;
+    key.centerx = method->centerx;
+    key.centery = method->centery;
+    key.clipx = method->clipx;
+    key.clipy = method->clipy;
+    key.clipw = method->clipw;
+    key.cliph = method->cliph;
+    key.affine = method->affine;
+    key.curve = method->curve;
+    key.curve.scrollx = key.curve.scrolly = 0.0f;
+    key.curve.wrap = 0;
+    key.xrepeat = key.yrepeat = 1;
+    for(i = 0; i < GPU_CURVE_CACHE_CAPACITY; ++i)
+    {
+        gpu_cached_curve *entry = &curve_cache[i];
+        if(entry->occupied && !memcmp(parameters, &entry->parameters, sizeof(*parameters)) &&
+           !memcmp(&key, &entry->method, sizeof(key)))
+        {
+            entry->age = ++curve_cache_clock;
+            ++stats.curve_mesh_reuses;
+            return entry;
+        }
+        if(!slot || !entry->occupied || (slot->occupied && entry->age < slot->age)) slot = entry;
+    }
+    slot->occupied = 0;
+    slot->parameters = *parameters;
+    slot->method = key;
+    slot->result = gpu_curve_build(parameters, &key, &slot->mesh);
+    if(slot->result == GPU_TRANSFORM_FAILED) return NULL;
+    slot->occupied = 1;
+    slot->age = ++curve_cache_clock;
+    ++stats.curve_mesh_builds;
+    return slot;
+}
+
+static int gpu_collect_curve(const gpu_curve_mesh *mesh, const s_drawmethod *method,
+                              int source_width, int source_height)
+{
+    size_t q, i;
+    float scrollx = method->curve.scrollx, scrolly = method->curve.scrolly;
+    int wrap = method->curve.wrap ? GPU_SAMPLE_CURVE_REPEAT : GPU_SAMPLE_CONTINUOUS;
+    if(mesh->quad_count > curve_depth_capacity)
+    {
+        float *replacement;
+        if(mesh->quad_count > SIZE_MAX / (4 * sizeof(float))) return 0;
+        replacement = (float *)realloc(curve_depths, mesh->quad_count * 4 * sizeof(float));
+        if(!replacement) return 0;
+        curve_depths = replacement;
+        curve_depth_capacity = mesh->quad_count;
+    }
+    if(method->curve.wrap)
+    {
+        scrollx = fmodf(scrollx, (float)source_width);
+        scrolly = fmodf(scrolly, (float)source_height);
+    }
+    quad_count = 0;
+    for(q = 0; q < mesh->quad_count; ++q)
+    {
+        gpu_vertex vertices[4];
+        for(i = 0; i < 4; ++i)
+        {
+            const gpu_curve_vertex *v = &mesh->vertices[q * 4 + i];
+            vertices[i] = (gpu_vertex){v->x, v->y, v->u + scrollx, v->v + scrolly};
+            curve_depths[q * 4 + i] = v->w;
+        }
+        if(!gpu_collect_quad(vertices, wrap, NULL)) return 0;
+    }
+    return 1;
+}
+
+static int gpu_render_curve_image(gpu_image *target, gpu_image *source, gpu_image *mask,
+                                   const unsigned char *palette, int x, int y,
+                                   gpu_transform_parameters *parameters,
+                                   const s_drawmethod *method)
+{
+    int i, j, submitted = 0;
+    ep_scope scope = engine_profile_span_begin();
+    /* Preflight repeated geometry before the first destination write. A cache
+     * miss builds vertices only; no source pixels are read or transformed. */
+    for(j = 0; j < method->yrepeat; ++j)
+    {
+        for(i = 0; i < method->xrepeat; ++i)
+        {
+            parameters->x = (int)((long long)x + (long long)i * method->xspan);
+            parameters->y = (int)((long long)y + (long long)j * method->yspan);
+            if(!gpu_prepare_curve(parameters, method))
+            {
+                engine_profile_span_end(scope, EP_SPAN_GPU_GEOMETRY);
+                native_failure = EP_FALLBACK_TRANSFORM;
+                return 0;
+            }
+        }
+    }
+    engine_profile_span_end(scope, EP_SPAN_GPU_GEOMETRY);
+    for(j = 0; j < method->yrepeat; ++j)
+    {
+        for(i = 0; i < method->xrepeat; ++i)
+        {
+            gpu_cached_curve *entry;
+            ep_scope scope = engine_profile_span_begin();
+            parameters->x = (int)((long long)x + (long long)i * method->xspan);
+            parameters->y = (int)((long long)y + (long long)j * method->yspan);
+            entry = gpu_prepare_curve(parameters, method);
+            if(!entry || !gpu_collect_curve(&entry->mesh, method, source->width, source->height))
+            {
+                engine_profile_span_end(scope, EP_SPAN_GPU_GEOMETRY);
+                if(submitted) gpu_fatal("repeated curve preparation");
+                native_failure = EP_FALLBACK_RESOURCE;
+                return 0;
+            }
+            engine_profile_span_end(scope, EP_SPAN_GPU_GEOMETRY);
+            if(!gpu_render_quads(target, source, mask, palette, method,
+                                  parameters->is_sprite, 0, 0,
+                                  NULL, NULL, NULL, NULL, 0, curve_depths))
+            {
+                gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+                if(submitted) gpu_fatal("repeated curve draw");
+                return 0;
+            }
+            if(quad_count) submitted = 1;
+        }
+    }
     return 1;
 }
 
@@ -2985,8 +3207,9 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     long long final_x, final_y;
     int i, j, submitted = 0;
     int use_affine = (method->config & DRAWMETHOD_CONFIG_AFFINE) != 0;
+    int use_curve = (method->config & DRAWMETHOD_CONFIG_CURVE) != 0;
     int reuse_affine = 0;
-    if(use_affine && !affine_supported)
+    if(use_affine && !use_curve && !affine_supported)
     {
         native_failure = EP_FALLBACK_TRANSFORM;
         return 0;
@@ -3012,6 +3235,8 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     parameters.centerx = centerx;
     parameters.centery = centery;
     parameters.is_sprite = sprite;
+    if(use_curve)
+        return gpu_render_curve_image(target, source, mask, palette, x, y, &parameters, method);
 
     /* Prepare intrinsic plane rows once for every repeated instance. Moving
      * or scrolling the image changes its uniforms, never this recurrence. */
@@ -3137,7 +3362,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
                                  !use_affine && shear_supported && shear.enabled ? &shear : NULL,
                                  !use_affine && water_supported && water.enabled ? &water : NULL,
                                  plane.enabled ? &plane : NULL,
-                                 plane.enabled ? plane_map->texture : 0))
+                                 plane.enabled ? plane_map->texture : 0, NULL))
             {
                 /* Earlier instances may already have changed the target.
                  * Only failure before any submission can safely return. */
@@ -3321,7 +3546,7 @@ static int gpu_gl_draw_screen_scaled_body(s_screen *dest, s_screen *src,
     method.alpha = 0;
     method.resample = DC_RESAMPLE_NEAREST;
     if(gpu_render_quads(target, source, NULL, src->palette, &method, 0, 0, 0,
-                         NULL, NULL, NULL, NULL, 0))
+                         NULL, NULL, NULL, NULL, 0, NULL))
     {
         return 1;
     }
@@ -3456,7 +3681,7 @@ static int gpu_box_draw_body(s_screen *dest, int x, int y, int width, int height
         int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
         engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
         if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
-                                             NULL, NULL, NULL, NULL, 0))
+                                             NULL, NULL, NULL, NULL, 0, NULL))
         {
             return 1;
         }
@@ -3682,7 +3907,7 @@ static int gpu_line_draw_body(s_screen *dest, int sx, int sy, int ex, int ey,
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
     if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
-                                         NULL, NULL, NULL, NULL, 0))
+                                         NULL, NULL, NULL, NULL, 0, NULL))
     {
         return 1;
     }
@@ -3970,7 +4195,7 @@ static int gpu_gl_draw_launcher_text_body(s_screen *screen, int x, int y,
     method.channelr = method.channelg = method.channelb = 255;
     method.resample = DC_RESAMPLE_NEAREST;
     if(!gpu_render_quads(target, &launcher_font_image, NULL, (const unsigned char *)palette,
-                         &method, !fill, 0, 0, NULL, NULL, NULL, NULL, 0)) goto failed;
+                         &method, !fill, 0, 0, NULL, NULL, NULL, NULL, 0, NULL)) goto failed;
     ++stats.launcher_text_draws;
     stats.launcher_text_glyphs += quad_count;
     return 1;
@@ -5097,6 +5322,16 @@ static void gpu_log_capability_result(int native_available)
     {
         gpu_log("WARNING: Compact plane sampling unavailable; retaining CPU row geometry with native pixel rendering.");
     }
+    gpu_log("Drawmethod Curves\n"
+            "\tRendering path:                    %s\n"
+            "\tSurface:                           General bend axis/plane; uniform or smooth curvature\n"
+            "\tProjection:                        Orthographic or perspective-correct textured geometry\n"
+            "\tPreparation:                       Bounded native CPU mesh; eight cached placements\n"
+            "\tMesh limit:                        8192 quads per instance; invalid folds rejected\n"
+            "\tMaterials:                         Shared palettes, masks, colors, blending and resampling\n"
+            "\tScene pixel processing/readback:   None on CPU\n"
+            "\tSoftware implementation:           None; unavailable curves logged and skipped\n",
+            native_available ? "NATIVE - shared desktop/GLES material shader" : "UNAVAILABLE");
     gpu_log("Drawmethod Resampling\n"
             "\tBuilt-in formulas:                 %s\n"
             "\tDefault:                           Nearest (existing exact sampling)\n"
@@ -5398,6 +5633,7 @@ compile_scene_shader:
     gpu_AttachShader(program, fragment);
     gpu_BindAttribLocation(program, GPU_POSITION_ATTRIBUTE, "vertexPosition");
     gpu_BindAttribLocation(program, GPU_TEXCOORD_ATTRIBUTE, "vertexTexcoord");
+    gpu_BindAttribLocation(program, GPU_CURVE_DEPTH_ATTRIBUTE, "vertexDepth");
     gpu_LinkProgram(program);
     gpu_GetProgramiv(program, GL_LINK_STATUS, &linked);
     if(!linked)
@@ -5460,6 +5696,7 @@ compile_scene_shader:
     GPU_UNIFORM(has_destination, "hasDestination");
     GPU_UNIFORM(wrap, "wrapSource");
     GPU_UNIFORM(resample, "resampleMode");
+    GPU_UNIFORM(curve_geometry, "curveGeometry");
     GPU_UNIFORM(blend_mode, "blendMode");
     GPU_UNIFORM(tint_mode, "tintMode");
     GPU_UNIFORM(table_mask, "blendTableMask");
@@ -5714,6 +5951,8 @@ int gpu_gl_abandon(void)
         free(plane_maps[bucket].rows);
     memset(plane_maps, 0, sizeof(plane_maps));
     plane_map_clock = 0;
+    gpu_clear_curve_cache();
+    curve_depth_buffer = 0;
     free(vertex_buffer);
     free(quad_wraps);
     free(affine_preparations);
@@ -5812,6 +6051,8 @@ void gpu_gl_shutdown(void)
     glDeleteTextures(1, &table_texture);
     gpu_release_geometry();
     gpu_release_plane_maps();
+    gpu_clear_curve_cache();
+    curve_depth_buffer = 0;
     free(vertex_buffer);
     free(quad_wraps);
     free(affine_preparations);
@@ -6040,6 +6281,7 @@ void gpu_gl_prepare_present(void)
     gpu_UseProgram(0);
     gpu_DisableVertexAttribArray(GPU_POSITION_ATTRIBUTE);
     gpu_DisableVertexAttribArray(GPU_TEXCOORD_ATTRIBUTE);
+    gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
     gpu_BindBuffer(GL_ARRAY_BUFFER, 0);
     gpu_BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisable(GL_SCISSOR_TEST);

@@ -18,8 +18,10 @@ draws are rejected without a software retry. See the
 [startup capability report](gpu-renderer-migration.md#startup-capability-report)
 for the general renderer checks and drawing limits.
 
-This is a reusable engine capability. Perspective projections, nonlinear curves,
-public programmable materials and 24-bit asset loading remain separate work.
+This is a reusable engine capability. The separate [curve drawmethod](curve-transforms.md)
+adds nonlinear surface bends, tilt and perspective, and can use affine for its
+final placement. General projective matrices, public programmable materials
+and 24-bit asset loading remain separate work.
 
 ## Script interface
 
@@ -84,6 +86,10 @@ coefficient enables affine rendering. `affineenabled` controls that flag;
   `scaley`, `shiftx`, and water/perspective transforms. Their stored values
   remain intact and take effect again when affine is disabled. This also
   applies when a saved legacy scale is zero.
+- When curve is also enabled, the renderer forms and projects the curved
+  surface first, then applies the affine matrix for final placement. That
+  combined draw uses the curve mesh and perspective-correct source sampling;
+  affine-only draws retain the one-quad sampler described here.
 - Draw position, source pivot, extra center offsets, flip flags, repeats,
   clipping, transparency, palette remapping, fill, tint and blending still
   participate in drawing. Affine only replaces **geometry**.
@@ -99,10 +105,12 @@ coefficient enables affine rendering. `affineenabled` controls that flag;
 ## GPU execution and CPU image access
 
 Hardware drawing keeps source pixels resident through the existing renderer.
-The CPU prepares one clipped bounding quad and a small amount of sampling state;
-the GPU evaluates the affine mapping, selects source texels and performs the
-supported material operations. There is no CPU loop transforming the source
-image into another image for every native draw.
+For affine-only draws, the CPU prepares one clipped bounding quad and a small
+amount of sampling state; the GPU evaluates the affine mapping, selects source
+texels and performs the supported material operations. Combined curve/affine
+draws use the bounded native mesh preparation described in the curve guide.
+There is no CPU loop transforming the source image into another image for
+every native draw.
 
 Affine sampling has no blanket near-integer snapping tolerance. Integer byte
 comparisons of source numerators and the determinant preserve exact scale
@@ -131,20 +139,20 @@ resources. Their cost depends on drawn area, overlap, effects, batching and
 preparation; affine support does not imply that all drawing becomes
 free or that CPU world simulation moves onto the GPU.
 
-## Separate future capabilities
+## Related geometry and future capabilities
 
 Affine uses a constant 2x3 mapping, which preserves straight lines and
-parallelism. Perspective requires a separate projective mapping and sampling
-contract. Nonlinear curves require their own warp parameters. Possible curve
-operations include:
+parallelism. The [curve interface](curve-transforms.md) supplies its own
+axis, plane, focus, extent and profile controls for in-plane road turns,
+cylindrical bends and concentrated horizon rolls. Its perspective/tilt
+controls project the resulting surface before the affine placement step.
+These capabilities share material operations while leaving existing affine
+coefficients and disabled behavior intact.
 
-1. **Road/path curve** - progressively shift or rotate horizontal strips
-   around a supplied path, suitable for a racing-game floor or roadway.
-2. **Cylindrical bend** - curve a vertical image about an axis for columns,
-   rounded walls and similar surfaces.
-
-These capabilities should compose with the renderer's material operations
-without overloading the affine coefficients or changing legacy behavior.
+Curves do not expose arbitrary projective matrices, multi-point paths, a
+general 3D camera or a depth-sorted scene. Those remain separate contracts.
+Ordinary screen composition can combine multiple curve draws without adding
+a special composition API.
 
 Future 24-bit assets require a true-color asset and texture path plus explicit
 recoloring semantics. Palette indices carry color-group identity that an RGB

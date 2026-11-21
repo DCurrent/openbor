@@ -525,6 +525,7 @@ static void test_submission_external_state(void)
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &binding); assert(binding == 0);
     submission_real_attribute(0, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled); assert(!enabled);
     submission_real_attribute(1, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled); assert(!enabled);
+    submission_real_attribute(2, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled); assert(!enabled);
 
     /* Direct real entry points deliberately bypass the native cache and test
      * lifetime counters, matching a separate renderer sharing the context. */
@@ -535,14 +536,17 @@ static void test_submission_external_state(void)
     submission_real_data(GL_ELEMENT_ARRAY_BUFFER, sizeof(poisoned), poisoned, GL_STATIC_DRAW);
     submission_real_pointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     submission_real_pointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    submission_real_pointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
     submission_real_enable(0);
     submission_real_disable(1);
+    submission_real_enable(2);
     gpu_gl_invalidate_state();
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &binding); assert(binding == (GLint)external[0]);
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &binding); assert(binding == (GLint)external[1]);
     assert(glGetError() == GL_NO_ERROR);
     assert(gpu_clear_screen(target));
     assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    submission_real_attribute(2, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled); assert(!enabled);
     submission_verify(target, (const unsigned *)source->data, "external vertex state");
     submission_real_delete(2, external);
     release_test_screen(target);

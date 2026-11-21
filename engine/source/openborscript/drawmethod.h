@@ -49,6 +49,20 @@ typedef enum
     DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED,
     /* Damon V. Caskey, 2026-11-15: append without renumbering prior controls. */
     DRAWMETHOD_PROPERTY_RESAMPLE,
+    /* Damon V. Caskey, 2026-11-20: append the complete curve contract. */
+    DRAWMETHOD_PROPERTY_CURVE,
+    DRAWMETHOD_PROPERTY_CURVE_ENABLED,
+    DRAWMETHOD_PROPERTY_CURVE_ANGLE,
+    DRAWMETHOD_PROPERTY_CURVE_AXIS,
+    DRAWMETHOD_PROPERTY_CURVE_PLANE,
+    DRAWMETHOD_PROPERTY_CURVE_FOCUS,
+    DRAWMETHOD_PROPERTY_CURVE_EXTENT,
+    DRAWMETHOD_PROPERTY_CURVE_PERSPECTIVE,
+    DRAWMETHOD_PROPERTY_CURVE_TILT,
+    DRAWMETHOD_PROPERTY_CURVE_PROFILE,
+    DRAWMETHOD_PROPERTY_CURVE_SCROLL_X,
+    DRAWMETHOD_PROPERTY_CURVE_SCROLL_Y,
+    DRAWMETHOD_PROPERTY_CURVE_WRAP,
 	DRAWMETHOD_PROPERTY_END,
 } e_drawmethod_properties;
 
@@ -66,6 +80,20 @@ typedef enum
 #define DM_SUBSTITUTE_E DRAWMETHOD_PROPERTY_SUBSTITUTE_E
 #define DM_SUBSTITUTE_ENABLED DRAWMETHOD_PROPERTY_SUBSTITUTE_ENABLED
 #define DM_RESAMPLE DRAWMETHOD_PROPERTY_RESAMPLE
+#define DM_CURVE DRAWMETHOD_PROPERTY_CURVE
+#define DM_CURVE_ENABLED DRAWMETHOD_PROPERTY_CURVE_ENABLED
+#define DM_CURVE_ANGLE DRAWMETHOD_PROPERTY_CURVE_ANGLE
+#define DM_CURVE_AXIS DRAWMETHOD_PROPERTY_CURVE_AXIS
+#define DM_CURVE_PLANE DRAWMETHOD_PROPERTY_CURVE_PLANE
+#define DM_CURVE_FOCUS DRAWMETHOD_PROPERTY_CURVE_FOCUS
+#define DM_CURVE_EXTENT DRAWMETHOD_PROPERTY_CURVE_EXTENT
+#define DM_CURVE_PERSPECTIVE DRAWMETHOD_PROPERTY_CURVE_PERSPECTIVE
+#define DM_CURVE_TILT DRAWMETHOD_PROPERTY_CURVE_TILT
+#define DM_CURVE_PROFILE DRAWMETHOD_PROPERTY_CURVE_PROFILE
+#define DM_CURVE_SCROLL_X DRAWMETHOD_PROPERTY_CURVE_SCROLL_X
+#define DM_CURVE_SCROLL_Y DRAWMETHOD_PROPERTY_CURVE_SCROLL_Y
+#define DM_CURVE_WRAP DRAWMETHOD_PROPERTY_CURVE_WRAP
+#define DRAWMETHOD_CURVE_ARGUMENTS 11
 #define DM_COLOR_MATCH 0
 #define DM_COLOR_SUBSTITUTE 1
 #define DM_COLOR_ENABLED 2
@@ -83,6 +111,10 @@ int drawmethod_color_property_get(const s_drawmethod *method, int property,
                                  int component, LONG *value);
 int drawmethod_resample_property_set(s_drawmethod *method,
                                     const ScriptVariant *const *values, int count);
+int drawmethod_curve_property_set(s_drawmethod *method, int property,
+                                 const ScriptVariant *const *values, int count);
+int drawmethod_curve_property_get(const s_drawmethod *method, int property,
+                                 ScriptVariant *result);
 
 HRESULT openbor_allocate_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
 HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);

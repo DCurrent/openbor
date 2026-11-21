@@ -12,6 +12,151 @@
 
 #include "scriptcommon.h"
 #include "drawmethod_color.h"
+#include "drawmethod_curve.h"
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Validate curve scalars in script precision before narrowing. Enum fields
+ * require integers; geometric values accept integers or decimals only.
+ */
+static int drawmethod_curve_component(s_drawmethod_curve *curve, int property,
+                                      const ScriptVariant *value)
+{
+    DOUBLE number, lower, upper;
+    float *field;
+
+    if(!value)
+    {
+        return 0;
+    }
+    if(property == DM_CURVE_PROFILE || property == DM_CURVE_WRAP)
+    {
+        if(value->vt != VT_INTEGER || value->lVal < 0 || value->lVal > 1)
+        {
+            return 0;
+        }
+        if(property == DM_CURVE_PROFILE) { curve->profile = (int)value->lVal; }
+        else { curve->wrap = (int)value->lVal; }
+        return 1;
+    }
+    if(value->vt == VT_INTEGER) { number = value->lVal; }
+    else if(value->vt == VT_DECIMAL) { number = value->dblVal; }
+    else { return 0; }
+
+    switch(property)
+    {
+    case DM_CURVE_ANGLE: field = &curve->angle; lower = -180.0; upper = 180.0; break;
+    case DM_CURVE_AXIS: field = &curve->axis; lower = -360.0; upper = 360.0; break;
+    case DM_CURVE_PLANE: field = &curve->plane; lower = -360.0; upper = 360.0; break;
+    case DM_CURVE_FOCUS: field = &curve->focus; lower = -4.0; upper = 5.0; break;
+    /* Use the stored lower bound so a getter's minimum value can round-trip. */
+    case DM_CURVE_EXTENT: field = &curve->extent; lower = (DOUBLE)0.01f; upper = 16.0; break;
+    case DM_CURVE_PERSPECTIVE: field = &curve->perspective; lower = 0.0; upper = 64.0; break;
+    case DM_CURVE_TILT: field = &curve->tilt; lower = -89.0; upper = 89.0; break;
+    case DM_CURVE_SCROLL_X: field = &curve->scrollx; lower = -10000000.0; upper = 10000000.0; break;
+    case DM_CURVE_SCROLL_Y: field = &curve->scrolly; lower = -10000000.0; upper = 10000000.0; break;
+    default: return 0;
+    }
+    if(!(number >= lower && number <= upper))
+    {
+        return 0;
+    }
+    *field = (float)number;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Share one atomic curve setter across named, object, and common APIs.
+ * Disabling retains the entire profile; successful field changes enable it.
+ */
+int drawmethod_curve_property_set(s_drawmethod *method, int property,
+                                 const ScriptVariant *const *values, int count)
+{
+    s_drawmethod_curve next;
+    int i;
+    if(!method || method == &plainmethod || !values)
+    {
+        return 0;
+    }
+    if(property == DM_CURVE_ENABLED)
+    {
+        if(count != 1 || !values[0] || values[0]->vt != VT_INTEGER ||
+           values[0]->lVal < 0 || values[0]->lVal > 1 ||
+           (values[0]->lVal && !drawmethod_curve_valid(&method->curve)))
+        {
+            return 0;
+        }
+        method->config = values[0]->lVal ? method->config | DRAWMETHOD_CONFIG_CURVE
+                                       : method->config & ~DRAWMETHOD_CONFIG_CURVE;
+        return 1;
+    }
+    next = method->curve;
+    if(property == DM_CURVE)
+    {
+        if(count != DRAWMETHOD_CURVE_ARGUMENTS) { return 0; }
+        for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+        {
+            if(!drawmethod_curve_component(&next, DM_CURVE_ANGLE + i, values[i]))
+            {
+                return 0;
+            }
+        }
+    }
+    else if(count != 1 || !drawmethod_curve_component(&next, property, values[0]))
+    {
+        return 0;
+    }
+    if(!drawmethod_curve_valid(&next)) { return 0; }
+    method->curve = next;
+    method->config |= DRAWMETHOD_CONFIG_CURVE;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Return scalars without exposing mutable curve storage. The aggregate curve
+ * query reads its enable flag, matching the existing named affine convention.
+ */
+int drawmethod_curve_property_get(const s_drawmethod *method, int property,
+                                 ScriptVariant *result)
+{
+    DOUBLE number;
+    LONG integer;
+    if(!method || !result) { return 0; }
+    switch(property)
+    {
+    case DM_CURVE:
+    case DM_CURVE_ENABLED:
+        integer = !!(method->config & DRAWMETHOD_CONFIG_CURVE);
+        break;
+    case DM_CURVE_PROFILE: integer = method->curve.profile; break;
+    case DM_CURVE_WRAP: integer = method->curve.wrap; break;
+    default:
+        switch(property)
+        {
+        case DM_CURVE_ANGLE: number = method->curve.angle; break;
+        case DM_CURVE_AXIS: number = method->curve.axis; break;
+        case DM_CURVE_PLANE: number = method->curve.plane; break;
+        case DM_CURVE_FOCUS: number = method->curve.focus; break;
+        case DM_CURVE_EXTENT: number = method->curve.extent; break;
+        case DM_CURVE_PERSPECTIVE: number = method->curve.perspective; break;
+        case DM_CURVE_TILT: number = method->curve.tilt; break;
+        case DM_CURVE_SCROLL_X: number = method->curve.scrollx; break;
+        case DM_CURVE_SCROLL_Y: number = method->curve.scrolly; break;
+        default: return 0;
+        }
+        ScriptVariant_ChangeType(result, VT_DECIMAL);
+        result->dblVal = number;
+        return 1;
+    }
+    ScriptVariant_ChangeType(result, VT_INTEGER);
+    result->lVal = integer;
+    return 1;
+}
 
 /*
  * Damon V. Caskey
@@ -482,6 +627,83 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
         property_map.type = VT_INTEGER;
         break;
 
+    case DRAWMETHOD_PROPERTY_CURVE_ANGLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.angle;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_ANGLE";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_AXIS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.axis;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_AXIS";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_PLANE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.plane;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_PLANE";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_FOCUS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.focus;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_FOCUS";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_EXTENT:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.extent;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_EXTENT";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_PERSPECTIVE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.perspective;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_PERSPECTIVE";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_TILT:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.tilt;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_TILT";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_PROFILE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.profile;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_PROFILE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_SCROLL_X:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.scrollx;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_SCROLL_X";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_SCROLL_Y:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.scrolly;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_SCROLL_Y";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case DRAWMETHOD_PROPERTY_CURVE_WRAP:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->curve.wrap;
+        property_map.id_string = "DRAWMETHOD_PROPERTY_CURVE_WRAP";
+        property_map.type = VT_INTEGER;
+        break;
+
     case DRAWMETHOD_PROPERTY_RESAMPLE:
         property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
         property_map.field = &acting_object->resample;
@@ -629,6 +851,18 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
         return E_FAIL;
     }
 
+    if(property_id_param >= DM_CURVE && property_id_param <= DM_CURVE_WRAP)
+    {
+        if(paramCount != 2 || !drawmethod_curve_property_get(acting_object,
+                                                            property_id_param, *pretvar))
+        {
+            printf("\nScript error: curve properties have no component argument.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        return S_OK;
+    }
+
     /* Color pairs expose match, substitute, or enabled without mutable handles. */
     if(property_id_param >= DM_CHROMA_KEY_A && property_id_param <= DM_SUBSTITUTE_ENABLED)
     {
@@ -753,6 +987,20 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 	* appropriate data member, text name,
 	* read only, etc.
 	*/
+
+    if(property_id_param >= DM_CURVE && property_id_param <= DM_CURVE_WRAP)
+    {
+        *pretvar = NULL;
+        if(!drawmethod_curve_property_set((s_drawmethod *)acting_object,
+                                         property_id_param,
+                                         (const ScriptVariant *const *)(varlist + ARG_VALUE),
+                                         paramCount - ARG_VALUE))
+        {
+            printf("\nScript error: invalid drawmethod curve values or argument count.\n");
+            return E_FAIL;
+        }
+        return S_OK;
+    }
 
     if(property_id_param == DM_RESAMPLE)
     {

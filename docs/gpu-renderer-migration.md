@@ -10,8 +10,9 @@ This branch moves scene rendering into the GPU while preserving drawing
 functionality. OpenBOR uses RGB32 scene color and 64-bit applications only.
 Supported platforms are Windows, Linux, macOS, and Android; compatibility with
 retired ports is outside this migration's scope. The branch also adds opt-in,
-general-purpose affine transforms for sprites and screens, plus drawmethod
-chroma keys and final-color Substitute.
+general-purpose affine and curve transforms for sprites and screens, plus
+drawmethod chroma keys and final-color Substitute. Curves include in-plane
+bends, cylindrical surfaces, movable bend focus, tilt and perspective.
 
 Normal RGB32 scene modes require the native renderer: OpenGL on desktop and
 OpenGL ES 3.0 on Android. Desktop also requires it when an older configuration
@@ -72,6 +73,7 @@ formats.
 | Sine-water displacement | One bounded quad with shader phase/displacement for supported parameters; at most one horizontal pixel of accepted approximation |
 | Plane effects | One quad sampling a compact cached row map; exact CPU scale/source-row recurrence prepared once per map |
 | Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling and existing material operations; unsupported native RGB32 draws are logged and skipped |
+| Opt-in curve transforms | Bounded adaptive native mesh, perspective-correct GPU sampling, circular/smooth profiles and independent texture scroll; ordinary drawmethod material and screen composition |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Five chroma keys and five Substitute pairs per drawmethod | Native shader rules for RGB32 destinations; unavailable rules are ignored |
 | Boxes, dots and lines | Native rendering; horizontal/vertical lines use one rectangle with inclusive endpoints, slopes retain integer point coverage |
@@ -91,9 +93,11 @@ formats.
 | Animated GIF playback | CPU LZW decoding to indices; native palette lookup, retained RGB32 frame composition and exact three-stream RGB merging |
 
 The affine contract from the separate transform experiment is available through
-`changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
-and curve mappings and public programmable shaders remain
-separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
+`changedrawmethod()`; see [the affine guide](affine-transforms.md). The
+[curve guide](curve-transforms.md) describes the separate eleven-field bend
+contract, its constant-based APIs, perspective projection and composition with
+affine placement. General projective matrices and public programmable shaders
+remain separate capabilities. See [the drawmethod color guide](drawmethod-colors.md)
 for opt-in chroma coverage and final-output substitutions. Color rules execute
 only on supported native RGB32 draws. Unsupported native color capabilities
 ignore those settings while retaining ordinary GPU drawing.
@@ -300,6 +304,15 @@ evaluate displacement directly in the shader. Plane effects prepare their
 sequential row recurrence into a reusable map, then perform horizontal sampling
 and wrapping in the shader. Expanded row geometry remains only where optional
 sampling is unavailable or a particular input exceeds its numerical bounds.
+
+`gpu_curve.c` prepares curved surface geometry in native code without reading
+source pixels. Circular and smooth bend profiles share bounded adaptive
+tessellation, near-plane/viewport clipping and front-face selection. The
+renderer retains eight geometry-cache entries, with at most 8,192 quad records
+per instance. Texture scrolling, source contents, palette, material and
+resampling remain independent of that geometry. GPU interpolation carries the
+perspective divisor through source sampling. Invalid folds and exceeded
+preparation bounds reject the draw without CPU rasterization.
 
 Every supported `video_copy_screen()` presents the native scene texture directly or
 passes it through the selected GPU output filter. Failed presentation returns
@@ -919,6 +932,14 @@ batching compatible draw calls while preserving painter order and feedback.
 Display controls and their settings migration have been repaired before those
 feature additions. Android launcher availability is preserved.
 Preserving drawing capabilities on the supported platforms remains the goal.
+
+General curve drawmethods are now part of the shared renderer, including
+perspective and tilt for the curved surface. Creators can combine road turns
+and horizon bends with ordinary screen draws, or apply a bend directly to a
+sprite. Their exact public parameters, disabled behavior, composition order
+and bounded preparation are documented in [Curve transforms](curve-transforms.md).
+Arbitrary projective matrices, general 3D scene/depth semantics and authored
+multi-point paths remain separate features.
 
 Future programmable materials should apply after source color decoding so
 indexed palettes and direct RGB assets can share geometry and material effects.

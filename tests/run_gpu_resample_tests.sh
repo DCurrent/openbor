@@ -37,7 +37,7 @@ test_flags+=("${test_sdl_flags[@]}" -UNDEBUG)
 
 "$test_compiler" "${test_flags[@]}" tests/test_gpu_resample.c \
     engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c \
-    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c \
+    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c engine/sdl/gpu_renderer.c \
     engine/sdl/loadgl.c engine/source/gamelib/engine_profile.c \
     -Wl,--gc-sections -lm "${test_sdl_libs[@]}" \
     -o "$test_build_dir/test_gpu_resample"

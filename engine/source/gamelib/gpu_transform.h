@@ -101,6 +101,7 @@ enum gpu_sampling_mode
     GPU_SAMPLE_SHEAR = 5,
     GPU_SAMPLE_WATER = 6,
     GPU_SAMPLE_PLANE = 7,
+    GPU_SAMPLE_CURVE_REPEAT = 9,
     /* Damon V. Caskey - 2026-11-20: opaque preview resizing stabilizes
      * large-source interpolation and clamps valid samples to source edges. */
     GPU_SAMPLE_PREVIEW = 8

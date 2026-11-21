@@ -76,7 +76,7 @@ PY
 
 "$test_compiler" "${test_flags[@]}" "${test_sdl_flags[@]}" -UNDEBUG \
     tests/test_android_scene.c engine/source/gamelib/gpu.c \
-    engine/source/gamelib/gpu_shader.c engine/source/gamelib/gpu_transform.c \
+    engine/source/gamelib/gpu_shader.c engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c \
     engine/sdl/gpu_renderer.c engine/source/gamelib/engine_profile.c \
     engine/sdl/launcher_text.c engine/source/video_settings.c \
     "${test_sdl_libs[@]}" "-l:$test_gl_library" -lm \

@@ -2818,6 +2818,19 @@ enum drawmethod_enum
     _dm_substituteenabled,
     /* Damon V. Caskey, 2026-11-15: keep existing numeric IDs stable. */
     _dm_resample,
+    _dm_curve,
+    _dm_curveenabled,
+    _dm_curveangle,
+    _dm_curveaxis,
+    _dm_curveplane,
+    _dm_curvefocus,
+    _dm_curveextent,
+    _dm_curveperspective,
+    _dm_curvetilt,
+    _dm_curveprofile,
+    _dm_curvescrollx,
+    _dm_curvescrolly,
+    _dm_curvewrap,
     _dm_the_end,
 };
 
@@ -14857,6 +14870,19 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "clipw",
         "clipx",
         "clipy",
+        "curve",
+        "curveangle",
+        "curveaxis",
+        "curveenabled",
+        "curveextent",
+        "curvefocus",
+        "curveperspective",
+        "curveplane",
+        "curveprofile",
+        "curvescrollx",
+        "curvescrolly",
+        "curvetilt",
+        "curvewrap",
         "enabled",
         "endsize",
         "fillcolor",
@@ -14922,6 +14948,19 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         _dm_clipw,
         _dm_clipx,
         _dm_clipy,
+        _dm_curve,
+        _dm_curveangle,
+        _dm_curveaxis,
+        _dm_curveenabled,
+        _dm_curveextent,
+        _dm_curvefocus,
+        _dm_curveperspective,
+        _dm_curveplane,
+        _dm_curveprofile,
+        _dm_curvescrollx,
+        _dm_curvescrolly,
+        _dm_curvetilt,
+        _dm_curvewrap,
         _dm_enabled,
         _dm_endsize,
         _dm_fillcolor,
@@ -14999,10 +15038,10 @@ static int drawmethod_color_property_id(int property)
 HRESULT openbor_set_draw_method(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant common = {0};
-    ScriptVariant *arguments[4];
+    ScriptVariant *arguments[DRAWMETHOD_CURVE_ARGUMENTS + 2];
     int i;
     *pretvar = NULL;
-    if(paramCount < 3 || paramCount > 4)
+    if(paramCount < 3 || paramCount > DRAWMETHOD_CURVE_ARGUMENTS + 2)
     {
         printf("\nset_draw_method requires a drawmethod or NULL(), property, and value(s).\n");
         return E_FAIL;
@@ -15114,6 +15153,19 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
     else
     {
         pmethod = &(drawmethod);
+    }
+
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_curve &&
+       varlist[1]->lVal <= _dm_curvewrap)
+    {
+        if(!drawmethod_curve_property_set(pmethod,
+             DM_CURVE + (int)varlist[1]->lVal - _dm_curve,
+             (const ScriptVariant *const *)(varlist + 2), paramCount - 2))
+        {
+            printf("\nScript error: invalid drawmethod curve values or argument count.\n");
+            return E_FAIL;
+        }
+        return S_OK;
     }
 
     if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal == _dm_resample)
@@ -15548,6 +15600,19 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+    if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal >= _dm_curve &&
+       varlist[1]->lVal <= _dm_curvewrap)
+    {
+        if(paramCount != 2 || !drawmethod_curve_property_get(pmethod,
+             DM_CURVE + (int)varlist[1]->lVal - _dm_curve, *pretvar))
+        {
+            printf("\nScript error: curve properties have no component argument.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+        return S_OK;
+    }
 
     if(varlist[1]->vt == VT_INTEGER && varlist[1]->lVal == _dm_resample)
     {

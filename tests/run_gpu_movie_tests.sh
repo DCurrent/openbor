@@ -40,7 +40,7 @@ export OPENBOR_PROFILE=0
 for test_name in test_gpu_movie test_gpu_movie_failures; do
     "$test_compiler" "${test_flags[@]}" "tests/$test_name.c" \
         engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c \
-        engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c \
+        engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c engine/sdl/gpu_renderer.c \
         engine/sdl/loadgl.c engine/source/gamelib/engine_profile.c \
         -Wl,--gc-sections -lm "${test_sdl_libs[@]}" \
         -o "$test_build_dir/$test_name"

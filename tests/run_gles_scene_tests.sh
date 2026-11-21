@@ -36,7 +36,7 @@ else
 fi
 test_flags+=("${test_sdl_flags[@]}" -UNDEBUG)
 test_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
-    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c
+    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c engine/sdl/gpu_renderer.c
     engine/sdl/loadgl.c engine/source/gamelib/engine_profile.c)
 test_link_flags=(-Wl,--gc-sections -lm "${test_sdl_libs[@]}")
 
@@ -56,7 +56,7 @@ export MESA_GLES_VERSION_OVERRIDE=${MESA_GLES_VERSION_OVERRIDE:-3.0}
 
 # Focused local reruns can select a subset after an observed failure. The full
 # integration runner leaves this unset and executes every listed contract.
-read -r -a test_cases <<< "${OPENBOR_GLES_TEST_CASES:-renderer shutdown palette_cache state_cache transform_gl colors resample output_filter launcher_text movie movie_failures anigif submission capabilities lifecycle}"
+read -r -a test_cases <<< "${OPENBOR_GLES_TEST_CASES:-renderer shutdown palette_cache state_cache transform_gl colors resample curve output_filter launcher_text movie movie_failures anigif submission capabilities lifecycle}"
 for test_case in "${test_cases[@]}"; do
     test_extra_sources=()
     test_wrappers=()
@@ -69,7 +69,7 @@ for test_case in "${test_cases[@]}"; do
             test_extra_sources=(engine/source/gamelib/screen.c engine/source/gamelib/draw.c
                 engine/source/gamelib/sprite.c engine/source/gamelib/spriteq.c
                 engine/source/gamelib/bitmap.c engine/source/gamelib/pixelformat.c) ;;
-        resample|movie|movie_failures) ;;
+        resample|curve|movie|movie_failures) ;;
         anigif)
             test_extra_sources=(engine/source/gamelib/anigif.c
                 engine/source/gamelib/screen.c engine/source/gamelib/pixelformat.c) ;;

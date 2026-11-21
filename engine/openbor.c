@@ -122,7 +122,9 @@ const s_drawmethod plainmethod =
     .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0},
     /* Identity is ready for opt-in use, while the affine config flag stays off. */
     .affine = {.m00 = 1.0f, .m01 = 0.0f, .m10 = 0.0f,
-               .m11 = 1.0f, .tx = 0.0f, .ty = 0.0f}
+               .m11 = 1.0f, .tx = 0.0f, .ty = 0.0f},
+    /* Damon V. Caskey, 2026-11-20: curve defaults remain opt-in. */
+    .curve = DRAWMETHOD_CURVE_INITIALIZER
 };
 
 // Caskey, Damon V.

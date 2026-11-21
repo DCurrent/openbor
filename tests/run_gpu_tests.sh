@@ -146,6 +146,8 @@ export OPENBOR_PROFILE=0
     "${test_link_flags[@]}" -o "$test_build_dir/test_gpu_logging"
 run_test "$test_build_dir/test_gpu_logging"
 
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" bash tests/run_gpu_curve_geometry_tests.sh
+
 # Run context-independent contracts first so hosts without SDL still verify
 # stable ordering, transform arithmetic, and CPU/GPU ownership transitions.
 "$test_compiler" "${test_flags[@]}" tests/test_spriteq_sort.c \
@@ -154,7 +156,7 @@ run_test "$test_build_dir/test_gpu_logging"
 run_test "$test_build_dir/test_spriteq_sort"
 
 "$test_compiler" "${test_flags[@]}" tests/test_gpu_transform.c \
-    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_shader.c \
+    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c engine/source/gamelib/gpu_shader.c \
     engine/source/gamelib/pixelformat.c "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
@@ -200,7 +202,7 @@ test_gpu_flags=("${test_flags[@]}" "${test_sdl_flags[@]}"
     -DSDL=1 -DLINUX=1 -DOPENGL=1 -DLOADGL=1 -Iengine/sdl
     -Iengine/source/pnglib -Iengine/source/webmlib)
 test_gpu_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
-    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c
+    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_curve.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c
     "${test_profile_sources[@]}")
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
 
@@ -259,6 +261,12 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
     OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
     bash tests/run_gpu_resample_tests.sh
+
+# Check analytic bends and perspective with native material/screen ownership.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
+    OPENBOR_TEST_SDL_CFLAGS="${test_sdl_flags[*]}" \
+    OPENBOR_TEST_SDL_LIBS="${test_sdl_libs[*]}" \
+    bash tests/run_gpu_curve_tests.sh
 
 # Compare every display-filter pixel with independent RGB8 kernels, including
 # source ownership, tiny edges, allocation rejection and context replacement.

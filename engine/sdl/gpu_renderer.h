@@ -84,6 +84,9 @@ typedef struct gpu_renderer_stats
     uint64_t state_reuses;
     /* Repeated affine instances emitted from their validated cached data. */
     uint64_t affine_preparation_reuses;
+    /* Curves use reusable native meshes and a separate perspective stream. */
+    uint64_t curve_draws, curve_mesh_builds, curve_mesh_reuses;
+    uint64_t curve_depth_upload_bytes;
     /* Row effects distinguish actual one-quad draws from cached CPU recurrence
      * preparation and its small, separately accounted GPU data uploads. */
     uint64_t water_draws, plane_draws;

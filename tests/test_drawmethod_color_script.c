@@ -14,6 +14,7 @@
 #include <strings.h>
 #include <math.h>
 #include "scriptcommon.h"
+#include "drawmethod_curve.h"
 
 #undef malloc
 #undef calloc
@@ -26,6 +27,7 @@ const s_drawmethod plainmethod = {
     .scalex = 256, .scaley = 256, .xrepeat = 1, .yrepeat = 1,
     .channelr = 255, .channelg = 255, .channelb = 255,
     .affine = {.m00 = 1.0f, .m11 = 1.0f},
+    .curve = DRAWMETHOD_CURVE_INITIALIZER,
     .object_type = OBJECT_TYPE_DRAWMETHOD
 };
 
@@ -41,14 +43,16 @@ enum color_script_api {
     COLOR_COMMON, COLOR_OBJECT, COLOR_LEGACY,
     COLOR_COMMON_OBJECT, COLOR_LEGACY_COMMON
 };
-static ScriptVariant color_arguments[8];
-static ScriptVariant *color_argument_ptrs[8];
+#define DRAWMETHOD_SCRIPT_TEST_ARGUMENTS 16
+static ScriptVariant color_arguments[DRAWMETHOD_SCRIPT_TEST_ARGUMENTS];
+static ScriptVariant *color_argument_ptrs[DRAWMETHOD_SCRIPT_TEST_ARGUMENTS];
 static s_drawmethod color_object;
 static entity color_owner;
 static unsigned color_sorted_searches;
 static unsigned color_atomic_rejections;
 static unsigned resample_atomic_rejections;
 static unsigned drawmethod_constant_checks;
+static unsigned curve_atomic_rejections;
 
 /*
  * Damon V. Caskey
@@ -89,7 +93,7 @@ int __wrap_searchList(const char *list[], const char *value, int length)
 static void color_script_arguments(void)
 {
     int i;
-    for(i = 0; i < 8; ++i)
+    for(i = 0; i < DRAWMETHOD_SCRIPT_TEST_ARGUMENTS; ++i)
     {
         ScriptVariant_Clear(&color_arguments[i]);
         color_argument_ptrs[i] = &color_arguments[i];
@@ -137,6 +141,11 @@ static void color_script_pointer(int index, void *value)
  */
 static const char *color_script_name(int property)
 {
+    static const char *const curve_names[] = {
+        "curve", "curveenabled", "curveangle", "curveaxis", "curveplane",
+        "curvefocus", "curveextent", "curveperspective", "curvetilt",
+        "curveprofile", "curvescrollx", "curvescrolly", "curvewrap"
+    };
     static const char *const names[] = {
         "chromakeya", "chromakeyb", "chromakeyc", "chromakeyd", "chromakeye",
         "chromakeyenabled", "substitutea", "substituteb", "substitutec",
@@ -145,6 +154,10 @@ static const char *color_script_name(int property)
     if(property == DM_RESAMPLE)
     {
         return "resample";
+    }
+    if(property >= DM_CURVE && property <= DM_CURVE_WRAP)
+    {
+        return curve_names[property - DM_CURVE];
     }
     assert(property >= DM_CHROMA_KEY_A && property <= DM_SUBSTITUTE_ENABLED);
     return names[property - DM_CHROMA_KEY_A];
@@ -547,7 +560,38 @@ static void color_script_constants(void)
         COLOR_CONSTANT(DC_RESAMPLE_BICUBIC_BSPLINE),
         COLOR_CONSTANT(DC_RESAMPLE_LANCZOS_2),
         COLOR_CONSTANT(DC_RESAMPLE_LANCZOS_3),
-        COLOR_CONSTANT(DC_RESAMPLE_MOVIE)
+        COLOR_CONSTANT(DC_RESAMPLE_MOVIE),
+        COLOR_CONSTANT(DM_CURVE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE),
+        COLOR_CONSTANT(DM_CURVE_ENABLED),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_ENABLED),
+        COLOR_CONSTANT(DM_CURVE_ANGLE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_ANGLE),
+        COLOR_CONSTANT(DM_CURVE_AXIS),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_AXIS),
+        COLOR_CONSTANT(DM_CURVE_PLANE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_PLANE),
+        COLOR_CONSTANT(DM_CURVE_FOCUS),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_FOCUS),
+        COLOR_CONSTANT(DM_CURVE_EXTENT),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_EXTENT),
+        COLOR_CONSTANT(DM_CURVE_PERSPECTIVE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_PERSPECTIVE),
+        COLOR_CONSTANT(DM_CURVE_TILT),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_TILT),
+        COLOR_CONSTANT(DM_CURVE_PROFILE),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_PROFILE),
+        COLOR_CONSTANT(DM_CURVE_SCROLL_X),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_SCROLL_X),
+        COLOR_CONSTANT(DM_CURVE_SCROLL_Y),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_SCROLL_Y),
+        COLOR_CONSTANT(DM_CURVE_WRAP),
+        COLOR_CONSTANT(DRAWMETHOD_PROPERTY_CURVE_WRAP),
+        COLOR_CONSTANT(DRAWMETHOD_CONFIG_CURVE),
+        COLOR_CONSTANT(DC_CURVE_PROFILE_UNIFORM),
+        COLOR_CONSTANT(DC_CURVE_PROFILE_SMOOTH),
+        COLOR_CONSTANT(DC_CURVE_WRAP_CLIP),
+        COLOR_CONSTANT(DC_CURVE_WRAP_REPEAT)
     };
 #undef COLOR_CONSTANT
     unsigned i;
@@ -831,6 +875,295 @@ static void resample_script_object_contract(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Exercise the complete curve call through the actual script entry points.
+ * The values deliberately cover fractional focus, depth, tilt and scrolling.
+ */
+static const DOUBLE curve_script_values[DRAWMETHOD_CURVE_ARGUMENTS] = {
+    -72.5, 90.0, 0.0, 0.35, 0.6, 4.0, -20.0, 1.0, 17.25, -3.75, 1.0
+};
+
+static void curve_script_decimal(int index, DOUBLE value)
+{
+    ScriptVariant_ChangeType(&color_arguments[index], VT_DECIMAL);
+    color_arguments[index].dblVal = value;
+}
+
+static void curve_script_prepare_full(enum color_script_api api)
+{
+    int i;
+    color_script_prepare(api, DM_CURVE);
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        if(i == DM_CURVE_PROFILE - DM_CURVE_ANGLE ||
+           i == DM_CURVE_WRAP - DM_CURVE_ANGLE)
+        {
+            color_script_integer(i + 2, (LONG)curve_script_values[i]);
+        }
+        else { curve_script_decimal(i + 2, curve_script_values[i]); }
+    }
+}
+
+static HRESULT curve_script_get(enum color_script_api api, int count, DOUBLE *value)
+{
+    ScriptVariant result = {0};
+    ScriptVariant *result_pointer = &result;
+    HRESULT status;
+    if(api == COLOR_COMMON || api == COLOR_COMMON_OBJECT)
+    {
+        status = openbor_get_draw_method(color_argument_ptrs, &result_pointer, count);
+    }
+    else if(api == COLOR_OBJECT)
+    {
+        status = openbor_get_drawmethod_property(
+            (const ScriptVariant *const *)color_argument_ptrs, &result_pointer, count);
+    }
+    else
+    {
+        status = openbor_getdrawmethod(color_argument_ptrs, &result_pointer, count);
+    }
+    if(SUCCEEDED(status))
+    {
+        assert(result_pointer == &result);
+        assert(result.vt == VT_INTEGER || result.vt == VT_DECIMAL);
+        *value = result.vt == VT_INTEGER ? result.lVal : result.dblVal;
+    }
+    ScriptVariant_Clear(&result);
+    return status;
+}
+
+static DOUBLE curve_script_read(enum color_script_api api, int property)
+{
+    DOUBLE value = 0;
+    color_script_prepare(api, property);
+    assert(curve_script_get(api, 2, &value) == S_OK);
+    return value;
+}
+
+static void curve_script_snapshot(enum color_script_api api, DOUBLE *values)
+{
+    int property;
+    for(property = DM_CURVE; property <= DM_CURVE_WRAP; ++property)
+    {
+        values[property - DM_CURVE] = curve_script_read(api, property);
+    }
+}
+
+static void curve_script_roundtrip(enum color_script_api api)
+{
+    static const DOUBLE defaults[DRAWMETHOD_CURVE_ARGUMENTS] = {
+        0, 0, 90, 0.5, 1, 0, 0, 0, 0, 0, 0
+    };
+    int i;
+    color_script_reset(api);
+    assert(curve_script_read(api, DM_CURVE) == 0);
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        assert(curve_script_read(api, DM_CURVE_ANGLE + i) == defaults[i]);
+    }
+    curve_script_prepare_full(api);
+    assert(color_script_set(api, DRAWMETHOD_CURVE_ARGUMENTS + 2) == S_OK);
+    assert(curve_script_read(api, DM_CURVE_ENABLED) == 1);
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        assert(fabs(curve_script_read(api, DM_CURVE_ANGLE + i) -
+                    curve_script_values[i]) < 0.000001);
+    }
+
+    color_script_prepare(api, DM_CURVE_ENABLED);
+    color_script_integer(2, 0);
+    assert(color_script_set(api, 3) == S_OK);
+    assert(curve_script_read(api, DM_CURVE) == 0);
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        assert(fabs(curve_script_read(api, DM_CURVE_ANGLE + i) -
+                    curve_script_values[i]) < 0.000001);
+    }
+    color_script_prepare(api, DM_CURVE_ENABLED);
+    color_script_integer(2, 1);
+    assert(color_script_set(api, 3) == S_OK);
+    assert(curve_script_read(api, DM_CURVE) == 1);
+
+    /* Individual fields share the full setter's validation and auto-enable. */
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        color_script_prepare(api, DM_CURVE_ENABLED);
+        color_script_integer(2, 0);
+        assert(color_script_set(api, 3) == S_OK);
+        color_script_prepare(api, DM_CURVE_ANGLE + i);
+        if(i == DM_CURVE_PROFILE - DM_CURVE_ANGLE ||
+           i == DM_CURVE_WRAP - DM_CURVE_ANGLE)
+        {
+            color_script_integer(2, (LONG)defaults[i]);
+        }
+        else { curve_script_decimal(2, defaults[i]); }
+        assert(color_script_set(api, 3) == S_OK);
+        assert(curve_script_read(api, DM_CURVE_ANGLE + i) == defaults[i]);
+        assert(curve_script_read(api, DM_CURVE_ENABLED) == 1);
+    }
+    color_script_reset(api);
+    assert(curve_script_read(api, DM_CURVE_ENABLED) == 0);
+
+    /* The non-binary lower bound must remain valid after a script getter. */
+    color_script_prepare(api, DM_CURVE_EXTENT);
+    curve_script_decimal(2, 0.01);
+    assert(color_script_set(api, 3) == S_OK);
+    {
+        DOUBLE extent = curve_script_read(api, DM_CURVE_EXTENT);
+        color_script_prepare(api, DM_CURVE_EXTENT);
+        curve_script_decimal(2, extent);
+        assert(color_script_set(api, 3) == S_OK);
+    }
+    color_script_reset(api);
+}
+
+static void curve_script_rejected(enum color_script_api api, int count,
+                                   const DOUBLE *before)
+{
+    DOUBLE after[DM_CURVE_WRAP - DM_CURVE + 1];
+    s_drawmethod object_before;
+    memcpy(&object_before, &color_object, sizeof(object_before));
+    assert(FAILED(color_script_set(api, count)));
+    assert(memcmp(&object_before, &color_object, sizeof(object_before)) == 0);
+    curve_script_snapshot(api, after);
+    assert(memcmp(before, after, sizeof(after)) == 0);
+    assert(color_script_read(api, DM_RESAMPLE, -1) == DC_RESAMPLE_LANCZOS_3);
+    ++curve_atomic_rejections;
+}
+
+static void curve_script_invalid(enum color_script_api api)
+{
+    static const DOUBLE invalid_low[DRAWMETHOD_CURVE_ARGUMENTS] = {
+        -180.000001, -360.000001, -360.000001, -4.000001, 0.009999999,
+        -0.000001, -89.000001, -1, -10000000.000001, -10000000.000001, -1
+    };
+    static const DOUBLE invalid_high[DRAWMETHOD_CURVE_ARGUMENTS] = {
+        180.000001, 360.000001, 360.000001, 5.000001, 16.000001,
+        64.000001, 89.000001, 2, 10000000.000001, 10000000.000001, 2
+    };
+    static const DOUBLE nonfinite[] = {NAN, INFINITY, -INFINITY};
+    DOUBLE before[DM_CURVE_WRAP - DM_CURVE + 1], ignored;
+    int i, n;
+    color_script_reset(api);
+    curve_script_prepare_full(api);
+    assert(color_script_set(api, DRAWMETHOD_CURVE_ARGUMENTS + 2) == S_OK);
+    color_script_prepare(api, DM_RESAMPLE);
+    color_script_integer(2, DC_RESAMPLE_LANCZOS_3);
+    assert(color_script_set(api, 3) == S_OK);
+    curve_script_snapshot(api, before);
+
+    for(i = 0; i < DRAWMETHOD_CURVE_ARGUMENTS; ++i)
+    {
+        int property = DM_CURVE_ANGLE + i;
+        int integer = property == DM_CURVE_PROFILE || property == DM_CURVE_WRAP;
+        for(n = 0; n < 2; ++n)
+        {
+            DOUBLE invalid = n ? invalid_high[i] : invalid_low[i];
+            color_script_prepare(api, property);
+            if(integer) { color_script_integer(2, (LONG)invalid); }
+            else { curve_script_decimal(2, invalid); }
+            curve_script_rejected(api, 3, before);
+
+            /* A bad late field must not commit any earlier atomic arguments. */
+            curve_script_prepare_full(api);
+            curve_script_decimal(2, 123.0);
+            if(integer) { color_script_integer(i + 2, (LONG)invalid); }
+            else { curve_script_decimal(i + 2, invalid); }
+            curve_script_rejected(api, DRAWMETHOD_CURVE_ARGUMENTS + 2, before);
+        }
+        for(n = 0; n < 3; ++n)
+        {
+            color_script_prepare(api, property);
+            curve_script_decimal(2, nonfinite[n]);
+            curve_script_rejected(api, 3, before);
+        }
+        color_script_prepare(api, property);
+        color_script_string(2, "1");
+        curve_script_rejected(api, 3, before);
+        color_script_prepare(api, property);
+        curve_script_rejected(api, 3, before); /* VT_EMPTY */
+        color_script_prepare(api, property);
+        color_script_pointer(2, &color_object);
+        curve_script_rejected(api, 3, before);
+        color_script_prepare(api, property);
+        curve_script_decimal(2, 1.0);
+        color_script_integer(3, 0);
+        curve_script_rejected(api, 4, before);
+        if(integer)
+        {
+            color_script_prepare(api, property);
+            curve_script_decimal(2, 1.0);
+            curve_script_rejected(api, 3, before);
+        }
+        color_script_prepare(api, property);
+        color_script_integer(2, 0);
+        assert(FAILED(curve_script_get(api, 3, &ignored)));
+    }
+    curve_script_prepare_full(api);
+    curve_script_rejected(api, DRAWMETHOD_CURVE_ARGUMENTS + 1, before);
+    curve_script_prepare_full(api);
+    color_script_integer(DRAWMETHOD_CURVE_ARGUMENTS + 2, 0);
+    curve_script_rejected(api, DRAWMETHOD_CURVE_ARGUMENTS + 3, before);
+    color_script_prepare(api, DM_CURVE_ENABLED);
+    color_script_integer(2, 2);
+    curve_script_rejected(api, 3, before);
+    color_script_prepare(api, DM_CURVE_ENABLED);
+    curve_script_decimal(2, 1.0);
+    curve_script_rejected(api, 3, before);
+}
+
+static void curve_script_copy_and_default(void)
+{
+    s_drawmethod copied = plainmethod, before;
+    ScriptVariant result = {0}, *result_pointer = &result;
+    unsigned api;
+    DOUBLE value;
+    color_script_reset(COLOR_OBJECT);
+    curve_script_prepare_full(COLOR_OBJECT);
+    assert(color_script_set(COLOR_OBJECT, DRAWMETHOD_CURVE_ARGUMENTS + 2) == S_OK);
+    before = color_object;
+    color_script_arguments();
+    color_script_pointer(0, &copied);
+    color_script_pointer(1, &color_object);
+    assert(openbor_copy_drawmethod(color_argument_ptrs, &result_pointer, 2) == S_OK);
+    assert(memcmp(&copied, &before, sizeof(copied)) == 0);
+    color_script_prepare(COLOR_OBJECT, DM_CURVE_FOCUS);
+    curve_script_decimal(2, 0.8);
+    assert(color_script_set(COLOR_OBJECT, 3) == S_OK);
+    assert(copied.curve.focus == before.curve.focus);
+
+    before = plainmethod;
+    for(api = COLOR_COMMON; api <= COLOR_LEGACY; ++api)
+    {
+        curve_script_prepare_full((enum color_script_api)api);
+        if(api == COLOR_LEGACY) { color_owner.drawmethod = (s_drawmethod *)&plainmethod; }
+        else { color_script_pointer(0, (void *)&plainmethod); }
+        assert(FAILED(color_script_set((enum color_script_api)api,
+                                       DRAWMETHOD_CURVE_ARGUMENTS + 2)));
+        assert(memcmp(&plainmethod, &before, sizeof(before)) == 0);
+    }
+    color_owner.drawmethod = NULL;
+    color_script_prepare(COLOR_LEGACY, DM_CURVE_ENABLED);
+    color_script_integer(2, 0);
+    assert(FAILED(color_script_set(COLOR_LEGACY, 3)));
+    assert(FAILED(curve_script_get(COLOR_LEGACY, 2, &value)));
+    color_owner.drawmethod = &color_object;
+    ScriptVariant_Clear(&result);
+
+    /* Disabling also permits recovery from an invalid direct native edit. */
+    color_object.curve.extent = 0;
+    color_script_prepare(COLOR_OBJECT, DM_CURVE_ENABLED);
+    color_script_integer(2, 0);
+    assert(color_script_set(COLOR_OBJECT, 3) == S_OK);
+    color_script_prepare(COLOR_OBJECT, DM_CURVE_ENABLED);
+    color_script_integer(2, 1);
+    assert(FAILED(color_script_set(COLOR_OBJECT, 3)));
+    color_script_reset(COLOR_OBJECT);
+    assert(drawmethod_curve_valid(&color_object.curve));
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Run the same behavioral contract through all three script-facing APIs.
  * 2026-11-15: exercise all five resample access paths and fixed enum values.
@@ -844,7 +1177,11 @@ int main(void)
     assert(DC_RESAMPLE_BICUBIC_BSPLINE == 4 && DC_RESAMPLE_LANCZOS_2 == 5);
     assert(DC_RESAMPLE_LANCZOS_3 == 6 && DC_RESAMPLE_END == 7);
     assert(DC_RESAMPLE_MOVIE == DC_RESAMPLE_BILINEAR);
-    assert(DM_RESAMPLE == DRAWMETHOD_PROPERTY_RESAMPLE);
+    assert(DM_RESAMPLE == DRAWMETHOD_PROPERTY_RESAMPLE && DM_RESAMPLE == 45);
+    assert(DM_CURVE == DM_RESAMPLE + 1);
+    assert(DM_CURVE_WRAP - DM_CURVE_ANGLE + 1 == DRAWMETHOD_CURVE_ARGUMENTS);
+    assert(DRAWMETHOD_CONFIG_CURVE == (1 << 7));
+    assert(drawmethod_curve_valid(&plainmethod.curve));
     assert(plainmethod.resample == DC_RESAMPLE_NEAREST);
     color_object = plainmethod;
     color_owner.drawmethod = &color_object;
@@ -865,13 +1202,21 @@ int main(void)
     }
     resample_script_copy();
     resample_script_object_contract();
+    for(api = COLOR_COMMON; api <= COLOR_LEGACY_COMMON; ++api)
+    {
+        curve_script_roundtrip((enum color_script_api)api);
+        curve_script_invalid((enum color_script_api)api);
+    }
+    curve_script_copy_and_default();
     assert(color_sorted_searches > 0 && color_atomic_rejections == 60);
-    assert(resample_atomic_rejections == 95 && drawmethod_constant_checks == 37);
+    assert(resample_atomic_rejections == 95 && drawmethod_constant_checks == 68);
+    assert(curve_atomic_rejections >= 600);
     color_script_arguments();
     StrCache_Clear();
-    printf("drawmethod color/resample script checks passed: %u constants, "
+    printf("drawmethod color/resample/curve script checks passed: %u constants, "
            "3 production APIs, 5 resample access paths, %u color and %u resample "
-           "atomic rejections; copy/default/reset verified; legacy tables sorted\n",
-           drawmethod_constant_checks, color_atomic_rejections, resample_atomic_rejections);
+           "and %u curve atomic rejections; copy/default/reset verified; legacy tables sorted\n",
+           drawmethod_constant_checks, color_atomic_rejections, resample_atomic_rejections,
+           curve_atomic_rejections);
     return 0;
 }

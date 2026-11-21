@@ -7,9 +7,9 @@ Date: 2026-11-20
 ## One filter per draw
 
 `DM_RESAMPLE` selects one reconstruction formula for an image draw. Scaling,
-rotation, explicit affine transforms, shear, water and perspective planes use
-the selected formula after determining the source coordinates. There are no
-separate scale, rotation or affine filter overrides.
+rotation, explicit affine transforms, curves, shear, water and perspective
+planes use the selected formula after determining the source coordinates.
+There are no separate scale, rotation, affine or curve filter overrides.
 
 The default is `DC_RESAMPLE_NEAREST`. Resetting a drawmethod restores nearest;
 copying it copies the selection. Queued draws capture the selection by value,
@@ -114,6 +114,14 @@ edge. Plane textures wrap each position independently across both seams.
 Filtering does not expand the image's geometric coverage into an antialiased
 silhouette; source transparency inside the covered image can still produce
 fractional coverage.
+
+[Curve draws](curve-transforms.md) interpolate continuous source coordinates
+with perspective correction. Their pixel-space texture scroll is applied
+independently of the shape. `DC_CURVE_WRAP_CLIP` discards mapped positions
+outside the image and clamps filter taps for valid positions;
+`DC_CURVE_WRAP_REPEAT` wraps every contributing tap across both source seams.
+Negative phases wrap through the same logical image dimensions. Curves use
+this master resample selection, including its fixed-support reduction limits.
 
 ## Palettes, transparency and material order
 

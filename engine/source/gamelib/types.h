@@ -248,7 +248,8 @@ typedef enum e_drawmethod_config
     DRAWMETHOD_CONFIG_FLIP_ROTATE               = (1 << 3),
     DRAWMETHOD_CONFIG_FLIP_X                    = (1 << 4),
     DRAWMETHOD_CONFIG_FLIP_Y                    = (1 << 5),
-    DRAWMETHOD_CONFIG_AFFINE                    = (1 << 6)
+    DRAWMETHOD_CONFIG_AFFINE                    = (1 << 6),
+    DRAWMETHOD_CONFIG_CURVE                     = (1 << 7)
     
 } e_drawmethod_config;
 
@@ -317,6 +318,46 @@ typedef struct
 
 /*
  * Damon V. Caskey
+ * 2026-11-20
+ * Curve geometry remains inline so queued sprite and screen draws own a
+ * complete parameter snapshot. Angles use degrees, focus/extent use source
+ * axis proportions, and scrolling uses source texels.
+ */
+typedef enum
+{
+    DC_CURVE_PROFILE_UNIFORM = 0,
+    DC_CURVE_PROFILE_SMOOTH = 1
+} e_drawmethod_curve_profile;
+
+typedef enum
+{
+    DC_CURVE_WRAP_CLIP = 0,
+    DC_CURVE_WRAP_REPEAT = 1
+} e_drawmethod_curve_wrap;
+
+typedef struct
+{
+    float angle;
+    float axis;
+    float plane;
+    float focus;
+    float extent;
+    float perspective;
+    float tilt;
+    int profile;
+    float scrollx;
+    float scrolly;
+    int wrap;
+} s_drawmethod_curve;
+
+#define DRAWMETHOD_CURVE_INITIALIZER \
+    {.angle = 0.0f, .axis = 0.0f, .plane = 90.0f, .focus = 0.5f, \
+     .extent = 1.0f, .perspective = 0.0f, .tilt = 0.0f, \
+     .profile = DC_CURVE_PROFILE_UNIFORM, .scrollx = 0.0f, .scrolly = 0.0f, \
+     .wrap = DC_CURVE_WRAP_CLIP}
+
+/*
+ * Damon V. Caskey
  * 2026-11-14
  * Capture five source chroma keys and five final-output substitutions inside
  * each drawmethod. Explicit masks keep packed RGB zero available as a color.
@@ -372,6 +413,7 @@ typedef struct
     int cliph;				// ~~
     water_transform water;	
     affine_transform affine;
+    s_drawmethod_curve curve;
 
     /* Inline storage gives queued draws immutable copies of color settings. */
     s_drawmethod_colors colors;
