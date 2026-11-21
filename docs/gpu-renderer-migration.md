@@ -33,6 +33,13 @@ no longer upload a CPU-composited frame on any supported platform. Android owns
 its GLES context and final display/touch pass; see [Android GPU rendering](android-gpu-rendering.md)
 for its resource lifecycle and device requirements.
 
+Video Options keeps final presentation separate from in-game drawing. Window
+Scale now spans 0.25x through 8x, Scaling Filter selects Nearest, Bilinear or
+the existing High Quality sampling, and Final Filter selects the completed
+scene's visual effect. Android retains Automatic fit and adds centered manual
+display scales. Existing settings migrate without changing the packed file
+layout or each platform's default appearance. See [Video controls](video-controls.md).
+
 `PIXEL_32` is the scene target format. Indexed artwork remains supported as
 `PIXEL_8` or `PIXEL_x8` image storage; indexed sprites use GPU index textures
 and a separate palette texture. Indexed asset processing is distinct from a
@@ -77,7 +84,8 @@ formats.
 | Explicit CPU image edits | Synchronized image access followed by upload when next used by GPU |
 | Rejected native RGB32 drawing operations | Logged and skipped without CPU rendering retry |
 | Indexed asset processing | Existing image operations; scene composition uses RGB32 |
-| Output filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
+| Final filters | Six shared GPU kernels, full RGB8 arithmetic and one reusable 2x RGBA8 target; disabled selection bypasses the pass |
+| Display sizing and sampling | Independent Window/Display Scale through 8x and Nearest, Bilinear or High Quality sampling; module resolution and drawmethod resampling are unchanged |
 | Android gameplay | Shared native scene renderer on GLES 3.0, resident RGB32 screens and direct GPU presentation |
 | Video playback | Shared native YUV conversion, resampling, black protection and composition for screens/fullscreen; CPU decoding and audio retained |
 | Animated GIF playback | CPU LZW decoding to indices; native palette lookup, retained RGB32 frame composition and exact three-stream RGB merging |
@@ -876,7 +884,11 @@ The suites cover:
   repeated blend order, queue copies, capture/replay and invalid-input atomicity.
 - Reuse of validated affine repeat data, full-copy upload elision, and partial
   copies preserving the destination border.
-- Real presentation, orientation, output-filter/video transitions and mode changes.
+- Real presentation, orientation, final-filter/video transitions and mode changes.
+- Packed settings compatibility, legacy sampling migration, actual menu actions,
+  independent choices, save/load/default round trips and quarter-step scale limits.
+- Desktop sampling pixels at fractional and 8x scales, filter intermediates,
+  gamma/brightness and live screen preservation across window resizes.
 - Desktop launcher glyphs against the original bitmap data, exact RGB8 colors,
   filled/transparent cells, unsupported bytes, long formatted strings, screen
   clipping and overlap with previews; no text-induced readback or scene upload.
@@ -904,8 +916,8 @@ Production software scene rendering has been retired on every supported
 platform. Animated GIF composition and launcher preview resizing also use the
 shared GPU backend. The next optimization steps are sloped-line geometry and
 batching compatible draw calls while preserving painter order and feedback.
-Remaining presentation, menu and build cleanup can follow those changes.
-Launcher availability on Android remains a separate product decision.
+Display controls and their settings migration have been repaired before those
+feature additions. Android launcher availability is preserved.
 Preserving drawing capabilities on the supported platforms remains the goal.
 
 Future programmable materials should apply after source color decoding so

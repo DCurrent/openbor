@@ -24,6 +24,7 @@
 #include "gpu.h"
 #include "gpu_renderer.h"
 #include "engine_profile.h"
+#include "video_settings.h"
 
 SDL_Window *window = NULL;
 s_videomodes stored_videomodes;
@@ -196,15 +197,17 @@ static void video_log_values(const s_videomodes *mode)
 	        "\t%-26s\t%s\n"
 	        "\t%-26s\t%s\n"
 	        "\t%-26s\t%s\n"
+	        "\t%-26s\t%s\n"
 	        "\t%-26s\t%d x %d\n"
 	        "\t%-26s\t%s (%d bytes per pixel)\n",
 	        starting_values_reported ? "Values at Video Reinitialization" : "Starting Values",
-	        "Video backend requested:", savedata.usegl ? "OpenGL" : "SDL",
+	        "Video backend:", "OpenGL",
 	        "FPS limit:", fps_limit,
 	        "Display mode:", savedata.fullscreen ? "Fullscreen" : "Windowed",
-	        "Display scale:", scale,
-	        "Output filter selected:", filter,
-	        "GPU output filter:", filter_active ? "Active" : "Inactive",
+	        "Window scale:", scale,
+	        "Scaling filter:", video_scaling_filter_name(savedata.hwfilter),
+	        "Final filter selected:", filter,
+	        "GPU final filter:", filter_active ? "Active" : "Inactive",
 	        "Scene resolution:", mode->hRes, mode->vRes,
 	        "Scene color format:", "RGB32", mode->pixel);
 	starting_values_reported = 1;
@@ -220,6 +223,8 @@ static void video_log_values(const s_videomodes *mode)
 int video_set_mode(s_videomodes videomodes)
 {
     int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
+
+    video_settings_normalize(&savedata, 0);
 
     /* Shutdown has no image format; all nonempty scenes must be RGB32. */
     if((videomodes.hRes != 0 || videomodes.vRes != 0) && videomodes.pixel != 4)
@@ -245,11 +250,6 @@ int video_set_mode(s_videomodes videomodes)
     {
         gpu_log("========== GRAPHICS INITIALIZATION ==========");
         video_log_values(&videomodes);
-        if(!savedata.usegl)
-        {
-            gpu_log("RGB32 scene drawing requires the native OpenGL renderer.\n"
-                    "\tThe stored SDL preference does not select CPU scene rendering.");
-        }
     }
     stored_videomodes = videomodes;
     yuv_mode = 0;
@@ -260,7 +260,6 @@ int video_set_mode(s_videomodes videomodes)
         video_gl_shutdown();
         return 0;
     }
-    savedata.usegl = 1;
     videomodes = setupPreBlitProcessing(videomodes);
 
     /* Both native composition and its presenter are required. Failure rejects

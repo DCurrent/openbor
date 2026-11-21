@@ -2,13 +2,15 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-16
+Date: 2026-11-20
 
 ## Selection and scope
 
-Video output filters now execute on the GPU on Windows, Linux, macOS and
-Android. OpenBOR scene screens remain RGB32, and applications remain 64-bit.
-Selecting a filter on desktop keeps scene composition in the native renderer.
+The **Final Filter** menu control selects the output effect applied to the
+completed game scene. These video output filters execute on the GPU on Windows,
+Linux, macOS and Android. OpenBOR scene screens remain RGB32, and applications
+remain 64-bit. Selecting a filter on desktop keeps scene composition in the
+native renderer.
 The former CPU filter callbacks, color-conversion surfaces and reduced-color
 intermediate are removed.
 
@@ -31,7 +33,9 @@ or submit a filter draw. There is no separate Simple2x menu effect at ID 0.
 The existing activation rule remains: the selected filter runs when its ID is
 nonzero and either the window scale is at least 2x or fullscreen mode is
 selected. Below 2x in a window, the selection remains stored but inactive.
-Unknown IDs are rejected. Logs show selection and activity separately.
+The menu retains access to the stored selection and identifies an enabled
+effect as inactive below that threshold. Unknown IDs are rejected. Logs show
+selection and activity separately.
 
 Filters process the completed game scene. Window scaling and display color
 correction follow the filter pass, so scanline and dot phases belong to the
@@ -39,11 +43,17 @@ correction follow the filter pass, so scanline and dot phases belong to the
 scene dimensions, drawing coordinates and script-created screen dimensions
 remain unchanged. Android touch controls remain separate display layers.
 
-Output-filter selection is independent of `DM_RESAMPLE`. Drawmethod resampling
-reconstructs each image while drawing it into a scene; the output filter
-processes that completed scene. In particular, this output Bilinear filter has
-the established forward-neighbor phase, explicit border policy and integer
-half sums described below. It is distinct from the center-aligned bilinear
+Final Filter is independent of both **Scaling Filter** and `DM_RESAMPLE`.
+Scaling Filter chooses Nearest, Bilinear or High Quality sampling while mapping
+the finished image to the display. Window Scale selects that display size,
+from 0.25x through 8x in quarter steps. Neither changes the module's scene
+resolution or chooses a final visual effect. See [Video controls](video-controls.md)
+for desktop/Android sizing, the saved-settings migration and menu behavior.
+
+Drawmethod resampling reconstructs each image while drawing it into a scene;
+the output filter processes that completed scene. The output Bilinear filter
+uses the established forward-neighbor phase, explicit border policy and
+integer half sums described below. It is distinct from the center-aligned bilinear
 formula selected by `DC_RESAMPLE_BILINEAR` or `DC_RESAMPLE_MOVIE`.
 
 ## Color and arithmetic contract
@@ -253,6 +263,11 @@ scene back.
 The full `bash tests/run_gpu_tests.sh` suite also exercises production window
 presentation, orientation, filter activity transitions, native drawing after
 filter changes and movie coexistence.
+
+`bash tests/run_video_settings_tests.sh` independently exercises the production
+menu actions and saved settings on desktop and Android. It verifies that final
+effects, display sampling and scale remain separate choices, including a
+stored effect below the 2x window activation threshold.
 
 The shared filter oracle also runs in a real GLES3 context:
 

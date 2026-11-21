@@ -11,6 +11,7 @@
 #include "video.h"
 #include "opengl.h"
 #include "gfx.h"
+#include "video_settings.h"
 
 s_savedata savedata;
 extern SDL_Window *window;
@@ -107,7 +108,7 @@ static void presentation_test_failure(s_screen *screen, s_videomodes mode,
     assert(!opengl && !gpu_is_active());
     assert(!SDL_GL_GetCurrentContext());
     assert(test_pixel(screen, 3, 3) == color);
-    assert(savedata.usegl == 1);
+    assert(savedata.usegl == VIDEO_SETTINGS_NATIVE);
     readbacks = gpu_gl_get_stats()->readbacks;
     assert(!video_copy_screen(screen));
     assert(gpu_gl_get_stats()->readbacks == readbacks);

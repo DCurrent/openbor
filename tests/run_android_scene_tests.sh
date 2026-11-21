@@ -78,7 +78,8 @@ PY
     tests/test_android_scene.c engine/source/gamelib/gpu.c \
     engine/source/gamelib/gpu_shader.c engine/source/gamelib/gpu_transform.c \
     engine/sdl/gpu_renderer.c engine/source/gamelib/engine_profile.c \
-    engine/sdl/launcher_text.c "${test_sdl_libs[@]}" "-l:$test_gl_library" -lm \
+    engine/sdl/launcher_text.c engine/source/video_settings.c \
+    "${test_sdl_libs[@]}" "-l:$test_gl_library" -lm \
     -Wl,--gc-sections -Wl,--wrap=SDL_GL_SwapWindow \
     -Wl,--wrap=SDL_GL_CreateContext -Wl,--wrap=SDL_GL_DeleteContext \
     -Wl,--wrap=SDL_GL_GetDrawableSize \

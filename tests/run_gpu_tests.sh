@@ -15,6 +15,10 @@ test_flags=(-std=c99 -O2 -Wall -Werror -D_DEFAULT_SOURCE -DPP_TEST
             -Iengine/source/gamelib -Iengine/source/gfxlib)
 test_link_flags=(-Wl,--gc-sections -lm)
 test_profile_sources=(engine/source/gamelib/engine_profile.c)
+
+# Damon V. Caskey, 2026-11-20: check the real menu actions and legacy settings
+# layout before driver-dependent tests, including every scale through 8x.
+OPENBOR_TEST_BUILD_DIR="$test_build_dir" bash tests/run_video_settings_tests.sh
 # Append optional sanitizer or diagnostic flags after the defaults so callers
 # can select the same instrumentation for both CPU and native test binaries.
 if [[ -n ${OPENBOR_TEST_CFLAGS:-} ]]; then
@@ -303,7 +307,8 @@ OPENBOR_TEST_BUILD_DIR="$test_build_dir" \
     bash tests/run_android_scene_tests.sh
 
 test_presentation_sources=("${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c
-    engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/gfx.c)
+    engine/sdl/videocommon.c engine/sdl/timer.c engine/source/gfxlib/gfx.c
+    engine/source/video_settings.c)
 "$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
     "${test_presentation_sources[@]}" \
     "${test_link_flags[@]}" "${test_sdl_libs[@]}" \

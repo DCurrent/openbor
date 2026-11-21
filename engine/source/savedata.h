@@ -58,7 +58,7 @@ typedef struct
     int joyrumble[MAX_PLAYERS];
     int showtitles;
     int videoNTSC;
-    int swfilter; // GPU output-filter selector; persisted field name/order retained.
+    int swfilter; // Final Filter effect; persisted field name/order retained.
     int logo;
     int uselog;
     e_debug_display debuginfo; // FPS, Memory, etc...
@@ -67,9 +67,10 @@ typedef struct
     int screen[1][2];
     int fpslimit; // Sync to monitor refresh (1), limit to 200/500 FPS (2, 3) or don't (0)
 #if SDL
-    int usegl; // 1 if OpenGL is preferred over SDL software blitting
-    float hwscale; // Scale factor for OpenGL
-    int hwfilter; // Simple or bilinear scaling
+    // Damon V. Caskey, 2026-11-20: preserve the packed legacy settings layout.
+    int usegl; // Legacy 0/1 backend preference; VIDEO_SETTINGS_NATIVE after migration.
+    float hwscale; // Window/display scale .25x-8x; Android 0 means Automatic.
+    int hwfilter; // Final display sampling, e_video_scaling_filter in video_settings.h.
 #endif
 
 #if ANDROID

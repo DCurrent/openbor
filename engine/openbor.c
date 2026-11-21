@@ -19,6 +19,7 @@
 #include "soundmix.h"
 #include "gpu.h"
 #include "engine_profile.h"
+#include "video_settings.h"
 #include "source/bitmask.h" // Inline bitmask utility functions.
 #include <inttypes.h>
 #include <stdbool.h>
@@ -2924,12 +2925,14 @@ void clearsettings()
     savedata.swfilter = 0;
 
     #ifdef SDL
-    savedata.usegl = 1;
-    savedata.hwfilter = 1;
+    /* Damon V. Caskey, 2026-11-20: keep each platform's existing appearance. */
+    savedata.usegl = VIDEO_SETTINGS_NATIVE;
         #ifdef ANDROID
-        savedata.hwscale = 0.0;
+        savedata.hwfilter = VIDEO_SCALING_NEAREST;
+        savedata.hwscale = VIDEO_SCALE_AUTOMATIC;
         #else
-        savedata.hwscale = 1.0;
+        savedata.hwfilter = VIDEO_SCALING_HIGH_QUALITY;
+        savedata.hwscale = 1.0f;
         #endif
     #endif
 
@@ -2949,6 +2952,7 @@ void savesettings()
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
+    video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 4);
     strcat(path, tmpname);
@@ -2965,6 +2969,7 @@ void saveasdefault()
 {
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
+    video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
     getBasePath(path, "Saves", 0);
     strcat(path, "default.cfg");
     handle = fopen(path, "wb");
@@ -3002,6 +3007,7 @@ void loadsettings()
     {
         clearsettings();
     }
+    video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
 }
 
 void loadfromdefault()
@@ -3022,6 +3028,7 @@ void loadfromdefault()
     {
         clearsettings();
     }
+    video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
 }
 
 
@@ -56182,68 +56189,167 @@ void menu_options_system()
 }
 
 
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Display size, display sampling and the completed-image effect are separate
+ * controls. Skip platform-inapplicable rows without losing their saved values.
+ */
+static int menu_video_option_enabled(e_video_option option)
+{
+    switch(option)
+    {
+    case VIDEO_OPTION_BRIGHTNESS:
+    case VIDEO_OPTION_GAMMA:
+    case VIDEO_OPTION_WINDOW_OFFSET:
+    case VIDEO_OPTION_BACK:
+        return 1;
+#if SDL
+    case VIDEO_OPTION_DISPLAY_MODE:
+        return !VIDEO_SETTINGS_ANDROID;
+    case VIDEO_OPTION_WINDOW_SCALE:
+        return VIDEO_SETTINGS_ANDROID || !savedata.fullscreen;
+    case VIDEO_OPTION_SCALING_FILTER:
+    case VIDEO_OPTION_FINAL_FILTER:
+    case VIDEO_OPTION_FPS_LIMIT:
+        return 1;
+    case VIDEO_OPTION_FULLSCREEN_TYPE:
+        return VIDEO_SETTINGS_ANDROID ? savedata.hwscale == VIDEO_SCALE_AUTOMATIC : savedata.fullscreen;
+#endif
+    default:
+        return 0;
+    }
+}
+
+/* Keep each menu action independent, including scale changes on Android. */
+static void menu_video_adjust(e_video_option option, int direction)
+{
+    if(!direction || !menu_video_option_enabled(option)) return;
+    direction = direction > 0 ? 1 : -1;
+
+    switch(option)
+    {
+    case VIDEO_OPTION_BRIGHTNESS:
+        savedata.brightness += 8 * direction;
+        if(savedata.brightness < -256) savedata.brightness = -256;
+        if(savedata.brightness > 256) savedata.brightness = 256;
+        vga_vwait();
+        set_color_correction(savedata.gamma, savedata.brightness);
+        break;
+    case VIDEO_OPTION_GAMMA:
+        savedata.gamma += 8 * direction;
+        if(savedata.gamma < -256) savedata.gamma = -256;
+        if(savedata.gamma > 256) savedata.gamma = 256;
+        vga_vwait();
+        set_color_correction(savedata.gamma, savedata.brightness);
+        break;
+    case VIDEO_OPTION_WINDOW_OFFSET:
+        savedata.windowpos += direction;
+        if(savedata.windowpos < -2) savedata.windowpos = -2;
+        if(savedata.windowpos > 20) savedata.windowpos = 20;
+        break;
+#if SDL
+    case VIDEO_OPTION_DISPLAY_MODE:
+        video_fullscreen_flip();
+        break;
+    case VIDEO_OPTION_WINDOW_SCALE:
+    {
+        float scale = savedata.hwscale + direction * VIDEO_SCALE_STEP;
+        float minimum = VIDEO_SETTINGS_ANDROID ? VIDEO_SCALE_AUTOMATIC : VIDEO_SCALE_MIN;
+        if(scale < minimum) scale = minimum;
+        if(scale > VIDEO_SCALE_MAX) scale = VIDEO_SCALE_MAX;
+        if(scale != savedata.hwscale)
+        {
+            savedata.hwscale = scale;
+            video_set_mode(videomodes);
+        }
+        break;
+    }
+    case VIDEO_OPTION_SCALING_FILTER:
+        savedata.hwfilter = (savedata.hwfilter + direction + VIDEO_SCALING_COUNT) % VIDEO_SCALING_COUNT;
+        video_set_mode(videomodes);
+        break;
+    case VIDEO_OPTION_FINAL_FILTER:
+        savedata.swfilter = (savedata.swfilter + direction + BLITTER_MAX) % BLITTER_MAX;
+        videomodes.filter = savedata.swfilter;
+        video_set_mode(videomodes);
+        break;
+    case VIDEO_OPTION_FPS_LIMIT:
+        savedata.fpslimit = (savedata.fpslimit + direction + 4) % 4;
+        video_set_mode(videomodes);
+        break;
+    case VIDEO_OPTION_FULLSCREEN_TYPE:
+        video_stretch((savedata.stretch ^= 1));
+        break;
+#endif
+    default:
+        break;
+    }
+}
+
 void menu_options_video()
 {
     int quit = 0;
-    int selector = 0;
+    int selector = VIDEO_OPTION_BRIGHTNESS;
     int dir;
-    int col1 = -15, col2 = 1;
+    int col1 = -17, col2 = -1;
 
+    video_settings_normalize(&savedata, VIDEO_SETTINGS_ANDROID);
     screen_status |= IN_SCREEN_VIDEO_OPTIONS_MENU;
     bothnewkeys = 0;
 
     while(!quit)
     {
         _menutextm(2, -5, 0, Tr("Video Options"));
-        _menutext((selector == 0), col1, -3, Tr("Brightness:"));
-        _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
-        _menutext((selector == 1), col1, -2, Tr("Gamma:"));
-        _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
-        _menutext((selector == 2), col1, -1, Tr("Window Offset:"));
-        _menutext((selector == 2), col2, -1, "%i", savedata.windowpos);
+        _menutext((selector == VIDEO_OPTION_BRIGHTNESS), col1, -3, Tr("Brightness:"));
+        _menutext((selector == VIDEO_OPTION_BRIGHTNESS), col2, -3, "%i", savedata.brightness);
+        _menutext((selector == VIDEO_OPTION_GAMMA), col1, -2, Tr("Gamma:"));
+        _menutext((selector == VIDEO_OPTION_GAMMA), col2, -2, "%i", savedata.gamma);
+        _menutext((selector == VIDEO_OPTION_WINDOW_OFFSET), col1, -1, Tr("Window Offset:"));
+        _menutext((selector == VIDEO_OPTION_WINDOW_OFFSET), col2, -1, "%i", savedata.windowpos);
 
 #if SDL
-        _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
-        _menutext((selector == 3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
-
-        _menutext((selector == 4), col1, 1, Tr("Video Backend:"));
-        _menutext((selector == 4), col2, 1, (opengl ? Tr("OpenGL") : Tr("SDL")));
-
-        _menutext((selector == 5), col1, 2, Tr("Scale:"));
+        _menutext((selector == VIDEO_OPTION_DISPLAY_MODE), col1, 0, Tr("Display Mode:"));
+        _menutext((selector == VIDEO_OPTION_DISPLAY_MODE), col2, 0,
+            (VIDEO_SETTINGS_ANDROID || savedata.fullscreen) ? Tr("Full") : Tr("Window"));
 #ifdef ANDROID
-        if(savedata.hwscale == 0)
+        _menutext((selector == VIDEO_OPTION_WINDOW_SCALE), col1, 1, Tr("Display Scale:"));
+        if(savedata.hwscale == VIDEO_SCALE_AUTOMATIC)
 #else
-		if(savedata.fullscreen)
+        _menutext((selector == VIDEO_OPTION_WINDOW_SCALE), col1, 1, Tr("Window Scale:"));
+        if(savedata.fullscreen)
 #endif
         {
-            _menutext((selector == 5), col2, 2, Tr("Automatic"));
+            _menutext((selector == VIDEO_OPTION_WINDOW_SCALE), col2, 1, Tr("Automatic"));
         }
         else
         {
-            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.hwscale, (int)(videomodes.hRes * savedata.hwscale), (int)(videomodes.vRes * savedata.hwscale));
+            _menutext((selector == VIDEO_OPTION_WINDOW_SCALE), col2, 1, "%4.2fx - %ix%i",
+                savedata.hwscale, (int)(videomodes.hRes * savedata.hwscale), (int)(videomodes.vRes * savedata.hwscale));
         }
 
-        _menutext((selector == 6), col1, 3, Tr("Hardware Filter:"));
+        _menutext((selector == VIDEO_OPTION_SCALING_FILTER), col1, 2, Tr("Scaling Filter:"));
+        /* The legacy translation API accepts char *, but only reads its ID. */
+        _menutext((selector == VIDEO_OPTION_SCALING_FILTER), col2, 2, "%s", Tr((char *)video_scaling_filter_name(savedata.hwfilter)));
+
+        _menutext((selector == VIDEO_OPTION_FINAL_FILTER), col1, 3, Tr("Final Filter:"));
         {
-            char *filterName;
-            if (savedata.hwscale == 1.0 && !savedata.fullscreen)
-                filterName = "Disabled";
-#ifndef ANDROID
-            /* Damon V. Caskey - 2026-11-20
-             * Android's native presenter retains its nearest/bilinear switch;
-             * the desktop presenter uses its fixed high-quality formula. */
-            else if (opengl)
-                filterName = "High Quality";
-#endif
-            else if (savedata.hwfilter)
-                filterName = "Simple";
-            else
-                filterName = "Bilinear";
-            _menutext((selector == 6), col2, 3, Tr(filterName));
+            int active = VIDEO_SETTINGS_ANDROID || savedata.fullscreen || savedata.hwscale >= 2.0f;
+            char *filter = savedata.swfilter >= 0 && savedata.swfilter < BLITTER_MAX ?
+                GfxBlitterNames[savedata.swfilter] : "Unknown";
+            _menutext((selector == VIDEO_OPTION_FINAL_FILTER), col2, 3, "%s%s", Tr(filter),
+                !active && savedata.swfilter != BLITTER_NONE ? " *" : "");
+            if(selector == VIDEO_OPTION_FINAL_FILTER)
+            {
+                _menutextm(0, 6, 0, Tr("Final effect on completed image"));
+                if(!active)
+                    _menutextm(0, 7, 0, Tr("Active at 2x or fullscreen"));
+            }
         }
-
-        _menutext((selector == 7), col1, 4, Tr("Output Filter:"));
-        _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
+        if(selector == VIDEO_OPTION_WINDOW_SCALE)
+            _menutextm(0, 7, 0, Tr("Size of the displayed game image"));
+        else if(selector == VIDEO_OPTION_SCALING_FILTER)
+            _menutextm(0, 7, 0, Tr("Sampling when resizing display"));
 
         char fpslimit_text[32];
         switch (savedata.fpslimit)
@@ -56265,47 +56371,33 @@ void menu_options_video()
                 break;
         }
 
-        _menutext((selector == 8), col1, 5, Tr("FPS Limit:"));
-        _menutext((selector == 8), col2, 5, fpslimit_text);
+        _menutext((selector == VIDEO_OPTION_FPS_LIMIT), col1, 4, Tr("FPS Limit:"));
+        _menutext((selector == VIDEO_OPTION_FPS_LIMIT), col2, 4, "%s", fpslimit_text);
 
-        if(savedata.fullscreen)
-        {
-            _menutext((selector == 9), col1, 6, Tr("Fullscreen Type:"));
-            _menutext((selector == 9), col2, 6, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
-        }
-        else if(selector == 9)
-        {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
-        }
-
-        _menutextm((selector == 10), 9, 0, Tr("Back"));
-        if(selector < 0)
-        {
-            selector = 10;
-        }
-        if(selector > 10)
-        {
-            selector = 0;
-        }
+        _menutext((selector == VIDEO_OPTION_FULLSCREEN_TYPE), col1, 5,
+            VIDEO_SETTINGS_ANDROID ? Tr("Display Fit:") : Tr("Fullscreen Type:"));
+        _menutext((selector == VIDEO_OPTION_FULLSCREEN_TYPE), col2, 5, "%s",
+            menu_video_option_enabled(VIDEO_OPTION_FULLSCREEN_TYPE) ?
+                (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")) :
+                (VIDEO_SETTINGS_ANDROID ? Tr("Automatic scale only") : Tr("Fullscreen only")));
 #endif
+        _menutextm((selector == VIDEO_OPTION_BACK), 9, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
         if(bothnewkeys & FLAG_ESC)
         {
             quit = 1;
+            continue;
         }
-        if(bothnewkeys & FLAG_MOVEUP)
+        dir = (bothnewkeys & FLAG_MOVEUP) ? -1 : (bothnewkeys & FLAG_MOVEDOWN) ? 1 : 0;
+        if(dir)
         {
-            --selector;
-            if(global_sample_list.beep >= 0)
+            do
             {
-                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+                selector = (selector + dir + VIDEO_OPTION_COUNT) % VIDEO_OPTION_COUNT;
             }
-        }
-        if(bothnewkeys & FLAG_MOVEDOWN)
-        {
-            ++selector;
+            while(!menu_video_option_enabled((e_video_option)selector));
             if(global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
@@ -56329,127 +56421,14 @@ void menu_options_video()
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            switch(selector)
-            {
-            case 0:
-                savedata.brightness += 8 * dir;
-                if(savedata.brightness < -256)
-                {
-                    savedata.brightness = -256;
-                }
-                if(savedata.brightness > 256)
-                {
-                    savedata.brightness = 256;
-                }
-                vga_vwait();
-                set_color_correction(savedata.gamma, savedata.brightness);
-                break;
-            case 1:
-                savedata.gamma += 8 * dir;
-                if(savedata.gamma < -256)
-                {
-                    savedata.gamma = -256;
-                }
-                if(savedata.gamma > 256)
-                {
-                    savedata.gamma = 256;
-                }
-                vga_vwait();
-                set_color_correction(savedata.gamma, savedata.brightness);
-                break;
-            case 2:
-                savedata.windowpos += dir;
-                if(savedata.windowpos < -2)
-                {
-                    savedata.windowpos = -2;
-                }
-                if(savedata.windowpos > 20)
-                {
-                    savedata.windowpos = 20;
-                }
-                break;
-#if SDL
-            case 3:
-                video_fullscreen_flip();
-                break;
-            case 4:
-                savedata.usegl = !savedata.usegl;
-                video_set_mode(videomodes);
-                set_color_correction(savedata.gamma, savedata.brightness);
-                break;
-            case 5:
-#ifndef ANDROID
-                if(savedata.fullscreen)
-                {
-                    break;
-                }
-                savedata.hwscale += dir * 0.25;
-                if(savedata.hwscale < 0.25)
-                {
-                    savedata.hwscale = 0.25;
-                }
-                if(savedata.hwscale > 4.00)
-                {
-                    savedata.hwscale = 4.00;
-                }
-                video_set_mode(videomodes);
-#else
-                savedata.hwscale += dir * 0.25;
-                if(savedata.hwscale < 0.0)
-                {
-                    savedata.hwscale = 0.0;
-                }
-                if(savedata.hwscale > 4.00)
-                {
-                    savedata.hwscale = 4.00;
-                }
-#endif
-            case 6:
-#ifndef ANDROID
-                if (opengl || (!savedata.fullscreen && savedata.hwscale == 1.0))
-                {
-                    break;
-                }
-#endif
-                savedata.hwfilter += dir;
-                if(savedata.hwfilter < 0)
-                {
-                    savedata.hwfilter = 1;
-                }
-                if(savedata.hwfilter > 1)
-                {
-                    savedata.hwfilter = 0;
-                }
-                video_set_mode(videomodes);
-				break;
-            case 7:
-                if(!savedata.fullscreen && savedata.hwscale < 2.0)
-                {
-                    break;
-                }
-                videomodes.filter += dir;
-                if(videomodes.filter > BLITTER_MAX - 1)
-                {
-                    videomodes.filter = 0;
-                }
-                if(videomodes.filter < 0)
-                {
-                    videomodes.filter = BLITTER_MAX - 1;
-                }
-                savedata.swfilter = videomodes.filter;
-				video_set_mode(videomodes);
-                break;
-            case 8:
-                savedata.fpslimit = (savedata.fpslimit + dir) % 4;
-                if (savedata.fpslimit < 0) savedata.fpslimit += 4;
-                video_set_mode(videomodes);
-                break;
-            case 9:
-                video_stretch((savedata.stretch ^= 1));
-                break;
-#endif
-            default:
+            if(selector == VIDEO_OPTION_BACK)
                 quit = 1;
+            else
+            {
+                /* Preserve button activation for the two toggle controls. */
+                if(!dir && (selector == VIDEO_OPTION_DISPLAY_MODE || selector == VIDEO_OPTION_FULLSCREEN_TYPE))
+                    dir = 1;
+                menu_video_adjust((e_video_option)selector, dir);
             }
         }
     }

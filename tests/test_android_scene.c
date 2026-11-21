@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include "screen.h"
 #include "video.h"
+#include "video_settings.h"
 #include "launcher_text.h"
 #include "output_filter_reference.h"
 #define hankaku_font10 android_reference_font
@@ -27,10 +28,7 @@
 #define ANDROID_PIXELS (ANDROID_WIDTH * ANDROID_HEIGHT)
 #define MAXTOUCHB 3
 
-static struct
-{
-    int swfilter, hwfilter, fpslimit, usegl, fullscreen, stretch;
-} savedata;
+s_savedata savedata;
 static unsigned touchstates[MAXTOUCHB];
 static SDL_Rect btnsrc[MAXTOUCHB], btndes[MAXTOUCHB];
 static const unsigned char buttonpng[] = {0};
@@ -254,27 +252,124 @@ static unsigned android_correction(unsigned pixel, int gamma, int light)
     return result;
 }
 
-/* Damon V. Caskey - 2026-11-20: final nearest sampling after independent filter reconstruction. */
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Reconstruct display sampling independently. High Quality is equivalent to
+ * nearest expansion onto an integer lattice followed by bilinear sampling;
+ * this oracle does not copy the presenter's coordinate-warp shader.
+ */
+static unsigned android_sample(const unsigned *source, int width, int height,
+    int filter, int output_width, int output_height, int x, int y)
+{
+    int filtered_width = filter ? width * 2 : width;
+    int filtered_height = filter ? height * 2 : height;
+    int prescale = 1, shift;
+    double sample_x, sample_y, weight_x, weight_y;
+    int x0, y0, x1, y1;
+    unsigned neighbors[4], pixel = 0;
+    if(savedata.hwfilter == VIDEO_SCALING_NEAREST)
+        return output_filter_expected(source, width, height, filter,
+            (int)((x + 0.5) * filtered_width / output_width),
+            (int)((y + 0.5) * filtered_height / output_height));
+    if(savedata.hwfilter == VIDEO_SCALING_HIGH_QUALITY)
+        prescale = MAX(1, (int)ceil(MIN((double)output_width / filtered_width,
+                                      (double)output_height / filtered_height)));
+    sample_x = (x + 0.5) * filtered_width * prescale / output_width - 0.5;
+    sample_y = (y + 0.5) * filtered_height * prescale / output_height - 0.5;
+    x0 = (int)floor(sample_x);
+    y0 = (int)floor(sample_y);
+    weight_x = sample_x - x0;
+    weight_y = sample_y - y0;
+    x1 = MAX(0, MIN(filtered_width * prescale - 1, x0 + 1)) / prescale;
+    y1 = MAX(0, MIN(filtered_height * prescale - 1, y0 + 1)) / prescale;
+    x0 = MAX(0, MIN(filtered_width * prescale - 1, x0)) / prescale;
+    y0 = MAX(0, MIN(filtered_height * prescale - 1, y0)) / prescale;
+    neighbors[0] = output_filter_expected(source, width, height, filter, x0, y0);
+    neighbors[1] = output_filter_expected(source, width, height, filter, x1, y0);
+    neighbors[2] = output_filter_expected(source, width, height, filter, x0, y1);
+    neighbors[3] = output_filter_expected(source, width, height, filter, x1, y1);
+    for(shift = 0; shift < 24; shift += 8)
+    {
+        double top = ((neighbors[0] >> shift) & 255) * (1 - weight_x) +
+                     ((neighbors[1] >> shift) & 255) * weight_x;
+        double bottom = ((neighbors[2] >> shift) & 255) * (1 - weight_x) +
+                        ((neighbors[3] >> shift) & 255) * weight_x;
+        pixel |= (unsigned)floor(top * (1 - weight_y) + bottom * weight_y + 0.5) << shift;
+    }
+    return pixel;
+}
+
+/* Damon V. Caskey - 2026-11-20: output size belongs to the authored resolution. */
+static void android_expected_rectangle(int width, int height,
+    int *left, int *top, int *output_width, int *output_height)
+{
+    *output_width = stretch ? ANDROID_WIDTH : (int)(ANDROID_HEIGHT * ((float)width / height));
+    *left = stretch ? 0 : (int)(ANDROID_WIDTH / 2.0f - ANDROID_HEIGHT * ((float)width / height) / 2.0f);
+    *output_height = ANDROID_HEIGHT;
+    *top = 0;
+    if(savedata.hwscale > VIDEO_SCALE_AUTOMATIC)
+    {
+        *output_width = MAX(1, (int)(stored_videomodes.hRes * savedata.hwscale));
+        *output_height = MAX(1, (int)(stored_videomodes.vRes * savedata.hwscale));
+        *left = (int)floor((ANDROID_WIDTH - *output_width) / 2.0);
+        *top = (int)floor((ANDROID_HEIGHT - *output_height) / 2.0);
+    }
+}
+
 static void android_expected_scene(const unsigned *source, int width, int height,
                                     int filter, int gamma, int light, unsigned *expected)
 {
-    int x, y;
-    int filtered_width = filter ? width * 2 : width;
-    int filtered_height = filter ? height * 2 : height;
-    int output_width = stretch ? ANDROID_WIDTH : (int)(ANDROID_HEIGHT * ((float)width / height));
-    int left = stretch ? 0 : (int)(ANDROID_WIDTH / 2.0f - ANDROID_HEIGHT * ((float)width / height) / 2.0f);
+    int x, y, output_width, output_height, left, top;
+    android_expected_rectangle(width, height, &left, &top, &output_width, &output_height);
     for(y = 0; y < ANDROID_HEIGHT; ++y)
         for(x = 0; x < ANDROID_WIDTH; ++x)
         {
             unsigned pixel = 0;
-            if(x >= left && x < left + output_width)
-            {
-                int sx = (int)(((x - left) + 0.5) * filtered_width / output_width);
-                int sy = (int)((y + 0.5) * filtered_height / ANDROID_HEIGHT);
-                pixel = output_filter_expected(source, width, height, filter, sx, sy);
-            }
+            if(x >= left && x < left + output_width && y >= top && y < top + output_height)
+                pixel = android_sample(source, width, height, filter, output_width,
+                                       output_height, x - left, y - top);
             expected[y * ANDROID_WIDTH + x] = android_correction(pixel, gamma, light);
         }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Fractional display scales can place a nearest sample exactly on a texel
+ * boundary. Floating interpolation may select either touching texel there.
+ * Accept only those exact source colors, never a broad RGB error tolerance.
+ */
+static void android_compare_scaled_scene(const unsigned *source, int width, int height,
+    int filter, const char *label)
+{
+    unsigned expected[ANDROID_PIXELS];
+    int x, y, output_width, output_height, left, top;
+    int filtered_width = filter ? width * 2 : width;
+    int filtered_height = filter ? height * 2 : height;
+    android_expected_scene(source, width, height, filter, 0, 0, expected);
+    android_expected_rectangle(width, height, &left, &top, &output_width, &output_height);
+    if(savedata.hwfilter == VIDEO_SCALING_NEAREST)
+        for(y = MAX(0, top); y < MIN(ANDROID_HEIGHT, top + output_height); ++y)
+            for(x = MAX(0, left); x < MIN(ANDROID_WIDTH, left + output_width); ++x)
+            {
+                int index = y * ANDROID_WIDTH + x;
+                double sx = (x - left + 0.5) * filtered_width / output_width;
+                double sy = (y - top + 0.5) * filtered_height / output_height;
+                int ix = (int)floor(sx), iy = (int)floor(sy), dx, dy;
+                int boundary_x = ix > 0 && fabs(sx - ix) < 1e-10;
+                int boundary_y = iy > 0 && fabs(sy - iy) < 1e-10;
+                for(dy = 0; dy <= boundary_y; ++dy)
+                    for(dx = 0; dx <= boundary_x; ++dx)
+                    {
+                        unsigned candidate = output_filter_expected(source, width, height,
+                                                                     filter, ix - dx, iy - dy);
+                        if((presented[index] & 0xffffffu) == (candidate & 0xffffffu))
+                            expected[index] = candidate;
+                    }
+            }
+    android_compare(presented, expected, ANDROID_PIXELS,
+                    savedata.hwfilter == VIDEO_SCALING_NEAREST ? 0 : 1, label);
 }
 
 static s_videomodes android_mode(void)
@@ -345,6 +440,87 @@ static void android_scene(s_screen *screen, unsigned *pixels)
     video_set_color_correction(0, 0);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-20
+ * Exercise all output effects with each display sampler, centered fractional
+ * scales and device clipping. Settings and native scene ownership are stable
+ * across presentation; Final Filters must not double the chosen display size.
+ */
+static void android_video_controls(s_screen *screen, const unsigned *pixels)
+{
+    static const float scales[] = {0.0f, 0.25f, 1.5f, 2.25f, 8.0f};
+    s_savedata original = savedata, requested;
+    unsigned expected[ANDROID_PIXELS];
+    gpu_renderer_stats before = *gpu_gl_get_stats();
+    int scaling, filter, aspect;
+    size_t scale;
+    savedata.soundvol = 37;
+    savedata.keys[2][3] = 1234;
+    for(scaling = 0; scaling < VIDEO_SCALING_COUNT; ++scaling)
+        for(filter = BLITTER_NONE; filter < BLITTER_MAX; ++filter)
+            for(scale = 0; scale < sizeof(scales) / sizeof(scales[0]); ++scale)
+            {
+                char label[128];
+                savedata.hwfilter = scaling;
+                savedata.swfilter = filter;
+                savedata.hwscale = scales[scale];
+                requested = savedata;
+                assert(video_copy_screen(screen));
+                assert(!memcmp(&savedata, &requested, sizeof(savedata)));
+                snprintf(label, sizeof(label), "display sampler %d, scale %.2f, Final Filter %d",
+                         scaling, scales[scale], filter);
+                android_compare_scaled_scene(pixels, 16, 12, filter, label);
+                assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+                assert(gpu_gl_get_stats()->uploads == before.uploads);
+            }
+    /* Stretch/aspect is retained while a manual scale overrides its geometry. */
+    savedata.hwscale = 1.5f;
+    savedata.hwfilter = VIDEO_SCALING_NEAREST;
+    savedata.swfilter = BLITTER_NONE;
+    {
+        s_screen *tall = allocscreen(8, 12, PIXEL_32);
+        unsigned tall_pixels[8 * 12];
+        int index;
+        assert(tall);
+        for(index = 0; index < 8 * 12; ++index) tall_pixels[index] = 0x00b17359u;
+        memcpy(tall->data, tall_pixels, sizeof(tall_pixels));
+        for(aspect = 0; aspect <= 1; ++aspect)
+        {
+            savedata.stretch = aspect;
+            video_stretch(aspect);
+            savedata.hwscale = 1.5f;
+            requested = savedata;
+            assert(video_copy_screen(tall));
+            android_compare_scaled_scene(tall_pixels, 8, 12, 0, "manual scale retains aspect choice");
+            assert(!memcmp(&savedata, &requested, sizeof(savedata)));
+            savedata.hwscale = VIDEO_SCALE_AUTOMATIC;
+            assert(video_copy_screen(tall));
+            android_compare_scaled_scene(tall_pixels, 8, 12, 0, "Auto restores saved aspect choice");
+            assert(savedata.stretch == aspect);
+        }
+        freescreen(&tall);
+    }
+    /* The production mode boundary migrates both legacy Android samplers
+     * without inheriting desktop's historical High Quality interpretation. */
+    for(scaling = VIDEO_SCALING_BILINEAR; scaling <= VIDEO_SCALING_NEAREST; ++scaling)
+    {
+        savedata.usegl = 1;
+        savedata.hwfilter = scaling;
+        savedata.hwscale = VIDEO_SCALE_AUTOMATIC;
+        requested = savedata;
+        requested.usegl = VIDEO_SETTINGS_NATIVE;
+        assert(video_set_mode(android_mode()));
+        assert(!memcmp(&savedata, &requested, sizeof(savedata)));
+        assert(video_copy_screen(screen));
+        android_expected_scene(pixels, 16, 12, 0, 0, 0, expected);
+        android_compare(presented, expected, ANDROID_PIXELS,
+            scaling == VIDEO_SCALING_NEAREST ? 0 : 1, "legacy Android display sampler");
+    }
+    savedata = original;
+    video_stretch(savedata.stretch);
+}
+
 /* Damon V. Caskey - 2026-11-20: touch follows correction; clipped skins retain destination size. */
 static void android_touch(s_screen *screen, const unsigned *pixels)
 {
@@ -357,6 +533,7 @@ static void android_touch(s_screen *screen, const unsigned *pixels)
     btndes[0] = (SDL_Rect){5, 4, 8, 8};
     for(held = 0; held <= 1; ++held)
     {
+        savedata.hwscale = held ? 1.0f : VIDEO_SCALE_AUTOMATIC;
         touchstates[0] = held;
         android_expected_scene(pixels, 16, 12, 0, 79, -43, expected);
         for(y = 4; y < 12; ++y)
@@ -377,6 +554,7 @@ static void android_touch(s_screen *screen, const unsigned *pixels)
     assert(video_copy_screen(screen));
     android_expected_scene(pixels, 16, 12, 0, 79, -43, expected);
     android_compare(presented, expected, ANDROID_PIXELS, 1, "outside touch source");
+    savedata.hwscale = VIDEO_SCALE_AUTOMATIC;
     android_hidden_touch();
     video_set_color_correction(0, 0);
 }
@@ -467,11 +645,16 @@ static void android_launcher(void)
 static void android_movie(s_screen *gameplay, const unsigned *gameplay_pixels)
 {
     movie_fixture fixture;
+    s_savedata original = savedata, requested;
     yuv_video_mode mode = {6, 4, 1, 1};
     unsigned expected[ANDROID_PIXELS];
     unsigned long reads;
     int resample, index;
     movie_pattern(&fixture, mode.width, mode.height, 7);
+    savedata.hwscale = VIDEO_SCALE_MAX;
+    savedata.hwfilter = VIDEO_SCALING_HIGH_QUALITY;
+    savedata.swfilter = BLITTER_MAX - 1;
+    requested = savedata;
     assert(video_setup_yuv_overlay(&mode));
     video_set_color_correction(-37, 53);
     video_stretch(0);
@@ -482,6 +665,7 @@ static void android_movie(s_screen *gameplay, const unsigned *gameplay_pixels)
         reads = gpu_gl_get_stats()->readbacks;
         assert(video_prepare_yuv_frame(&fixture.source, resample));
         assert(video_display_yuv_frame());
+        assert(!memcmp(&savedata, &requested, sizeof(savedata)));
         movie_expected(&fixture.source, &draw, ANDROID_WIDTH, ANDROID_HEIGHT, expected);
         for(index = 0; index < ANDROID_PIXELS; ++index)
             if(index % ANDROID_WIDTH < 4 || index % ANDROID_WIDTH >= 28)
@@ -508,6 +692,8 @@ static void android_movie(s_screen *gameplay, const unsigned *gameplay_pixels)
         freescreen(&capture);
     }
     assert(video_restore_mode());
+    assert(!memcmp(&savedata, &requested, sizeof(savedata)));
+    savedata = original;
     video_stretch(1);
     video_set_color_correction(0, 0);
     assert(video_copy_screen(gameplay));
@@ -542,15 +728,19 @@ static void android_replace_context(void)
 /* Damon V. Caskey - 2026-11-20: owner-level recovery, including late reset delivery. */
 static void android_lifecycle(s_screen *screen, unsigned *pixels)
 {
+    s_savedata original = savedata, requested;
     unsigned expected[ANDROID_PIXELS];
     unsigned long reads;
     uint64_t generation;
     int index;
     movie_fixture fixture;
     yuv_video_mode movie_mode = {2, 2, 1, 1};
+    savedata.hwscale = 1.5f;
+    requested = savedata;
     assert(gpu_draw_box(screen, 0, 0, 16, 12, 0x00619ac3u, &plainmethod));
     for(index = 0; index < 16 * 12; ++index) pixels[index] = 0x00619ac3u;
     assert(video_set_mode(android_mode()));
+    assert(!memcmp(&savedata, &requested, sizeof(savedata)));
     android_compare((unsigned *)screen->data, pixels, 16 * 12, 0, "mode change preservation");
     assert(gpu_draw_box(screen, 0, 0, 16, 12, 0x003c81b9u, &plainmethod));
     for(index = 0; index < 16 * 12; ++index) pixels[index] = 0x003c81b9u;
@@ -622,6 +812,8 @@ static void android_lifecycle(s_screen *screen, unsigned *pixels)
     }
     assert(video_copy_screen(screen));
     android_compare(presented, expected, ANDROID_PIXELS, 0, "mode retires tracked and replacement contexts");
+    assert(!memcmp(&savedata, &requested, sizeof(savedata)));
+    savedata = original;
 }
 
 /* Damon V. Caskey - 2026-11-20: initialization/draw failure latches never select CPU. */
@@ -665,7 +857,9 @@ static int android_start(void)
     if(!window) return 0;
     nativeWidth = ANDROID_WIDTH;
     nativeHeight = ANDROID_HEIGHT;
-    savedata.hwfilter = 1;
+    savedata.usegl = 1;
+    savedata.hwfilter = VIDEO_SCALING_NEAREST;
+    savedata.hwscale = VIDEO_SCALE_AUTOMATIC;
     savedata.stretch = 1;
     android_hidden_touch();
     return video_set_mode(android_mode()) && LoadGLFunctions();
@@ -687,6 +881,7 @@ int main(int argc, char **argv)
         return 1;
     }
     android_scene(screen, pixels);
+    android_video_controls(screen, pixels);
     android_touch(screen, pixels);
     android_launcher();
     android_movie(screen, pixels);

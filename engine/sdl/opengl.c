@@ -23,6 +23,7 @@
 #include "gpu.h"
 #include "gfx.h"
 #include "engine_profile.h"
+#include "video_settings.h"
 #include <math.h>
 #include <limits.h>
 
@@ -47,6 +48,7 @@ extern SDL_Window* window;
 	"uniform float gamma;\n"                                               \
 	"uniform vec2 texDims;\n"                                              \
 	"uniform float scaleFactor;\n"                                         \
+	"uniform bool highQuality;\n"                                          \
 	"vec3 applyCorrection(vec3 color)\n"                                   \
 	"{\n"                                                                  \
 	"    if (gamma > 0.0)\n"                                               \
@@ -60,9 +62,10 @@ extern SDL_Window* window;
 	"    return color;\n"                                                  \
 	"}\n"
 
-#define FRAGMENT_SHADER_RGB_HIGH_QUALITY                                   \
+#define FRAGMENT_SHADER_RGB                                                \
 	"vec3 getPixel(vec2 coord)\n"                                          \
     "{\n"                                                                  \
+    "   if (!highQuality) return texture2D(tex, coord).xyz;\n"             \
     "   vec2 texel = coord * texDims;\n"                                   \
     "   float region_range = 0.5 - 0.5 / scaleFactor;\n"                   \
     "   vec2 distFromCenter = fract(texel) - 0.5;\n"                       \
@@ -76,8 +79,8 @@ extern SDL_Window* window;
 	"    gl_FragColor.w = 1.0;\n"                                          \
 	"}\n"
 
-static const char *fragmentShaderSourceHighQualityRGB =
-        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB_HIGH_QUALITY;
+static const char *fragmentShaderSourceRGB =
+        FRAGMENT_SHADER_COMMON FRAGMENT_SHADER_RGB;
 
 
 /*
@@ -294,7 +297,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 		failure_reason = "the presentation shader could not be allocated";
 		goto error;
 	}
-	ptr_glShaderSource(fragmentShader, 1, &fragmentShaderSourceHighQualityRGB, NULL);
+	ptr_glShaderSource(fragmentShader, 1, &fragmentShaderSourceRGB, NULL);
 	ptr_glCompileShader(fragmentShader);
 	ptr_glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &shader_status);
 	if(!shader_status)
@@ -325,6 +328,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 	ptr_glUseProgram(shaderProgram);
 	ptr_glUniform1i(ptr_glGetUniformLocation(shaderProgram, "tex"), 0);
+	ptr_glUniform1i(ptr_glGetUniformLocation(shaderProgram, "highQuality"),
+	                savedata.hwfilter == VIDEO_SCALING_HIGH_QUALITY);
 	ptr_glUniform2f(ptr_glGetUniformLocation(shaderProgram, "texDims"), textureWidth, textureHeight);
 	float scaleFactor = MIN((float)viewportWidth / textureWidth, (float)viewportHeight / textureHeight);
 	ptr_glUniform1f(ptr_glGetUniformLocation(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
@@ -458,6 +463,7 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	int nativeWidth, nativeHeight;
 	int filter = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen) ?
 	             savedata.swfilter : BLITTER_NONE;
+	GLint sampling = savedata.hwfilter == VIDEO_SCALING_NEAREST ? GL_NEAREST : GL_LINEAR;
 	float scaleFactor;
 	uint64_t gpu_scope = engine_profile_gpu_begin(EP_GPU_PRESENT);
 	ep_scope setup_scope = engine_profile_span_begin();
@@ -483,8 +489,12 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	glDisable(GL_DEPTH_TEST);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, nativeTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	/* Display sampling is independent of scene drawmethod resampling and the
+	 * optional final-image effect. Only HQ remaps texture coordinates. */
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampling);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampling);
+	ptr_glUniform1i(ptr_glGetUniformLocation(shaderProgram, "highQuality"),
+	                savedata.hwfilter == VIDEO_SCALING_HIGH_QUALITY);
 	ptr_glUniform2f(ptr_glGetUniformLocation(shaderProgram, "texDims"), nativeWidth, nativeHeight);
 	scaleFactor = MIN((float)viewportWidth / nativeWidth, (float)viewportHeight / nativeHeight);
 	ptr_glUniform1f(ptr_glGetUniformLocation(shaderProgram, "scaleFactor"), ceilf(scaleFactor));

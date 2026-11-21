@@ -20,6 +20,7 @@
 #include "openbor.h"
 #include "gfx.h"
 #include "videocommon.h"
+#include "video_settings.h"
 #include "gpu.h"
 #include "gpu_renderer.h"
 #include "gpu_gl_api.h"
@@ -34,6 +35,7 @@ static GLuint video_program, video_vertices;
 static GLint video_target_uniform, video_source_uniform, video_color_uniform;
 static GLint video_textured_uniform, video_correction_uniform;
 static GLint video_gamma_uniform, video_brightness_uniform;
+static GLint video_scale_uniform;
 static SDL_atomic_t video_reset_pending;
 static int video_watch_installed, video_mode_ready, video_suspended;
 static int video_transition, video_recovering, video_failed, video_warning;
@@ -386,8 +388,16 @@ static const char *video_fragment_source =
     "uniform sampler2D sourceTexture; uniform vec4 modulation;\n"
     "uniform int textured; uniform int correction;\n"
     "uniform float gammaValue; uniform float brightnessValue;\n"
+    "uniform float scaleFactor;\n"
     "in vec2 uv; out vec4 outputColor;\n"
-    "void main(){ vec4 c=textured!=0?texture(sourceTexture,uv)*modulation:modulation;\n"
+    "void main(){ vec2 coord=uv;\n"
+    "if(scaleFactor>1.0){\n"
+    "vec2 dims=vec2(textureSize(sourceTexture,0));\n"
+    "vec2 texel=coord*dims; vec2 distance=fract(texel)-0.5;\n"
+    "float region=0.5-0.5/scaleFactor;\n"
+    "vec2 blend=(distance-clamp(distance,-region,region))*scaleFactor+0.5;\n"
+    "coord=(floor(texel)+blend)/dims; }\n"
+    "vec4 c=textured!=0?texture(sourceTexture,coord)*modulation:modulation;\n"
     "if(correction==1){\n"
     "if(gammaValue>0.0) c.rgb=1.0-((1.0-c.rgb)*(1.0-c.rgb*gammaValue));\n"
     "else c.rgb=c.rgb*(1.0-((1.0-c.rgb)*-gammaValue));\n"
@@ -510,11 +520,13 @@ static int video_create_presenter(void)
     video_correction_uniform = glGetUniformLocation(video_program, "correction");
     video_gamma_uniform = glGetUniformLocation(video_program, "gammaValue");
     video_brightness_uniform = glGetUniformLocation(video_program, "brightnessValue");
+    video_scale_uniform = glGetUniformLocation(video_program, "scaleFactor");
     glGenBuffers(1, &video_vertices);
     return video_vertices && video_target_uniform >= 0 && video_source_uniform >= 0 &&
         video_color_uniform >= 0 && video_textured_uniform >= 0 &&
         video_correction_uniform >= 0 && video_gamma_uniform >= 0 &&
-        video_brightness_uniform >= 0 && glGetError() == GL_NO_ERROR;
+        video_brightness_uniform >= 0 && video_scale_uniform >= 0 &&
+        glGetError() == GL_NO_ERROR;
 }
 
 /*
@@ -649,7 +661,6 @@ static int video_create_resources(void)
     video_warning = 0;
     video_failed_context = NULL;
     opengl = 1;
-    savedata.usegl = 1;
     gpu_gl_set_context_guard(video_ensure_context);
     return 1;
 }
@@ -762,6 +773,7 @@ int video_set_mode(s_videomodes mode)
 {
     int shutdown = mode.hRes == 0 && mode.vRes == 0;
     SDL_GLContext current;
+    if(!shutdown) video_settings_normalize(&savedata, 1);
     if(!shutdown && (mode.pixel != 4 || mode.hRes <= 0 || mode.vRes <= 0 ||
        savedata.swfilter < BLITTER_NONE || savedata.swfilter >= BLITTER_MAX))
     {
@@ -973,7 +985,7 @@ static void video_draw_button(int index)
         (float)left / buttons_width, (float)top / buttons_height,
         (float)right / buttons_width, (float)bottom / buttons_height,
         (touchstates[index] ? 128.0f : 64.0f) / 255.0f,
-        VIDEO_PRESENT_TOUCH, !savedata.hwfilter);
+        VIDEO_PRESENT_TOUCH, savedata.hwfilter != VIDEO_SCALING_NEAREST);
 }
 
 /*
@@ -1029,16 +1041,37 @@ static int video_present_texture(GLuint image, int width, int height, int movie)
     glUniform2f(video_target_uniform, nativeWidth, nativeHeight);
     glUniform1f(video_gamma_uniform, video_gamma / 256.0f);
     glUniform1f(video_brightness_uniform, brightness / 256.0f);
-    output_width = movie || stretch ? nativeWidth : nativeHeight * ((float)width / height);
-    output_height = nativeHeight;
-    x = movie || stretch ? 0.0f : (int)(nativeWidth / 2.0f - output_width / 2.0f);
-    y = 0.0f;
-    /* Existing Android aspect behavior is height-fitted, with window clipping
-     * for a source wider than the device. Keep its integer destination width. */
-    video_draw_rectangle(image, x, y, (int)output_width, output_height,
+    if(!movie && savedata.hwscale > VIDEO_SCALE_AUTOMATIC)
+    {
+        /* Scale the authored resolution, independent of a Final Filter's 2x
+         * intermediate. Integer bounds keep pixel centers stable; the device
+         * viewport clips larger settings without changing their scale. */
+        output_width = floorf(MAX(1.0f, stored_videomodes.hRes * savedata.hwscale));
+        output_height = floorf(MAX(1.0f, stored_videomodes.vRes * savedata.hwscale));
+        x = floorf((nativeWidth - output_width) * 0.5f);
+        y = floorf((nativeHeight - output_height) * 0.5f);
+    }
+    else
+    {
+        /* Auto retains Android's height-fit/aspect or full-device stretch.
+         * Movies already contain their final-resolution destination geometry. */
+        output_width = movie || stretch ? nativeWidth : nativeHeight * ((float)width / height);
+        output_height = nativeHeight;
+        x = movie || stretch ? 0.0f : (int)(nativeWidth / 2.0f - output_width / 2.0f);
+        y = 0.0f;
+        output_width = (int)output_width;
+    }
+    /* High Quality is the shared sharp-bilinear display reconstruction. It
+     * does not select a scene effect or alter in-game drawmethod sampling. */
+    glUniform1f(video_scale_uniform,
+        !movie && savedata.hwfilter == VIDEO_SCALING_HIGH_QUALITY ?
+        MAX(1.0f, ceilf(MIN(output_width / width, output_height / height))) : 1.0f);
+    video_draw_rectangle(image, x, y, output_width, output_height,
                          0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
                          movie ? VIDEO_PRESENT_MOVIE : VIDEO_PRESENT_SCENE,
-                         !movie && !savedata.hwfilter);
+                         !movie && savedata.hwfilter != VIDEO_SCALING_NEAREST);
+    /* Touch artwork keeps its existing device-space geometry and sampling. */
+    glUniform1f(video_scale_uniform, 1.0f);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);

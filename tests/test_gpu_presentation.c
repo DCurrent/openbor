@@ -13,6 +13,7 @@
 #include "videocommon.h"
 #include "opengl.h"
 #include "gfx.h"
+#include "video_settings.h"
 
 s_savedata savedata;
 extern SDL_Window *window;
@@ -176,6 +177,13 @@ static void test_native_output_filters(s_screen *source)
     assert(video_copy_screen(source));
     assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws);
     assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    /* Fullscreen keeps final effects active independently of the remembered
+     * window scale. The presenter reads this gate each frame. */
+    savedata.fullscreen = 1;
+    assert(video_copy_screen(source));
+    assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws + 1);
+    assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+    savedata.fullscreen = 0;
     savedata.hwscale = 2.0f;
 }
 
@@ -208,7 +216,7 @@ static void test_scene_format_rejection(s_videomodes valid_mode, s_screen *scree
         assert(!video_set_mode(invalid_mode));
         assert(window == original_window);
         assert(SDL_GL_GetCurrentContext() == original_context);
-        assert(opengl && gpu_is_active() && savedata.usegl == 1);
+        assert(opengl && gpu_is_active() && savedata.usegl == VIDEO_SETTINGS_NATIVE);
         assert(stored_videomodes.pixel == 4);
         assert(stored_videomodes.hRes == valid_mode.hRes);
         assert(stored_videomodes.vRes == valid_mode.vRes);
@@ -225,7 +233,7 @@ static void test_scene_format_rejection(s_videomodes valid_mode, s_screen *scree
  * 2026-11-15
  * Compare logical RGB channels while allowing one framebuffer rounding unit.
  */
-static void test_movie_color(unsigned actual, unsigned expected)
+static void test_presented_color(unsigned actual, unsigned expected)
 {
     int channel;
     for(channel = 0; channel < 3; ++channel)
@@ -234,6 +242,204 @@ static void test_movie_color(unsigned actual, unsigned expected)
         int wanted = (expected >> (channel*8)) & 255;
         assert(abs(value-wanted) <= 1);
     }
+}
+
+/* The offscreen SDL driver can retain its initial pbuffer after resizing its
+ * logical window. Fresh windows make full-frame pixel checks portable; the
+ * separate resize exercise below still uses the production existing window. */
+static void test_fresh_scaled_window(s_videomodes mode, float scale)
+{
+    int width, height;
+    video_gl_shutdown();
+    if(window) SDL_DestroyWindow(window);
+    window = NULL;
+    savedata.fullscreen = 0;
+    savedata.hwscale = scale;
+    assert(video_set_mode(mode));
+    assert(opengl && gpu_is_active());
+    SDL_GetWindowSize(window, &width, &height);
+    assert(width == (int)(mode.hRes * scale));
+    assert(height == (int)(mode.vRes * scale));
+    SDL_GL_GetDrawableSize(window, &width, &height);
+    assert(width == (int)(mode.hRes * scale));
+    assert(height == (int)(mode.vRes * scale));
+    assert(stored_videomodes.hRes == mode.hRes && stored_videomodes.vRes == mode.vRes);
+    assert(stored_videomodes.pixel == 4);
+}
+
+static void test_read_presented_pixels(int size, unsigned *pixels)
+{
+    void (APIENTRY *read_buffer)(GLenum) = SDL_GL_GetProcAddress("glReadBuffer");
+    assert(read_buffer);
+    read_buffer(GL_FRONT);
+    glReadPixels(0, 0, size, size, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    read_buffer(GL_BACK);
+}
+
+static void test_returned_texture_sampling(unsigned texture)
+{
+    void (APIENTRY *get_parameter)(GLenum, GLenum, GLint *) = SDL_GL_GetProcAddress("glGetTexParameteriv");
+    GLint minimum_filter, maximum_filter;
+    assert(get_parameter);
+    gpu_gl_invalidate_state();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    get_parameter(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &minimum_filter);
+    get_parameter(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &maximum_filter);
+    assert(minimum_filter == GL_NEAREST && maximum_filter == GL_NEAREST);
+}
+
+/*
+ * Preserve live script screens through normal window resizing, independently
+ * of the fresh-window workaround used for complete offscreen pixel checks.
+ */
+static void test_window_scale_preservation(s_videomodes mode, s_screen *screen)
+{
+    const float scales[] = {2.25f, 8.0f, 0.25f, 1.0f};
+    SDL_Window *original_window = window;
+    size_t index;
+    savedata.swfilter = BLITTER_NONE;
+    for(index = 0; index < sizeof(scales) / sizeof(scales[0]); ++index)
+    {
+        unsigned color = 0x00123456u + (unsigned)index;
+        int width, height;
+        assert(gpu_draw_box(screen, 0, 0, 8, 8, color, &plainmethod));
+        savedata.hwscale = scales[index];
+        savedata.hwfilter = (int)index % VIDEO_SCALING_COUNT;
+        assert(video_set_mode(mode));
+        assert(window == original_window && gpu_is_active());
+        assert(savedata.hwfilter == (int)index % VIDEO_SCALING_COUNT);
+        SDL_GetWindowSize(window, &width, &height);
+        assert(width == (int)(mode.hRes * scales[index]));
+        assert(height == (int)(mode.vRes * scales[index]));
+        assert(screen->width == 8 && screen->height == 8 && screen->pixelformat == PIXEL_32);
+        assert(stored_videomodes.hRes == 8 && stored_videomodes.vRes == 8 && stored_videomodes.pixel == 4);
+        assert(test_pixel(screen, 3, 3) == color);
+        assert(video_copy_screen(screen));
+    }
+}
+
+/*
+ * Test displayed pixels, not just menu values or sampler state. The 2.25x
+ * fixture has transitions between pixel centers, where all three choices
+ * differ. At integer 8x, HQ retains the existing crisp pixel boundaries.
+ */
+static void test_display_scaling_filters(s_videomodes mode, s_screen *screen)
+{
+    const unsigned char stripe[] = {0, 255, 255, 0, 0, 255, 255, 0};
+    const unsigned char fractional[VIDEO_SCALING_COUNT][18] = {
+        [VIDEO_SCALING_BILINEAR] = {0, 43, 156, 255, 255, 255, 156, 43, 0, 0, 43, 156, 255, 255, 255, 156, 43, 0},
+        [VIDEO_SCALING_NEAREST] = {0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255, 255, 0, 0},
+        [VIDEO_SCALING_HIGH_QUALITY] = {0, 0, 213, 255, 255, 255, 213, 0, 0, 0, 0, 213, 255, 255, 255, 213, 0, 0}
+    };
+    const float scales[] = {2.25f, 8.0f};
+    unsigned pixels[64 * 64];
+    size_t index;
+    int sampling, x, y;
+
+    savedata.swfilter = BLITTER_NONE;
+    for(index = 0; index < sizeof(scales) / sizeof(scales[0]); ++index)
+    {
+        unsigned texture;
+        int width, height, size = (int)(8 * scales[index]);
+        test_fresh_scaled_window(mode, scales[index]);
+        for(x = 0; x < 8; ++x)
+            assert(gpu_draw_box(screen, x, 0, 1, 8, stripe[x] * 0x00010101u, &plainmethod));
+        assert(gpu_gl_get_screen_texture(screen, &texture, &width, &height));
+        assert(width == 8 && height == 8);
+
+        for(sampling = 0; sampling < VIDEO_SCALING_COUNT; ++sampling)
+        {
+            gpu_renderer_stats before = *gpu_gl_get_stats();
+            savedata.hwfilter = sampling;
+            assert(video_copy_screen(screen));
+            assert(gpu_gl_get_stats()->uploads == before.uploads);
+            assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+            assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws);
+            test_read_presented_pixels(size, pixels);
+            for(x = 0; x < size; ++x)
+            {
+                int expected;
+                if(index == 0)
+                    expected = fractional[sampling][x];
+                else if(sampling == VIDEO_SCALING_BILINEAR)
+                {
+                    /* Linear interpolation between neighboring source centers,
+                     * including edge clamping, is independent of shader code. */
+                    double position = (x + 0.5) / 8.0 - 0.5;
+                    int left = (int)floor(position), right = left + 1;
+                    double weight = position - left;
+                    if(left < 0) left = 0;
+                    if(right > 7) right = 7;
+                    expected = (int)floor(stripe[left] * (1.0 - weight) + stripe[right] * weight + 0.5);
+                }
+                else
+                    expected = stripe[x / 8];
+                for(y = 0; y < size; ++y)
+                    test_presented_color(pixels[y * size + x], expected * 0x00010101u);
+            }
+            test_returned_texture_sampling(texture);
+        }
+    }
+
+    /* Every sampler retains RGB32 color and the same gamma/brightness pass. */
+    assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00345678u, &plainmethod));
+    video_gl_set_color_correction(128, -64);
+    for(sampling = 0; sampling < VIDEO_SCALING_COUNT; ++sampling)
+    {
+        savedata.hwfilter = sampling;
+        assert(video_copy_screen(screen));
+        test_read_presented_pixels(64, pixels);
+        test_presented_color(pixels[32 * 64 + 32], 0x00375672u);
+    }
+    video_gl_set_color_correction(0, 0);
+
+    /* The final effect owns its 2x intermediate, then the chosen sampler
+     * enlarges that image. Scanlines expose accidental bypass or double use. */
+    savedata.swfilter = BLITTER_SCANLINES;
+    for(sampling = 0; sampling < VIDEO_SCALING_COUNT; ++sampling)
+    {
+        unsigned texture;
+        int width, height;
+        gpu_renderer_stats before;
+        savedata.hwfilter = sampling;
+        assert(gpu_gl_get_filtered_screen_texture(screen, savedata.swfilter, &texture, &width, &height));
+        assert(width == 16 && height == 16);
+        before = *gpu_gl_get_stats();
+        assert(video_copy_screen(screen));
+        assert(gpu_gl_get_stats()->uploads == before.uploads);
+        assert(gpu_gl_get_stats()->readbacks == before.readbacks);
+        assert(gpu_gl_get_stats()->output_filter_draws == before.output_filter_draws + 1);
+        test_read_presented_pixels(64, pixels);
+        for(y = 0; y < 64; ++y)
+        {
+            double intensity;
+            unsigned expected = 0;
+            int channel;
+            if(sampling == VIDEO_SCALING_BILINEAR)
+            {
+                double position = (y + 0.5) / 4.0 - 0.5;
+                int lower = (int)floor(position), upper = lower + 1;
+                double weight = position - lower;
+                if(lower < 0) lower = 0;
+                if(upper > 15) upper = 15;
+                intensity = (lower & 1) * (1.0 - weight) + (upper & 1) * weight;
+            }
+            else
+                intensity = (y / 4) & 1;
+            for(channel = 0; channel < 3; ++channel)
+            {
+                unsigned value = (0x00345678u >> (channel * 8)) & 255;
+                expected |= (unsigned)floor(value * intensity + 0.5) << (channel * 8);
+            }
+            test_presented_color(pixels[y * 64 + 32], expected);
+        }
+        test_returned_texture_sampling(texture);
+    }
+
+    savedata.swfilter = BLITTER_NONE;
+    savedata.hwfilter = VIDEO_SCALING_HIGH_QUALITY;
+    test_fresh_scaled_window(mode, 1.0f);
 }
 
 /*
@@ -282,7 +488,7 @@ static void test_native_movie_presentation(s_screen *screen)
     read_buffer(GL_FRONT);
     glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     read_buffer(GL_BACK);
-    test_movie_color(pixels[4*8+4], 0x0038f681);
+    test_presented_color(pixels[4*8+4], 0x0038f681);
 
     before = *gpu_gl_get_stats();
     assert(video_capture_yuv_frame(capture, &source, DC_RESAMPLE_MOVIE));
@@ -291,7 +497,7 @@ static void test_native_movie_presentation(s_screen *screen)
     for(index = 0; index < 48; ++index) assert(((unsigned *)capture->data)[index] == 0);
     gpu_sync_cpu(capture);
     for(index = 0; index < 48; ++index)
-        test_movie_color(((unsigned *)capture->data)[index], 0x0038f681);
+        test_presented_color(((unsigned *)capture->data)[index], 0x0038f681);
 
     /* Scene presentation is valid immediately after movies and capture.
      * Restoring a healthy normal mode retains the context and source cache. */
@@ -302,7 +508,7 @@ static void test_native_movie_presentation(s_screen *screen)
     read_buffer(GL_FRONT);
     glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     read_buffer(GL_BACK);
-    test_movie_color(pixels[4*8+4], 0x00887766);
+    test_presented_color(pixels[4*8+4], 0x00887766);
     assert(video_restore_mode());
     assert(SDL_GL_GetCurrentContext() == context);
     assert(gpu_is_active());
@@ -355,7 +561,8 @@ int main(void)
     /* Distinct top/bottom strips expose inverted presentation, while the
      * center fill verifies pixels survive the native-target handoff. */
     assert(gpu_is_active());
-    assert(savedata.usegl == 1);
+    assert(savedata.usegl == VIDEO_SETTINGS_NATIVE);
+    assert(savedata.hwfilter == VIDEO_SCALING_BILINEAR);
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00123456, &plainmethod));
     assert(gpu_draw_box(screen, 0, 0, 8, 1, 0x000000ff, &plainmethod));
     assert(gpu_draw_box(screen, 0, 7, 8, 1, 0x0000ff00, &plainmethod));
@@ -380,6 +587,9 @@ int main(void)
     /* Fullscreen movie color remains independent of scene output filtering.
      * Capture and normal scene presentation share the still-active renderer. */
     test_native_movie_presentation(screen);
+
+    test_window_scale_preservation(mode, screen);
+    test_display_scaling_filters(mode, screen);
     savedata.swfilter = 0;
     savedata.hwscale = 1.0f;
     assert(video_set_mode(mode));
@@ -390,7 +600,7 @@ int main(void)
      * drawing nor presentation may silently read back and select software. */
     assert(SDL_setenv("OPENBOR_GPU", "0", 1) == 0);
     assert(!video_set_mode(mode));
-    assert(!opengl && !gpu_is_active() && savedata.usegl == 1);
+    assert(!opengl && !gpu_is_active() && savedata.usegl == VIDEO_SETTINGS_NATIVE);
     readbacks = gpu_gl_get_stats()->readbacks;
     assert(!video_copy_screen(screen));
     assert(gpu_gl_get_stats()->readbacks == readbacks);
@@ -410,13 +620,14 @@ int main(void)
     /* A later SDL preference still cannot bypass required native drawing. */
     savedata.usegl = 0;
     assert(video_set_mode(mode));
-    assert(opengl && gpu_is_active() && savedata.usegl == 1);
+    assert(opengl && gpu_is_active() && savedata.usegl == VIDEO_SETTINGS_NATIVE);
     assert(video_copy_screen(screen));
 
     test_scene_format_rejection(mode, screen);
     savedata.usegl = 1;
     assert(video_set_mode(mode));
     assert(opengl && gpu_is_active());
+    assert(savedata.hwfilter == VIDEO_SCALING_HIGH_QUALITY);
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00010203, &plainmethod));
     readbacks = gpu_gl_get_stats()->readbacks;
     assert(video_copy_screen(screen));
@@ -430,6 +641,6 @@ int main(void)
     SDL_DestroyWindow(window);
     window = NULL;
     SDL_Quit();
-    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, native RGB8 output filters, movie color/capture/coexistence with filters, required RGB32 failures, RGB32-only scene modes.");
+    puts("GPU presentation tests passed: direct texture, orientation, GL recreation, 0.25x/2.25x/8x resize preservation, displayed nearest/bilinear/HQ pixels and color correction, native RGB8 final-filter sampling, movie color/capture/coexistence with filters, required RGB32 failures, RGB32-only scene modes.");
     return 0;
 }

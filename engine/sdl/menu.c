@@ -17,6 +17,7 @@
 #include "stristr.h"
 #include "stringptr.h"
 #include "gpu.h"
+#include "video_settings.h"
 
 #include "pngdec.h"
 #include "../resources/OpenBOR_Logo_480x272_png.h"
@@ -439,7 +440,8 @@ static void initMenu(int type)
 	videomodes.hScale = 2.0f;
 	videomodes.vScale = 2.0f;
 	savedata.hwscale = 2.0f;
-	savedata.hwfilter = 1;
+	/* Damon V. Caskey, 2026-11-20: preserve the launcher's native HQ look. */
+	savedata.hwfilter = VIDEO_SCALING_HIGH_QUALITY;
 #endif
 	vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32);
 

@@ -36,7 +36,8 @@ textures. They do not introduce another scene color mode.
 | Drawmethod resampling | Nearest, bilinear/movie, named cubics and Lanczos 2/3 |
 | Capture, feedback and self-drawing | Ordered GPU copies and destination snapshots |
 | Launcher | Shared native glyph atlas and general screen storage |
-| Output filters | Shared RGB8 kernels and reusable GPU-only 2x target |
+| Final Filter | Shared RGB8 output kernels and reusable GPU-only 2x target |
+| Display scaling | Automatic or centered 0.25x-8x scene sizing; independent Nearest, Bilinear and High Quality sampling |
 | Movies | Shared YUV conversion/resampling for screens and fullscreen output |
 | Pixel reads and screenshots | Explicit synchronization of the requested screen |
 
@@ -88,6 +89,31 @@ render into native screens and synchronize only when their CPU consumer needs
 the pixels. Normal movie/game switching does not require a graphics-context
 replacement.
 
+## Display controls
+
+Video Options distinguishes **Final Filter**, **Scaling Filter** and
+**Display Scale**. Final Filter applies the existing scene-wide visual effects.
+Scaling Filter selects Nearest, Bilinear or the sharp-bilinear High Quality
+formula for the completed image. These choices leave per-object drawmethod
+and movie resampling unchanged.
+
+Display Scale retains Automatic as its default. Automatic uses the existing
+aspect-preserving or stretch-to-screen geometry. Manual settings advance from
+0.25x through 8x in quarter steps and center the original scene resolution
+multiplied by that scale. The device viewport clips views that exceed its
+dimensions. The optional Final Filter's private 2x texture does not change
+those display dimensions. Touch controls retain their device-space geometry,
+and direct fullscreen movies retain their independent placement.
+The **Display Fit** control applies only to Automatic scale; its stored
+aspect/stretch selection remains available when returning to Automatic.
+
+The repaired Scale action changes only scale; it no longer falls through into
+the sampling-filter action. Legacy Android Bilinear and Simple selections
+restore as Bilinear and Nearest, and the default remains Nearest. Explicit
+High Quality selections persist through subsequent saves and loads. Packed
+configuration fields keep their existing offsets and size. See
+[Video controls](video-controls.md) for menu behavior and migration details.
+
 ## Context lifecycle
 
 GPU-produced screens retain CPU shadow allocations, but those shadows are not
@@ -134,6 +160,12 @@ Production Android video integration has its own focused suite:
 ```sh
 OPENBOR_REQUIRE_GPU_TESTS=1 bash tests/run_android_scene_tests.sh
 ```
+
+That suite checks automatic and manual scene sizing, all three display sampling
+modes, final-filter independence and unchanged movie/touch placement. The
+driver-independent `bash tests/run_video_settings_tests.sh` also compiles the
+production video menu and settings actions for Android, covering scale limits,
+independent filter selections and legacy/default configuration round trips.
 
 The full `bash tests/run_gpu_tests.sh` includes both along with desktop
 regressions. The Android ARM64 build compiles the actual NDK GLES3 interfaces.
