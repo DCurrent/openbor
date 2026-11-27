@@ -330,10 +330,10 @@ int meshmap_image_replace_artwork(s_meshmap *map, const char *filename,
 #define MESHMAP_SWAP_FIELD(type, member) do { type previous = map->member; map->member = staged.member; staged.member = previous; } while(0)
 
 /*
- * Geometry includes configuration (axis, origin and displacement range).
- * Validate the proposed configuration against the new samples in an unowned
- * map before publishing either. Preserve the selected map's texture, identity,
- * gates and activation, including when geometry is replaced.
+ * Geometry includes the sample axis and displacement range. Validate the
+ * proposed configuration against new samples in an unowned map before
+ * publishing either. Preserve the selected map's position, texture, identity,
+ * gates and activation.
  */
 int meshmap_image_apply_geometry(s_meshmap_store *store, uint32_t id,
                                  const s_meshmap_config *config,

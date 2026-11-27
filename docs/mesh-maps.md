@@ -211,8 +211,9 @@ address starts at 0/0/0/0, so this single-map example needs no selector:
 # Current-position gate, deliberately larger than the grid.
 meshmap_area -128 -256 -128 1152 512 384
 
-# Address 0/0/0/0, Y displacement, origin XYZ, minimum/maximum, geometry.
-meshmap_geometry y 0 0 0 -24 0 data/terrain/trough16.png
+# Address 0/0/0/0, Y displacement, minimum/maximum and geometry.
+meshmap_geometry y -24 0 data/terrain/trough16.png
+meshmap_position 0 0 0
 meshmap_texture data/terrain/road24.png
 
 # 65x17 vertices now span 1024x256 world units.
@@ -250,7 +251,8 @@ indices, side selectors and support-group IDs remain ordinary integers.
 
 ```text
 meshmap_index area sector room index
-meshmap_geometry axis x y z minimum maximum geometry_png
+meshmap_geometry axis minimum maximum geometry_png
+meshmap_position x y z
 meshmap_texture texture_png
 meshmap_texture none
 meshmap_spacing spacing_u spacing_v
@@ -280,19 +282,21 @@ Every level load starts at 0/0/0/0. Selection persists until another
 advance the index. Selection itself allocates nothing and does not reset an
 existing map. Script APIs continue to take explicit map IDs.
 
-The geometry, texture, spacing, config, side, support group, slope limit,
-layer, active and bounds commands configure the selected map. If it does not yet exist, a valid assignment
-creates a map with the remaining defaults. Geometry and texture may be
-supplied in either order.
+The geometry, position, texture, spacing, config, side, support group,
+slope limit, layer, active and bounds commands configure the selected map.
+If it does not yet exist, a valid assignment creates a map with the
+remaining defaults. Geometry, position and texture may be assigned in any
+order.
 Reselecting an existing map lets these commands change individual settings
 while preserving its other properties.
 
 ```text
 # Configure map 1 before loading its geometry.
 meshmap_index 0 0 0 1
+meshmap_position 160 80 96
 meshmap_spacing 160 32
 meshmap_config collide walkable one_way drop_through
-meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
+meshmap_geometry y 0 0 data/terrain/flat16.png
 
 # Return to the original map and change only its slope limit.
 meshmap_index 0 0 0 0
@@ -300,9 +304,15 @@ meshmap_slope_limit 30
 ```
 
 `meshmap_geometry` loads geometry at the selected address and sets the
-declared axis, XYZ origin and displacement range. It preserves the texture,
+declared axis and displacement range. It preserves the position, texture,
 spacing, flags, traversal settings, bounds and active state of an existing
 map.
+
+`meshmap_position` assigns the XYZ world-space origin of the selected map.
+Coordinates may be fractional or negative; the default is 0/0/0. Changing
+position moves the geometry and its texture together without reloading
+either image. Authored applicability bounds are independent world-space
+gates and are not translated with the map.
 
 `meshmap_texture` loads or replaces the visual surface texture independently
 of geometry. Use `meshmap_texture none` to remove it without affecting
@@ -497,7 +507,8 @@ Use the generated `side16.png` in a separate test level:
 
 ```text
 meshmap_area -128 -256 -8 256 256 8
-meshmap_geometry z 0 128 0 -1 1 data/terrain/side16.png
+meshmap_geometry z -1 1 data/terrain/side16.png
+meshmap_position 0 128 0
 meshmap_spacing 8 8
 meshmap_config collide walkable
 meshmap_side 0
@@ -527,7 +538,8 @@ The following creates a solid region beginning at X = 300, covering
 Y = 0..128 and Z = 0..128:
 
 ```text
-meshmap_geometry x 300 128 0 0 0 data/terrain/flat16.png
+meshmap_geometry x 0 0 data/terrain/flat16.png
+meshmap_position 300 128 0
 meshmap_spacing 128 128
 meshmap_config collide
 meshmap_side 1
@@ -841,7 +853,8 @@ For a simple one-way platform above the first terrain patch:
 
 ```text
 meshmap_index 0 0 0 1
-meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
+meshmap_geometry y 0 0 data/terrain/flat16.png
+meshmap_position 160 80 96
 meshmap_spacing 160 32
 
 # One-way, drop-through, walkable collision; no artwork attached.

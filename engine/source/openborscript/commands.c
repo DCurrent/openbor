@@ -734,6 +734,7 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_MESHMAP_INDEX, "meshmap_index");
     LIST_ADD(CMD_LEVEL_MESHMAP_LAYER, "meshmap_layer");
     LIST_ADD(CMD_LEVEL_MESHMAP_MASK, "meshmap_mask");
+    LIST_ADD(CMD_LEVEL_MESHMAP_POSITION, "meshmap_position");
     LIST_ADD(CMD_LEVEL_MESHMAP_ROOM, "meshmap_room");
     LIST_ADD(CMD_LEVEL_MESHMAP_SECTOR, "meshmap_sector");
     LIST_ADD(CMD_LEVEL_MESHMAP_SIDE, "meshmap_side");

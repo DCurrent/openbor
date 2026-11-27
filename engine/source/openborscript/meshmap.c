@@ -872,21 +872,26 @@ int meshmap_level_command(s_meshmap_authoring_context *context, int command,
     switch(command)
     {
     case CMD_LEVEL_MESHMAP_GEOMETRY:
-        if(count != 8)
+        if(count != 5)
             return meshmap_text_error(error, error_capacity,
-                "meshmap_geometry expects axis x y z minimum maximum geometry_png for the selected index");
+                "meshmap_geometry expects axis minimum maximum geometry_png for the selected index");
         if(!meshmap_text_axis(arguments[1], &config.axis)
-           || !meshmap_text_number(arguments[2], &config.origin.x)
-           || !meshmap_text_number(arguments[3], &config.origin.y)
-           || !meshmap_text_number(arguments[4], &config.origin.z)
-           || !meshmap_text_number(arguments[5], &config.min_height)
-           || !meshmap_text_number(arguments[6], &config.max_height)
+           || !meshmap_text_number(arguments[2], &config.min_height)
+           || !meshmap_text_number(arguments[3], &config.max_height)
            || !meshmap_config_valid(&config))
-            return meshmap_text_error(error, error_capacity, "meshmap_geometry has an invalid axis, origin or displacement range");
+            return meshmap_text_error(error, error_capacity, "meshmap_geometry has an invalid axis or displacement range");
         store = meshmap_text_require_store(error, error_capacity);
         if(!store) return 0;
-        return meshmap_image_apply_geometry(store, id, &config, arguments[7],
+        return meshmap_image_apply_geometry(store, id, &config, arguments[4],
                                             packfile, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_POSITION:
+        if(count != 4 || !meshmap_text_number(arguments[1], &config.origin.x)
+           || !meshmap_text_number(arguments[2], &config.origin.y)
+           || !meshmap_text_number(arguments[3], &config.origin.z)
+           || !meshmap_config_valid(&config))
+            return meshmap_text_error(error, error_capacity, "meshmap_position expects finite X Y Z coordinates");
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
 
     case CMD_LEVEL_MESHMAP_TEXTURE:
         if(count != 2 || !arguments[1] || !arguments[1][0])

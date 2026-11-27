@@ -452,7 +452,8 @@ static void test_native_commands(const char *directory)
     s_meshmap_authoring_context context = {0};
     char geometry[1024], artwork[1024];
     const char *select[] = {"meshmap_index", "01", "02", "03", "08"};
-    const char *create[] = {"meshmap_geometry", "z", "10", "20", "30", "-40", "60", geometry};
+    const char *create[] = {"meshmap_geometry", "z", "-40", "60", geometry};
+    const char *position[] = {"meshmap_position", "10", "20", "30"};
     const char *texture[] = {"meshmap_texture", artwork};
     const char *area[] = {"meshmap_area", "-100", "-200", "-300", "400", "500", "600", "1"};
     const char *spacing[] = {"meshmap_spacing", "4", "8"};
@@ -488,11 +489,13 @@ static void test_native_commands(const char *directory)
         (const char *const[]){"meshmap_layer", "-10"});
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
         (const char *const[]){"meshmap_active", "0"});
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8, create);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_POSITION, 4, position);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5, create);
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_TEXTURE, 2, texture);
     assert(map->artwork && !strcmp(map->artwork_path, artwork));
     assert(meshmap_get(level->meshmaps, id) == map && map->generation == generation);
     assert(map->config.axis == MESHMAP_AXIS_Z && map->config.spacing_u == 4 && map->config.spacing_v == 8);
+    assert(map->config.origin.x == 10 && map->config.origin.y == 20 && map->config.origin.z == 30);
     assert(map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE
            && map->config.support_group == MESHMAP_GROUP_NONE
            && map->config.slope_limit == 60 && map->config.layer == -10);
@@ -502,7 +505,7 @@ static void test_native_commands(const char *directory)
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 6, mask);
     assert(level->meshmaps->root.active_mask == UINT64_C(0x8000000000000003));
     old_count = level->meshmaps->map_count;
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8, create);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5, create);
     assert(level->meshmaps->map_count == old_count && meshmap_get(level->meshmaps, id) == map);
     assert(map->generation == generation && !meshmap_is_active(level->meshmaps, id));
     expect_native(&context, 0, CMD_LEVEL_MESHMAP_AREA, 7,
@@ -755,6 +758,10 @@ static void test_native_authoring_contexts(void)
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
 
     /* Invalid settings must not create a default leaf as a side effect. */
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_POSITION, 4,
+        (const char *const[]){"meshmap_position", "1", "nan", "3"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_POSITION, 3,
+        (const char *const[]){"meshmap_position", "1", "2"});
     expect_native(&first, 0, CMD_LEVEL_MESHMAP_SPACING, 3,
         (const char *const[]){"meshmap_spacing", "0", "1"});
     expect_native(&first, 0, CMD_LEVEL_MESHMAP_CONFIG, 2,
@@ -773,6 +780,9 @@ static void test_native_authoring_contexts(void)
         (const char *const[]){"meshmap_bounds", "2", "0", "0", "1", "1", "1"});
     assert(first.id == first_id && (!level->meshmaps || !level->meshmaps->map_count));
 
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_POSITION, 4,
+        (const char *const[]){"meshmap_position", "-12.5", "34", "56.75"});
+    assert(meshmap_get(level->meshmaps, first_id) && !meshmap_get(level->meshmaps, first_id)->samples);
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
         (const char *const[]){"meshmap_side", "1"});
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
@@ -783,6 +793,8 @@ static void test_native_authoring_contexts(void)
         (const char *const[]){"meshmap_layer", "12"});
     selected = meshmap_get(level->meshmaps, first_id);
     assert(selected && !selected->samples && selected->config.flags == MESHMAP_FLAGS_DEFAULT);
+    assert(selected->config.origin.x == -12.5 && selected->config.origin.y == 34
+           && selected->config.origin.z == 56.75);
     expect_native(&second, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
         (const char *const[]){"meshmap_config", "draw"});
     zero = meshmap_get(level->meshmaps, 0);
@@ -929,11 +941,14 @@ static void test_native_definition_transactions(const char *directory)
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_TEXTURE, 2,
         (const char *const[]){"meshmap_texture", indexed});
     assert(map->artwork && !map->samples && !strcmp(map->artwork_path, indexed));
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_POSITION, 4,
+        (const char *const[]){"meshmap_position", "10", "20", "30"});
     revision = map->revision;
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "y", "10", "20", "30", "-5", "15", geometry});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "y", "-5", "15", geometry});
     assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX) == map && map->generation == generation);
     assert(map->revision == revision + 1 && map->width == 3 && map->height == 3);
+    assert(map->config.origin.x == 10 && map->config.origin.y == 20 && map->config.origin.z == 30);
     assert(map->config.spacing_u == 4 && map->config.spacing_v == 8
            && map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE
            && map->config.support_group == 7 && map->config.slope_limit == 30 && map->config.layer == -12);
@@ -944,14 +959,31 @@ static void test_native_definition_transactions(const char *directory)
     original_artwork_path = map->artwork_path;
     assert(original_artwork && !strcmp(original_artwork_path, indexed));
 
-    /* Every orientation works at the highest packed address. Replacing a
-     * geometry changes its explicit fields, while texture, prior
-     * settings, gates, generation and activation remain attached to the map. */
+    /* Reposition a loaded meshmap without reallocating either resource or
+     * changing the absolute gates, identity or activation. */
+    original_samples = map->samples;
+    original_cells = map->cells;
+    original_geometry_path = map->geometry_path;
+    revision = map->revision;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_POSITION, 4,
+        (const char *const[]){"meshmap_position", "11", "22", "33"});
+    assert(map->revision == revision + 1 && map->generation == generation);
+    assert(map->config.origin.x == 11 && map->config.origin.y == 22 && map->config.origin.z == 33);
+    assert(map->samples == original_samples && map->cells == original_cells
+           && map->geometry_path == original_geometry_path);
+    assert(map->artwork == original_artwork && map->artwork_path == original_artwork_path);
+    assert(map->config.axis == MESHMAP_AXIS_Y && map->config.min_height == -5
+           && map->config.max_height == 15 && map->config.spacing_u == 4);
+    assert(!memcmp(&original_gate, &map->gate, sizeof(original_gate))
+           && !meshmap_is_active(level->meshmaps, map->id));
+
+    /* Every orientation works at the highest packed address. Geometry
+     * replacement preserves position, texture, gates and activation. */
     for(axis = 0; axis < 3; ++axis)
     {
         revision = map->revision;
-        expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-            (const char *const[]){"meshmap_geometry", axes[axis], "11", "22", "33", "-6", "16", geometry});
+        expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+            (const char *const[]){"meshmap_geometry", axes[axis], "-6", "16", geometry});
         assert(map->config.axis == (e_meshmap_axis)axis && map->revision == revision + 1);
         assert(map->config.origin.x == 11 && map->config.origin.y == 22 && map->config.origin.z == 33
                && map->config.min_height == -6 && map->config.max_height == 16);
@@ -964,10 +996,11 @@ static void test_native_definition_transactions(const char *directory)
 
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
         (const char *const[]){"meshmap_index", "0", "0", "0", "0"});
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "z", "0", "0", "0", "0", "1", geometry});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "z", "0", "1", geometry});
     other = meshmap_get(level->meshmaps, 0);
     assert(other && other != map && !other->artwork && other->config.flags == MESHMAP_FLAGS_DEFAULT);
+    assert(other->config.origin.x == 0 && other->config.origin.y == 0 && other->config.origin.z == 0);
     assert(other->config.spacing_u == 1 && other->config.side == MESHMAP_SIDE_NEGATIVE
            && !other->gate.enabled && meshmap_is_active(level->meshmaps, 0));
     revision = map->revision;
@@ -977,12 +1010,20 @@ static void test_native_definition_transactions(const char *directory)
 
     /* Validate the two resources independently. Malformed declarations
      * and failed loads must preserve existing resources and settings. */
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "x", "0", "50", rgb});
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 6,
+        (const char *const[]){"meshmap_geometry", "x", "0", "50", geometry, indexed});
     expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "x", "90", "80", "70", "0", "50", rgb});
-    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 9,
-        (const char *const[]){"meshmap_geometry", "x", "90", "80", "70", "0", "50", geometry, indexed});
-    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "x", "90", "80", "70", "50", "0", geometry});
+        (const char *const[]){"meshmap_geometry", "x", "90", "80", "70", "0", "50", geometry});
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "x", "50", "0", geometry});
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_POSITION, 4,
+        (const char *const[]){"meshmap_position", "90", "nan", "70"});
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_POSITION, 3,
+        (const char *const[]){"meshmap_position", "90", "80"});
+    expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_POSITION, 5,
+        (const char *const[]){"meshmap_position", "90", "80", "70", "60"});
     expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_TEXTURE, 2,
         (const char *const[]){"meshmap_texture", geometry});
     expect_resource_unchanged(&context, map, CMD_LEVEL_MESHMAP_TEXTURE, 2,
@@ -1024,8 +1065,8 @@ static void test_native_definition_transactions(const char *directory)
     expect_native(&context, 0, CMD_LEVEL_MESHMAP_TEXTURE, 2,
         (const char *const[]){"meshmap_texture", missing});
     assert(context.id == 1 && !meshmap_get(level->meshmaps, 1) && level->meshmaps->map_count == count);
-    expect_native(&context, 0, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "y", "0", "0", "0", "0", "1", missing});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "y", "0", "1", missing});
     assert(context.id == 1 && !meshmap_get(level->meshmaps, 1) && level->meshmaps->map_count == count);
 
     /* Texture alone is sufficient to create a map. Later geometry
@@ -1037,8 +1078,8 @@ static void test_native_definition_transactions(const char *directory)
     original_artwork = other->artwork;
     original_artwork_path = other->artwork_path;
     generation = other->generation;
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8,
-        (const char *const[]){"meshmap_geometry", "y", "0", "0", "0", "0", "1", geometry});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 5,
+        (const char *const[]){"meshmap_geometry", "y", "0", "1", geometry});
     assert(meshmap_get(level->meshmaps, 1) == other && other->samples
            && other->generation == generation && other->artwork == original_artwork
            && other->artwork_path == original_artwork_path);

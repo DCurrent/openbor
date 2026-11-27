@@ -81,6 +81,7 @@ if not context:
 adapter_call = r'load_meshmap_command\(\s*&' + re.escape(context.group(1)) + r'\s*,\s*cmd\s*,\s*buf\s*\+\s*pos\s*,'
 if ('case CMD_LEVEL_MESHMAP_CONFIG:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_TEXTURE:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_POSITION:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_SIDE:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_SUPPORT_GROUP:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_SLOPE_LIMIT:' not in dispatch

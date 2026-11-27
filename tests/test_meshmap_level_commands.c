@@ -113,6 +113,7 @@ int main(void)
     level = &fixture;
     assert(!getLevelCommand(commands, "meshmap"));
     assert(getLevelCommand(commands, "meshmap_geometry") == CMD_LEVEL_MESHMAP_GEOMETRY);
+    assert(getLevelCommand(commands, "MeShMaP_PoSiTiOn") == CMD_LEVEL_MESHMAP_POSITION);
     assert(getLevelCommand(commands, "MeShMaP_TeXtUrE") == CMD_LEVEL_MESHMAP_TEXTURE);
     assert(getLevelCommand(commands, "meshmap_index") == CMD_LEVEL_MESHMAP_INDEX);
     assert(getLevelCommand(commands, "meshmap_config") == CMD_LEVEL_MESHMAP_CONFIG);
@@ -133,10 +134,19 @@ int main(void)
     strcpy(line, "meshmap_index 63 63 64 63");
     assert(!load_command(&context, commands, line, error, sizeof(error)));
     assert(context.id == MESHMAP_ID_MAX && !level->meshmaps);
+    strcpy(line, "meshmap_position 10 nan 30");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    assert(context.id == MESHMAP_ID_MAX && !level->meshmaps);
     strcpy(line, "meshmap_config draw");
     assert(load_command(&second, commands, line, error, sizeof(error)));
     map = meshmap_get(level->meshmaps, 0);
     assert(map && map->config.flags == MESHMAP_DRAW);
+    strcpy(line, "meshmap_position -10.5 20 30.25");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX)->config.origin.x == -10.5);
+    assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX)->config.origin.y == 20);
+    assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX)->config.origin.z == 30.25);
+    assert(map->config.origin.x == 0 && map->config.origin.y == 0 && map->config.origin.z == 0);
     strcpy(line, "meshmap_side 1");
     assert(load_command(&context, commands, line, error, sizeof(error)));
     strcpy(line, "meshmap_support_group 7");
@@ -214,7 +224,17 @@ int main(void)
     assert(!load_command(&context, commands, line, error, sizeof(error)));
     strcpy(line, "meshmap_layer -3 4");
     assert(!load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_position 1 2");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_position 1 2 3 4");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_position 1 2 inf");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
     assert(map->revision == revision);
+    assert(map->config.origin.x == 0 && map->config.origin.y == 0 && map->config.origin.z == 0);
+    /* Old combined geometry syntax is rejected before attempting image IO. */
+    strcpy(line, "meshmap_geometry y 0 0 0 -5 5 geometry.png");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
 
     meshmap_store_free(level->meshmaps);
     level = NULL;

@@ -24850,6 +24850,7 @@ void load_level(char *filename)
         case CMD_LEVEL_MESHMAP_CONFIG:
         case CMD_LEVEL_MESHMAP_INDEX:
         case CMD_LEVEL_MESHMAP_MASK:
+        case CMD_LEVEL_MESHMAP_POSITION:
         case CMD_LEVEL_MESHMAP_ROOM:
         case CMD_LEVEL_MESHMAP_SIDE:
         case CMD_LEVEL_MESHMAP_SUPPORT_GROUP:

@@ -30,7 +30,7 @@ int meshmap_image_replace_artwork(s_meshmap *map, const char *filename,
                                   const char *packfilename, char *error, size_t error_capacity);
 
 /* Independent resource transactions for selected level declarations.
- * Geometry includes its proposed configuration and preserves the texture.
+ * Geometry includes its proposed configuration and preserves position and texture.
  * Texture changes preserve geometry; an empty path removes the texture.
  * Failed input leaves an existing map intact and creates no new map. */
 int meshmap_image_apply_geometry(s_meshmap_store *store, uint32_t id,
