@@ -24095,7 +24095,8 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
  * authoring API receives the complete declaration and validates it before any
  * selection changes. Both temporary allocations are released on every return.
  */
-static int load_meshmap_command(int command, const char *command_line,
+static int load_meshmap_command(s_meshmap_authoring_context *context,
+                                int command, const char *command_line,
                                 char *error, size_t error_capacity)
 {
     s_command_argument_reader reader;
@@ -24142,7 +24143,7 @@ static int load_meshmap_command(int command, const char *command_line,
         destination += length;
     }
 
-    result = meshmap_level_command(command, count, arguments, error, error_capacity);
+    result = meshmap_level_command(context, command, count, arguments, error, error_capacity);
     goto cleanup;
 
 allocation_error:
@@ -24184,6 +24185,10 @@ void load_level(char *filename)
     int line = 0;
     char *errormessage = NULL;
     char meshmap_error[512] = {0};
+    /* Like collision.index, the current target is parser-local state. Keep the
+     * default address at zero and retain selections until another index command;
+     * the next level-file load receives a fresh context automatically. */
+    s_meshmap_authoring_context meshmap_authoring = {0};
     char *scriptname = NULL;
     Script *tempscript = NULL;
     s_drawmethod *dm;
@@ -24837,17 +24842,19 @@ void load_level(char *filename)
             addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
             break;
         case CMD_LEVEL_MESHMAP:
-        case CMD_LEVEL_MESHMAPACTIVE:
-        case CMD_LEVEL_MESHMAPAREA:
-        case CMD_LEVEL_MESHMAPBANK:
-        case CMD_LEVEL_MESHMAPBOUNDS:
-        case CMD_LEVEL_MESHMAPFLAGS:
-        case CMD_LEVEL_MESHMAPMASK:
-        case CMD_LEVEL_MESHMAPROOM:
-        case CMD_LEVEL_MESHMAPRULES:
-        case CMD_LEVEL_MESHMAPSECTOR:
-        case CMD_LEVEL_MESHMAPSPACING:
-            if(!load_meshmap_command(cmd, buf + pos, meshmap_error, sizeof(meshmap_error)))
+        case CMD_LEVEL_MESHMAP_ACTIVE:
+        case CMD_LEVEL_MESHMAP_AREA:
+        case CMD_LEVEL_MESHMAP_BANK:
+        case CMD_LEVEL_MESHMAP_BOUNDS:
+        case CMD_LEVEL_MESHMAP_FLAGS:
+        case CMD_LEVEL_MESHMAP_INDEX:
+        case CMD_LEVEL_MESHMAP_MASK:
+        case CMD_LEVEL_MESHMAP_ROOM:
+        case CMD_LEVEL_MESHMAP_RULES:
+        case CMD_LEVEL_MESHMAP_SECTOR:
+        case CMD_LEVEL_MESHMAP_SPACING:
+            if(!load_meshmap_command(&meshmap_authoring, cmd, buf + pos,
+                                     meshmap_error, sizeof(meshmap_error)))
             {
                 errormessage = meshmap_error;
                 goto lCleanup;

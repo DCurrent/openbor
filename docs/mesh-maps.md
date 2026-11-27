@@ -204,23 +204,24 @@ write_png("road24.png", 257, 65, 8, 2, rows)
 PY
 ```
 
-Place these declarations in an otherwise valid level sheet:
+Place these declarations in an otherwise valid level sheet. The selected
+address starts at 0/0/0/0, so this single-map example needs no selector:
 
 ```text
 # Current-position gate, deliberately larger than the grid.
-meshmaparea 0 -128 -256 -128 1152 512 384
+meshmap_area -128 -256 -128 1152 512 384
 
 # Address 0/0/0/0, Y displacement, origin XYZ, minimum/maximum, images.
-meshmap 0 0 0 0 y 0 0 0 -24 0 data/terrain/trough16.png data/terrain/road24.png
+meshmap y 0 0 0 -24 0 data/terrain/trough16.png data/terrain/road24.png
 
 # 65x17 vertices now span 1024x256 world units.
-meshmapspacing 0 0 0 0 16 16
+meshmap_spacing 16 16
 
 # Collision, automatic drawing and walkable support.
-meshmapflags 0 0 0 0 collide draw walkable
+meshmap_flags collide draw walkable
 
 # Solid below; independent support; 45-degree slope limit; layer -1000.
-meshmaprules 0 0 0 0 0 4294967295 45 -1000
+meshmap_rules 0 4294967295 45 -1000
 ```
 
 Place an entity over this patch, with X between 0 and 1024 and Z between 0
@@ -244,41 +245,74 @@ case-insensitive names separated by spaces or tabs. Addresses, child-slot
 indices, side selectors and support-group IDs remain ordinary integers.
 
 ```text
-meshmap area sector room index axis x y z minimum maximum geometry_png [artwork_png]
-meshmapspacing area sector room index spacing_u spacing_v
-meshmapflags area sector room index flag [flag ...]
-meshmaprules area sector room index side [support_group] [slope_limit] [layer]
-meshmapactive area sector room index enabled
-meshmapbounds area sector room index min_x min_y min_z max_x max_y max_z [gate_mode]
+meshmap_index area sector room index
+meshmap axis x y z minimum maximum geometry_png [artwork_png]
+meshmap_spacing spacing_u spacing_v
+meshmap_flags flag [flag ...]
+meshmap_rules side [support_group] [slope_limit] [layer]
+meshmap_active enabled
+meshmap_bounds min_x min_y min_z max_x max_y max_z [gate_mode]
 
-meshmaparea area min_x min_y min_z max_x max_y max_z [gate_mode]
-meshmapsector area sector min_x min_y min_z max_x max_y max_z [gate_mode]
-meshmaproom area sector room min_x min_y min_z max_x max_y max_z [gate_mode]
+meshmap_area min_x min_y min_z max_x max_y max_z [gate_mode]
+meshmap_sector min_x min_y min_z max_x max_y max_z [gate_mode]
+meshmap_room min_x min_y min_z max_x max_y max_z [gate_mode]
 
-meshmapbank depth packed_prefix min_x min_y min_z max_x max_y max_z [gate_mode]
-meshmapmask depth packed_prefix none
-meshmapmask depth packed_prefix all
-meshmapmask depth packed_prefix slots slot [slot ...]
+meshmap_bank depth min_x min_y min_z max_x max_y max_z [gate_mode]
+meshmap_mask depth none
+meshmap_mask depth all
+meshmap_mask depth slots slot [slot ...]
 ```
 
-`meshmap` creates an unoccupied address and loads its resources. Omit artwork
-or use the literal `none` to leave the map invisible. Repeating the same
-address is an error. The spacing, flags, rules, active and bounds commands require
-an existing map.
+### Select a map and configure it
 
-Bank declarations can precede maps. Ancestors created implicitly by a map
-start with unrestricted gates. The default `gate_mode` is 0, current
-position; 1 selects the optional current body box. `meshmapbounds` adds the
-same kind of gate to an individual map.
+`meshmap_index` selects the address used by subsequent meshmap commands.
+Every level load starts at 0/0/0/0. Selection persists until another
+`meshmap_index` command changes it; creating or editing a map does not
+advance the index. Selection itself allocates nothing and does not reset an
+existing map. Script APIs continue to take explicit map IDs.
 
-`meshmapflags` replaces the map's complete flag selection with the named
+The spacing, flags, rules, active and bounds commands configure the
+selected map. If it does not yet exist, a valid setting creates an empty
+map with the remaining defaults. Its geometry can be supplied later.
+Reselecting an existing map lets these commands change individual settings
+while preserving its other properties.
+
+```text
+# Configure map 1 before loading its geometry.
+meshmap_index 0 0 0 1
+meshmap_spacing 160 32
+meshmap_flags collide walkable one_way drop_through
+meshmap y 160 80 96 0 0 data/terrain/flat16.png
+
+# Return to the original map and change only its slope limit.
+meshmap_index 0 0 0 0
+meshmap_rules 0 4294967295 30
+```
+
+`meshmap` loads geometry at the selected address and sets the declared
+axis, XYZ origin and displacement range. It creates the map if needed.
+When the map exists, its spacing, flags, traversal settings, bounds and
+active state remain intact. Supplying an artwork path replaces artwork;
+omitting the path preserves existing artwork, and `none` clears it. New
+maps without an artwork path remain invisible. Invalid definitions retain
+the existing map and its resources.
+
+Bank declarations can precede maps. `meshmap_area`, `meshmap_sector` and
+`meshmap_room` configure the area, sector and room along the selected path.
+`meshmap_bank` selects an ancestor by depth along that same path. These
+commands create banks when needed and leave the selected map address
+unchanged. Ancestors created implicitly by a map start with unrestricted
+gates. The default `gate_mode` is 0, current position; 1 selects the optional
+current body box. `meshmap_bounds` adds the same kind of gate to the map.
+
+`meshmap_flags` replaces the map's complete flag selection with the named
 flags on that line. The names are combined internally. For example,
 `collide walkable` enables collision and supporting contacts without
 automatic drawing. Numeric masks, pipe-delimited expressions and unknown
 names are rejected. `none` contributes no flags; used alone, it disables all
 flags. It does not remove names already included on the same line.
 
-`meshmaprules` requires side 0 for the negative side or 1 for the positive
+`meshmap_rules` requires side 0 for the negative side or 1 for the positive
 side. Its optional arguments retain their current values when omitted.
 Support-group IDs are ordinary unsigned integers; 4294967295 means
 independent support identity. Optional arguments are positional: supply the
@@ -289,9 +323,9 @@ accept decimal or hexadecimal text.
 
 | Setting | Default |
 | --- | --- |
-| Axis | Y for a map created by script; required explicitly by `meshmap` |
+| Axis | Y for an empty map; required explicitly by `meshmap` |
 | Origin | `(0, 0, 0)` |
-| Displacement range | `0..1` for a map created by script; explicit in a level declaration |
+| Displacement range | `0..1` for an empty map; explicit in `meshmap` |
 | Spacing U/V | `1 / 1` |
 | Solid side | Negative |
 | Flags | `default`: collide, automatic draw and walkable |
@@ -369,19 +403,25 @@ drawing without freeing their resources.
 | Bank depth | Bank addressed | Child slots refer to |
 | ---: | --- | --- |
 | 0 | Collection root | Areas |
-| 1 | Area selected by the prefix | Sectors |
-| 2 | Area/sector selected by the prefix | Rooms |
-| 3 | Area/sector/room selected by the prefix | Maps |
+| 1 | Selected area | Sectors |
+| 2 | Selected area/sector | Rooms |
+| 3 | Selected area/sector/room | Maps |
 
-The packed prefix is a full-format map ID. Components below the selected
-depth are ignored. Prefix 270532 therefore addresses area 1 at depth 1,
-sector 1/2 at depth 2, or room 1/2/3 at depth 3. The root convention is
-depth 0, prefix 0.
+Native bank commands derive their path from the current `meshmap_index`.
+Depth 0 selects the collection root, regardless of that address. Depths 1,
+2 and 3 select its area, sector and room. The shortcut bounds commands
+`meshmap_area`, `meshmap_sector` and `meshmap_room` use those three depths.
+Neither bounds nor mask commands change the selected map.
 
-`meshmapmask` replaces a bank's active selection. Use `slots` followed by
+Script bank APIs still take an explicit packed prefix in full map-ID
+format. Components below the requested depth are ignored. Prefix 270532
+therefore addresses area 1 at depth 1, sector 1/2 at depth 2, or room 1/2/3
+at depth 3. The script root convention is depth 0, prefix 0.
+
+`meshmap_mask` replaces a bank's active selection. Use `slots` followed by
 ordinary child indices from 0 through 63, `none` to disable every child, or
 `all` to enable every child present when the command runs. `none` and `all`
-appear alone after the prefix. Keywords are case-insensitive. The `slots`
+appear alone after the depth. Keywords are case-insensitive. The `slots`
 keyword identifies a list of indices; the engine builds its internal mask.
 Each selected slot must already exist. Packed numeric masks are rejected.
 
@@ -389,13 +429,13 @@ For example, when areas 0 and 1 already exist:
 
 ```text
 # Keep these two areas active and disable the other areas.
-meshmapmask 0 0 slots 0 1
+meshmap_mask 0 slots 0 1
 
 # Temporarily disable every area while retaining their resources.
-meshmapmask 0 0 none
+meshmap_mask 0 none
 
 # Enable every area that currently exists.
-meshmapmask 0 0 all
+meshmap_mask 0 all
 ```
 
 The active selection cannot include a nonexistent child. Creating children
@@ -437,11 +477,11 @@ because a particular actor is outside its collision range.
 Use the generated `side16.png` in a separate test level:
 
 ```text
-meshmaparea 0 -128 -256 -8 256 256 8
-meshmap 0 0 0 0 z 0 128 0 -1 1 data/terrain/side16.png
-meshmapspacing 0 0 0 0 8 8
-meshmapflags 0 0 0 0 collide walkable
-meshmaprules 0 0 0 0 0 4294967295 45
+meshmap_area -128 -256 -8 256 256 8
+meshmap z 0 128 0 -1 1 data/terrain/side16.png
+meshmap_spacing 8 8
+meshmap_flags collide walkable
+meshmap_rules 0 4294967295 45
 ```
 
 This map spans X = 0..128 and Y = 128..0. At the play plane Z = 0, values
@@ -466,10 +506,10 @@ The following creates a solid region beginning at X = 300, covering
 Y = 0..128 and Z = 0..128:
 
 ```text
-meshmap 0 0 0 0 x 300 128 0 0 0 data/terrain/flat16.png
-meshmapspacing 0 0 0 0 128 128
-meshmapflags 0 0 0 0 collide
-meshmaprules 0 0 0 0 1
+meshmap x 300 128 0 0 0 data/terrain/flat16.png
+meshmap_spacing 128 128
+meshmap_flags collide
+meshmap_rules 1
 ```
 
 The positive solid side blocks entry toward increasing X. Using the
@@ -779,12 +819,13 @@ character controller.
 For a simple one-way platform above the first terrain patch:
 
 ```text
-meshmap 0 0 0 1 y 160 80 96 0 0 data/terrain/flat16.png
-meshmapspacing 0 0 0 1 160 32
+meshmap_index 0 0 0 1
+meshmap y 160 80 96 0 0 data/terrain/flat16.png
+meshmap_spacing 160 32
 
 # One-way, drop-through, walkable collision; no artwork attached.
-meshmapflags 0 0 0 1 collide walkable one_way drop_through
-meshmaprules 0 0 0 1 0 12 45 80
+meshmap_flags collide walkable one_way drop_through
+meshmap_rules 0 12 45 80
 ```
 
 This platform spans X = 160..320, Z = 96..128, at Y = 80. The negative solid

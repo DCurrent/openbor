@@ -99,10 +99,18 @@ HRESULT openbor_set_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant
 HRESULT openbor_draw_meshmap(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_draw_meshmap_projected(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
+/* Authoring selection belongs to one level-file load, not the runtime level.
+ * Zero initialization selects area/sector/room/index 0 without allocating it. */
+typedef struct s_meshmap_authoring_context
+{
+    uint32_t id;
+} s_meshmap_authoring_context;
+
 /* The native loader and script property setters both reach the same core
- * constructors/validators. The loader supplies its tokens directly; this
- * function reports a useful error for load_level() to attach to its line. */
-int meshmap_level_command(int command, size_t count, const char *const *arguments,
+ * constructors/validators. The loader supplies its local selection and complete
+ * tokens; this function reports errors for load_level() to attach to its line. */
+int meshmap_level_command(s_meshmap_authoring_context *context, int command,
+                          size_t count, const char *const *arguments,
                           char *error, size_t error_capacity);
 
 #endif

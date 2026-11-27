@@ -670,6 +670,7 @@ static int meshmap_text_number(const char *text, double *value)
 static int meshmap_text_axis(const char *text, e_meshmap_axis *axis)
 {
     uint64_t number;
+    if(!text) return 0;
     if(!strcmp(text, "x") || !strcmp(text, "X")) *axis = MESHMAP_AXIS_X;
     else if(!strcmp(text, "y") || !strcmp(text, "Y")) *axis = MESHMAP_AXIS_Y;
     else if(!strcmp(text, "z") || !strcmp(text, "Z")) *axis = MESHMAP_AXIS_Z;
@@ -786,14 +787,57 @@ static int meshmap_text_gate(const char *const *arguments, int has_mode, s_meshm
     return meshmap_gate_valid(gate);
 }
 
+/* Allocate authoring storage only after the caller validates its declaration.
+ * Selecting an address or rejecting malformed data must not populate banks. */
+static s_meshmap_store *meshmap_text_require_store(char *error, size_t error_capacity)
+{
+    if(!level->meshmaps && !(level->meshmaps = meshmap_store_create()))
+        meshmap_text_error(error, error_capacity, "out of memory creating the meshmap collection");
+    return level->meshmaps;
+}
+
+/* Like the collision property upserts, the first valid setting installs the
+ * defaults, while later settings reuse the selected object without resetting
+ * its resources, gates, activation or previously authored properties. */
+static s_meshmap *meshmap_text_upsert_selected(uint32_t id, char *error, size_t error_capacity)
+{
+    s_meshmap_store *store = meshmap_text_require_store(error, error_capacity);
+    s_meshmap *map;
+    if(!store) return NULL;
+    map = meshmap_create(store, id);
+    if(!map) meshmap_text_error(error, error_capacity, "out of memory creating the selected meshmap");
+    return map;
+}
+
+static int meshmap_text_configure_selected(uint32_t id, const s_meshmap_config *config,
+                                           char *error, size_t error_capacity)
+{
+    s_meshmap *map;
+    /* Validate a new object's values before allocating it. The core setter
+     * then also checks an existing object's image dimensions before committing. */
+    if(!meshmap_config_valid(config))
+        return meshmap_text_error(error, error_capacity, "invalid meshmap configuration");
+    map = meshmap_text_upsert_selected(id, error, error_capacity);
+    if(!map) return 0;
+    if(!meshmap_configure(map, config))
+        return meshmap_text_error(error, error_capacity, "meshmap settings are invalid for the selected geometry");
+    return 1;
+}
+
 /*
- * Parse complete declarations before allocating anything. Bank commands define
- * authored applicability ranges, while meshmapbounds sets the optional leaf
- * range. None of these values are inferred from movement or recomputed from an
- * image. Creating a map may allocate ancestors, but their default gates remain
- * unrestricted until the creator supplies a bank command.
+ * meshmap_index follows collision.index: validate and remember a target, but
+ * allocate nothing until a property needs storage. The loader owns this context
+ * and initializes it to address zero for each level. Every other command keeps
+ * that selection unchanged, so creators can configure an object in any order,
+ * switch to another address, then return to update only selected properties.
+ *
+ * Bank commands derive their ancestor prefix from the same selection. Their
+ * ranges remain authored values; loading geometry does not infer or reset them.
+ * Geometry and optional artwork are staged by the image helper as one update,
+ * preserving a preconfigured object if either resource fails validation.
  */
-int meshmap_level_command(int command, size_t count, const char *const *arguments,
+int meshmap_level_command(s_meshmap_authoring_context *context, int command,
+                          size_t count, const char *const *arguments,
                           char *error, size_t error_capacity)
 {
     s_meshmap_store *store;
@@ -801,138 +845,135 @@ int meshmap_level_command(int command, size_t count, const char *const *argument
     s_meshmap_bank *bank;
     s_meshmap_config config;
     s_meshmap_gate gate;
-    uint32_t id = 0;
-    uint64_t value, depth = 0, prefix = 0, mask;
-    unsigned address_slots = 0;
-    size_t first_bound;
+    uint32_t id;
+    uint64_t value, depth = 0, mask;
+    size_t first_bound = 1;
+    const char *artwork = NULL;
     int enabled;
     if(error && error_capacity) error[0] = '\0';
-    if(!level || !arguments || !count)
-        return meshmap_text_error(error, error_capacity, "meshmap command requires a loaded level");
-    if(!level->meshmaps && !(level->meshmaps = meshmap_store_create()))
-        return meshmap_text_error(error, error_capacity, "out of memory creating the meshmap collection");
+    if(!context || !level || !arguments || !count)
+        return meshmap_text_error(error, error_capacity, "meshmap command requires a loaded level and authoring context");
+
+    if(command == CMD_LEVEL_MESHMAP_INDEX)
+    {
+        if(count != 5 || !meshmap_text_address(arguments + 1, 4, &id))
+            return meshmap_text_error(error, error_capacity, "meshmap_index expects area sector room index, each from 0 through 63");
+        context->id = id;
+        return 1;
+    }
+    id = context->id;
+    if(id > MESHMAP_ID_MAX)
+        return meshmap_text_error(error, error_capacity, "meshmap authoring context has an invalid selected address");
+
     store = level->meshmaps;
+    map = meshmap_get(store, id);
+    if(map) config = map->config;
+    else meshmap_config_default(&config);
 
     switch(command)
     {
     case CMD_LEVEL_MESHMAP:
-        if((count != 12 && count != 13) || !meshmap_text_address(arguments + 1, 4, &id))
+        if(count != 8 && count != 9)
             return meshmap_text_error(error, error_capacity,
-                "meshmap expects area sector room index axis x y z minimum maximum geometry_png [artwork_png]");
-        meshmap_config_default(&config);
-        if(!meshmap_text_axis(arguments[5], &config.axis)
-           || !meshmap_text_number(arguments[6], &config.origin.x)
-           || !meshmap_text_number(arguments[7], &config.origin.y)
-           || !meshmap_text_number(arguments[8], &config.origin.z)
-           || !meshmap_text_number(arguments[9], &config.min_height)
-           || !meshmap_text_number(arguments[10], &config.max_height)
+                "meshmap expects axis x y z minimum maximum geometry_png [artwork_png] for the selected index");
+        if(!meshmap_text_axis(arguments[1], &config.axis)
+           || !meshmap_text_number(arguments[2], &config.origin.x)
+           || !meshmap_text_number(arguments[3], &config.origin.y)
+           || !meshmap_text_number(arguments[4], &config.origin.z)
+           || !meshmap_text_number(arguments[5], &config.min_height)
+           || !meshmap_text_number(arguments[6], &config.max_height)
            || !meshmap_config_valid(&config))
             return meshmap_text_error(error, error_capacity, "meshmap has an invalid axis, origin or displacement range");
-        if(meshmap_get(store, id))
-            return meshmap_text_error(error, error_capacity, "meshmap address is already occupied");
-        if(!(map = meshmap_create(store, id)))
-            return meshmap_text_error(error, error_capacity, "out of memory creating the meshmap");
-        if(!meshmap_configure(map, &config)
-           || !meshmap_image_replace_geometry(map, arguments[11], packfile, error, error_capacity)
-           || (count == 13 && strcmp(arguments[12], "none")
-               && !meshmap_image_replace_artwork(map, arguments[12], packfile, error, error_capacity)))
+        if(count == 9)
         {
-            meshmap_remove(store, id);
-            if(error && error_capacity && !error[0])
-                meshmap_text_error(error, error_capacity, "invalid meshmap resources");
-            return 0;
+            if(!arguments[8])
+                return meshmap_text_error(error, error_capacity, "meshmap artwork must be an image path or none");
+            artwork = !stricmp(arguments[8], "none") ? "" : arguments[8];
         }
-        return 1;
+        store = meshmap_text_require_store(error, error_capacity);
+        if(!store) return 0;
+        return meshmap_image_apply_definition(store, id, &config, arguments[7], artwork,
+                                              packfile, error, error_capacity);
 
-    case CMD_LEVEL_MESHMAPSPACING:
-    case CMD_LEVEL_MESHMAPFLAGS:
-    case CMD_LEVEL_MESHMAPRULES:
-    case CMD_LEVEL_MESHMAPACTIVE:
-    case CMD_LEVEL_MESHMAPBOUNDS:
-        if(count < 6 || !meshmap_text_address(arguments + 1, 4, &id)
-           || !(map = meshmap_get(store, id)))
-            return meshmap_text_error(error, error_capacity, "meshmap setting needs an existing area/sector/room/index address");
-        config = map->config;
-        if(command == CMD_LEVEL_MESHMAPSPACING)
-        {
-            if(count != 7 || !meshmap_text_number(arguments[5], &config.spacing_u)
-               || !meshmap_text_number(arguments[6], &config.spacing_v)
-               || !meshmap_configure(map, &config))
-                return meshmap_text_error(error, error_capacity, "meshmapspacing expects positive finite U and V spacing");
-            return 1;
-        }
-        if(command == CMD_LEVEL_MESHMAPACTIVE)
-        {
-            if(count != 6 || !meshmap_text_int(arguments[5], &enabled)
-               || (enabled != 0 && enabled != 1) || !meshmap_set_active(store, id, enabled))
-                return meshmap_text_error(error, error_capacity, "meshmapactive expects integer 0 or 1");
-            return 1;
-        }
-        if(command == CMD_LEVEL_MESHMAPFLAGS)
-        {
-            if(!meshmap_text_flags(count - 5, arguments + 5, &config.flags)
-               || !meshmap_configure(map, &config))
-                return meshmap_text_error(error, error_capacity,
-                    "meshmapflags expects collide draw walkable one_way drop_through none default or all");
-            return 1;
-        }
-        if(command == CMD_LEVEL_MESHMAPBOUNDS)
-        {
-            if((count != 11 && count != 12) || !meshmap_text_gate(arguments + 5, count == 12, &gate)
-               || !meshmap_set_gate(map, &gate))
-                return meshmap_text_error(error, error_capacity, "meshmapbounds expects min_x min_y min_z max_x max_y max_z [gate_mode]");
-            return 1;
-        }
-        /* Side and support group are scalar values. Behavior combinations are
-         * authored separately through meshmapflags and remain unchanged here. */
-        if(count > 9 || !meshmap_text_uint(arguments[5], MESHMAP_SIDE_POSITIVE, &value))
+    case CMD_LEVEL_MESHMAP_SPACING:
+        if(count != 3 || !meshmap_text_number(arguments[1], &config.spacing_u)
+           || !meshmap_text_number(arguments[2], &config.spacing_v)
+           || !meshmap_config_valid(&config))
+            return meshmap_text_error(error, error_capacity, "meshmap_spacing expects positive finite U and V spacing");
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_FLAGS:
+        if(count < 2 || !meshmap_text_flags(count - 1, arguments + 1, &config.flags))
             return meshmap_text_error(error, error_capacity,
-                "meshmaprules expects side (0 or 1) [support_group] [slope_limit] [layer]; use meshmapflags for behavior");
+                "meshmap_flags expects collide draw walkable one_way drop_through none default or all");
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_RULES:
+        /* Side and support group are scalar values. Behavior combinations are
+         * authored separately through meshmap_flags and remain unchanged here. */
+        if(count < 2 || count > 5 || !meshmap_text_uint(arguments[1], MESHMAP_SIDE_POSITIVE, &value))
+            return meshmap_text_error(error, error_capacity,
+                "meshmap_rules expects side (0 or 1) [support_group] [slope_limit] [layer]; use meshmap_flags for behavior");
         config.side = (e_meshmap_side)value;
-        if(count > 6)
+        if(count > 2)
         {
-            if(!meshmap_text_uint(arguments[6], UINT32_MAX, &value))
+            if(!meshmap_text_uint(arguments[2], UINT32_MAX, &value))
                 return meshmap_text_error(error, error_capacity, "invalid meshmap support group");
             config.support_group = (uint32_t)value;
         }
-        if((count > 7 && !meshmap_text_number(arguments[7], &config.slope_limit))
-           || (count > 8 && !meshmap_text_int(arguments[8], &config.layer))
-           || !meshmap_configure(map, &config))
+        if((count > 3 && !meshmap_text_number(arguments[3], &config.slope_limit))
+           || (count > 4 && !meshmap_text_int(arguments[4], &config.layer))
+           || !meshmap_config_valid(&config))
             return meshmap_text_error(error, error_capacity, "invalid meshmap collision/rendering rule value");
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_ACTIVE:
+        if(count != 2 || !meshmap_text_int(arguments[1], &enabled)
+           || (enabled != 0 && enabled != 1))
+            return meshmap_text_error(error, error_capacity, "meshmap_active expects integer 0 or 1");
+        map = meshmap_text_upsert_selected(id, error, error_capacity);
+        if(!map) return 0;
+        if(!meshmap_set_active(map->owner, id, enabled))
+            return meshmap_text_error(error, error_capacity, "could not update the selected meshmap activation");
         return 1;
 
-    case CMD_LEVEL_MESHMAPAREA: address_slots = 1; break;
-    case CMD_LEVEL_MESHMAPSECTOR: address_slots = 2; break;
-    case CMD_LEVEL_MESHMAPROOM: address_slots = 3; break;
-    case CMD_LEVEL_MESHMAPBANK:
-        if((count != 9 && count != 10)
-           || !meshmap_text_uint(arguments[1], 3, &depth)
-           || !meshmap_text_uint(arguments[2], MESHMAP_ID_MAX, &prefix)
-           || !meshmap_text_gate(arguments + 3, count == 10, &gate))
-            return meshmap_text_error(error, error_capacity, "meshmapbank expects depth packed_prefix min_x min_y min_z max_x max_y max_z [gate_mode]");
-        bank = meshmap_bank_get(store, (unsigned)depth, (uint32_t)prefix, 1);
-        if(!bank || !meshmap_bank_set_gate(bank, &gate))
-            return meshmap_text_error(error, error_capacity, "could not configure meshmap bank");
+    case CMD_LEVEL_MESHMAP_BOUNDS:
+        if((count != 7 && count != 8) || !meshmap_text_gate(arguments + 1, count == 8, &gate))
+            return meshmap_text_error(error, error_capacity, "meshmap_bounds expects min_x min_y min_z max_x max_y max_z [gate_mode]");
+        map = meshmap_text_upsert_selected(id, error, error_capacity);
+        if(!map) return 0;
+        if(!meshmap_set_gate(map, &gate))
+            return meshmap_text_error(error, error_capacity, "could not configure the selected meshmap bounds");
         return 1;
-    case CMD_LEVEL_MESHMAPMASK:
-        if(count < 4 || !meshmap_text_uint(arguments[1], 3, &depth)
-           || !meshmap_text_uint(arguments[2], MESHMAP_ID_MAX, &prefix)
-           || !(bank = meshmap_bank_get(store, (unsigned)depth, (uint32_t)prefix, 0))
-           || !meshmap_text_slots(count - 3, arguments + 3, bank, &mask)
+
+    case CMD_LEVEL_MESHMAP_AREA: depth = 1; break;
+    case CMD_LEVEL_MESHMAP_SECTOR: depth = 2; break;
+    case CMD_LEVEL_MESHMAP_ROOM: depth = 3; break;
+    case CMD_LEVEL_MESHMAP_BANK:
+        if((count != 8 && count != 9) || !meshmap_text_uint(arguments[1], 3, &depth))
+            return meshmap_text_error(error, error_capacity, "meshmap_bank expects depth min_x min_y min_z max_x max_y max_z [gate_mode]");
+        first_bound = 2;
+        break;
+
+    case CMD_LEVEL_MESHMAP_MASK:
+        if(count < 3 || !meshmap_text_uint(arguments[1], 3, &depth)
+           || !(bank = meshmap_bank_get(store, (unsigned)depth, id, 0))
+           || !meshmap_text_slots(count - 2, arguments + 2, bank, &mask)
            || !meshmap_bank_set_mask(bank, mask))
             return meshmap_text_error(error, error_capacity,
-                "meshmapmask expects an existing depth/prefix followed by none, all, or slots and existing child indices from 0 through 63");
+                "meshmap_mask expects an existing selected bank depth followed by none, all, or slots and existing child indices from 0 through 63");
         return 1;
     default:
         return meshmap_text_error(error, error_capacity, "unknown meshmap command");
     }
 
-    first_bound = 1 + address_slots;
     if((count != first_bound + 6 && count != first_bound + 7)
-       || !meshmap_text_address(arguments + 1, address_slots, &id)
-       || !meshmap_text_gate(arguments + first_bound, count == first_bound + 7, &gate)
-       || !(bank = meshmap_bank_get(store, address_slots, id, 1))
-       || !meshmap_bank_set_gate(bank, &gate))
-        return meshmap_text_error(error, error_capacity, "bank command expects its address followed by min_x min_y min_z max_x max_y max_z [gate_mode]");
+       || !meshmap_text_gate(arguments + first_bound, count == first_bound + 7, &gate))
+        return meshmap_text_error(error, error_capacity, "meshmap bank bounds expect min_x min_y min_z max_x max_y max_z [gate_mode]");
+    store = meshmap_text_require_store(error, error_capacity);
+    if(!store) return 0;
+    bank = meshmap_bank_get(store, (unsigned)depth, id, 1);
+    if(!bank || !meshmap_bank_set_gate(bank, &gate))
+        return meshmap_text_error(error, error_capacity, "could not configure the selected meshmap bank");
     return 1;
 }

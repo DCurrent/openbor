@@ -188,10 +188,11 @@ static void check_constant(const char *name, uint64_t value)
     ++checks;
 }
 
-static void expect_native(int success, int command, size_t count, const char *const *tokens)
+static void expect_native(s_meshmap_authoring_context *context, int success,
+                          int command, size_t count, const char *const *tokens)
 {
     char error[512];
-    int actual = meshmap_level_command(command, count, tokens, error, sizeof(error));
+    int actual = meshmap_level_command(context, command, count, tokens, error, sizeof(error));
     if(!!actual != !!success)
         fprintf(stderr, "%s: expected %s, received %s (%s)\n", tokens[0],
                 success ? "success" : "failure", actual ? "success" : "failure", error);
@@ -448,42 +449,58 @@ static void test_geometry_and_artwork(const char *directory)
 
 static void test_native_commands(const char *directory)
 {
+    s_meshmap_authoring_context context = {0};
     char geometry[1024], artwork[1024];
-    const char *create[] = {"meshmap", "01", "02", "03", "08", "z", "10", "20", "30", "-40", "60", geometry, artwork};
-    const char *area[] = {"meshmaparea", "1", "-100", "-200", "-300", "400", "500", "600", "1"};
-    const char *spacing[] = {"meshmapspacing", "1", "2", "3", "8", "4", "8"};
-    const char *flags[] = {"meshmapflags", "1", "2", "3", "8", "all"};
-    const char *rules[] = {"meshmaprules", "1", "2", "3", "8", "1", "4294967295", "60", "-10"};
-    const char *mask[] = {"meshmapmask", "0", "0", "slots", "63", "0", "1"};
+    const char *select[] = {"meshmap_index", "01", "02", "03", "08"};
+    const char *create[] = {"meshmap", "z", "10", "20", "30", "-40", "60", geometry, artwork};
+    const char *area[] = {"meshmap_area", "-100", "-200", "-300", "400", "500", "600", "1"};
+    const char *spacing[] = {"meshmap_spacing", "4", "8"};
+    const char *flags[] = {"meshmap_flags", "all"};
+    const char *rules[] = {"meshmap_rules", "1", "4294967295", "60", "-10"};
+    const char *mask[] = {"meshmap_mask", "0", "slots", "63", "0", "1"};
     s_meshmap *map;
     s_meshmap_bank *bank;
     uint32_t id;
+    uint64_t generation;
     size_t old_count;
     snprintf(geometry, sizeof(geometry), "%s/geometry.png", directory);
     snprintf(artwork, sizeof(artwork), "%s/rgb.png", directory);
-    expect_native(1, CMD_LEVEL_MESHMAPAREA, 9, area);
-    expect_native(1, CMD_LEVEL_MESHMAP, 13, create);
     assert(meshmap_pack_id(1, 2, 3, 8, &id));
-    assert((map = meshmap_get(level->meshmaps, id)) && map->config.axis == MESHMAP_AXIS_Z);
-    bank = meshmap_bank_get(level->meshmaps, 1, id, 0);
-    assert(bank && bank->gate.mode == MESHMAP_GATE_BODY && bank->gate.bounds.min.y == -200.0);
-    expect_native(1, CMD_LEVEL_MESHMAPSPACING, 7, spacing);
-    assert(map->config.spacing_u == 4 && map->config.spacing_v == 8);
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6, flags);
-    expect_native(1, CMD_LEVEL_MESHMAPRULES, 9, rules);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5, select);
+    assert(context.id == id && !meshmap_get(level->meshmaps, id));
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_AREA, 8, area);
+    assert(context.id == id && !meshmap_get(level->meshmaps, id));
+
+    /* Settings may precede image loading. Their first successful assignment
+     * creates a default leaf; subsequent declarations preserve those settings. */
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SPACING, 3, spacing);
+    map = meshmap_get(level->meshmaps, id);
+    assert(map && !map->samples && map->config.flags == MESHMAP_FLAGS_DEFAULT);
+    generation = map->generation;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2, flags);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5, rules);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
+        (const char *const[]){"meshmap_active", "0"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP, 9, create);
+    assert(meshmap_get(level->meshmaps, id) == map && map->generation == generation);
+    assert(map->config.axis == MESHMAP_AXIS_Z && map->config.spacing_u == 4 && map->config.spacing_v == 8);
     assert(map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE
            && map->config.support_group == MESHMAP_GROUP_NONE
            && map->config.slope_limit == 60 && map->config.layer == -10);
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 7, mask);
+    assert(!meshmap_is_active(level->meshmaps, id));
+    bank = meshmap_bank_get(level->meshmaps, 1, id, 0);
+    assert(bank && bank->gate.mode == MESHMAP_GATE_BODY && bank->gate.bounds.min.y == -200.0);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 6, mask);
     assert(level->meshmaps->root.active_mask == UINT64_C(0x8000000000000003));
     old_count = level->meshmaps->map_count;
-    expect_native(0, CMD_LEVEL_MESHMAP, 13, create);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP, 9, create);
     assert(level->meshmaps->map_count == old_count && meshmap_get(level->meshmaps, id) == map);
-    expect_native(0, CMD_LEVEL_MESHMAPAREA, 8,
-        (const char *const[]){"meshmaparea", "64", "0", "0", "0", "1", "1", "1"});
-    expect_native(0, CMD_LEVEL_MESHMAPSPACING, 7,
-        (const char *const[]){"meshmapspacing", "1", "2", "3", "8", "nan", "1"});
-    assert(map->config.spacing_u == 4);
+    assert(map->generation == generation && !meshmap_is_active(level->meshmaps, id));
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_AREA, 7,
+        (const char *const[]){"meshmap_area", "2", "0", "0", "1", "1", "1"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_SPACING, 3,
+        (const char *const[]){"meshmap_spacing", "nan", "1"});
+    assert(map->config.spacing_u == 4 && context.id == id);
     bank_arguments(1, id, MESHMAP_BANK_PROPERTY_EXISTS);
     integer(4, 0);
     expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
@@ -496,91 +513,89 @@ static void test_native_commands(const char *directory)
  * cannot be mistaken for an image or filesystem failure. */
 static void test_native_symbolic_flags_and_rules(void)
 {
+    s_meshmap_authoring_context context = {0};
     s_meshmap *map = meshmap_get(level->meshmaps, 0);
-    const char *flags[] = {"meshmapflags", "0", "0", "0", "0",
-                          "CoLlIdE", "DRAW", "walkable", "one_way", "drop_through"};
+    const char *flags[] = {"meshmap_flags", "CoLlIdE", "DRAW", "walkable", "one_way", "drop_through"};
     const char *invalid_flags[] = {"0", "7", "0x1f", "unknown", "collide|draw", "collide,draw"};
     const char *invalid_sides[] = {"-1", "2", "7", "0x1f", "unknown"};
     unsigned char saved[sizeof(map->config)];
     uint64_t revision;
     size_t i;
     assert(map);
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 10, flags);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 6, flags);
     assert(map->config.flags == MESHMAP_FLAGS_ALL);
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
-        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "NONE"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "NONE"});
     assert(map->config.flags == MESHMAP_FLAGS_NONE);
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
-        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "DeFaUlT"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "DeFaUlT"});
     assert(map->config.flags == MESHMAP_FLAGS_DEFAULT);
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
-        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "ALL"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "ALL"});
     assert(map->config.flags == MESHMAP_FLAGS_ALL);
 
     /* NONE contributes zero, rather than acting as a reset in the middle of
      * a command. Repeated names are idempotent, and the previous ALL value
      * must not leak into this new two-flag selection. */
-    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 9,
-        (const char *const[]){"meshmapflags", "0", "0", "0", "0",
-                            "collide", "none", "walkable", "collide"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 5,
+        (const char *const[]){"meshmap_flags", "collide", "none", "walkable", "collide"});
     assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
     memcpy(saved, &map->config, sizeof(saved));
     revision = map->revision;
     for(i = 0; i < sizeof(invalid_flags) / sizeof(invalid_flags[0]); ++i)
     {
         /* Place the invalid name after a valid name to expose partial writes. */
-        expect_native(0, CMD_LEVEL_MESHMAPFLAGS, 7,
-            (const char *const[]){"meshmapflags", "0", "0", "0", "0", "draw", invalid_flags[i]});
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_FLAGS, 3,
+            (const char *const[]){"meshmap_flags", "draw", invalid_flags[i]});
         assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
     }
-    expect_native(0, CMD_LEVEL_MESHMAPFLAGS, 5,
-        (const char *const[]){"meshmapflags", "0", "0", "0", "0"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_FLAGS, 1,
+        (const char *const[]){"meshmap_flags"});
     assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
 
     /* Side, support group, slope and layer are scalar values, not masks.
      * They stay numeric when behavioral flags move into their own command. */
-    expect_native(1, CMD_LEVEL_MESHMAPRULES, 9,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "1", "42", "60", "-10"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5,
+        (const char *const[]){"meshmap_rules", "1", "42", "60", "-10"});
     assert(map->config.side == MESHMAP_SIDE_POSITIVE && map->config.support_group == 42
            && map->config.slope_limit == 60 && map->config.layer == -10);
     assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
-    expect_native(1, CMD_LEVEL_MESHMAPRULES, 6,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 2,
+        (const char *const[]){"meshmap_rules", "0"});
     assert(map->config.side == MESHMAP_SIDE_NEGATIVE && map->config.support_group == 42
            && map->config.slope_limit == 60 && map->config.layer == -10);
-    expect_native(1, CMD_LEVEL_MESHMAPRULES, 7,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "1", "4294967295"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 3,
+        (const char *const[]){"meshmap_rules", "1", "4294967295"});
     assert(map->config.support_group == MESHMAP_GROUP_NONE);
     memcpy(saved, &map->config, sizeof(saved));
     revision = map->revision;
     for(i = 0; i < sizeof(invalid_sides) / sizeof(invalid_sides[0]); ++i)
     {
-        expect_native(0, CMD_LEVEL_MESHMAPRULES, 7,
-            (const char *const[]){"meshmaprules", "0", "0", "0", "0", invalid_sides[i], "1"});
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 3,
+            (const char *const[]){"meshmap_rules", invalid_sides[i], "1"});
         assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
     }
-    /* A full old-form line still carries one extra positional flags field.
-     * Reject its arity without treating valid new side values 0/1 as masks. */
-    expect_native(0, CMD_LEVEL_MESHMAPRULES, 10,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "7", "1", "4294967295", "30", "5"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 6,
+        (const char *const[]){"meshmap_rules", "0", "1", "30", "5", "9"});
     assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
-    expect_native(0, CMD_LEVEL_MESHMAPRULES, 9,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0", "13", "nan", "5"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 5,
+        (const char *const[]){"meshmap_rules", "0", "13", "nan", "5"});
     assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
-    expect_native(0, CMD_LEVEL_MESHMAPRULES, 9,
-        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0", "13", "30", "bad-layer"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 5,
+        (const char *const[]){"meshmap_rules", "0", "13", "30", "bad-layer"});
     assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
 }
 
 static void test_native_symbolic_bank_masks(void)
 {
+    s_meshmap_authoring_context context = {0};
     s_level scratch_stage = {0};
     s_level *previous_level = level;
     s_meshmap_bank *root;
     const uint64_t sparse = (UINT64_C(1) << 63) | 1;
     const char *invalid_slots[] = {"1", "64", "-1", "63junk", "0.5", "slot_63", "all", "none", "unknown"};
     const char *invalid_selectors[] = {"0", "3", "0x8000000000000001", "slot_63", "unknown"};
-    const char *many[4 + MESHMAP_BANK_SLOTS];
+    const char *many[3 + MESHMAP_BANK_SLOTS];
     char indices[MESHMAP_BANK_SLOTS][4];
     uint32_t id;
     size_t i;
@@ -593,46 +608,46 @@ static void test_native_symbolic_bank_masks(void)
     assert(meshmap_create(level->meshmaps, MESHMAP_ID_MAX));
     root = &level->meshmaps->root;
     assert(root->present_mask == sparse && root->active_mask == sparse);
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
-        (const char *const[]){"meshmapmask", "0", "0", "NoNe"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "0", "NoNe"});
     assert(!root->active_mask && root->present_mask == sparse);
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
-        (const char *const[]){"meshmapmask", "0", "0", "ALL"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "0", "ALL"});
     assert(root->active_mask == sparse);
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 6,
-        (const char *const[]){"meshmapmask", "0", "0", "SlOtS", "63", "63"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 5,
+        (const char *const[]){"meshmap_mask", "0", "SlOtS", "63", "63"});
     assert(root->active_mask == (UINT64_C(1) << 63));
     for(i = 0; i < sizeof(invalid_slots) / sizeof(invalid_slots[0]); ++i)
     {
         /* Index 1 is valid but has no child. No failure may first enable
          * index 0 or erase the previously active high slot. */
-        expect_native(0, CMD_LEVEL_MESHMAPMASK, 6,
-            (const char *const[]){"meshmapmask", "0", "0", "slots", "0", invalid_slots[i]});
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 5,
+            (const char *const[]){"meshmap_mask", "0", "slots", "0", invalid_slots[i]});
         assert(root->active_mask == (UINT64_C(1) << 63) && root->present_mask == sparse);
     }
     for(i = 0; i < sizeof(invalid_selectors) / sizeof(invalid_selectors[0]); ++i)
     {
-        /* A numeric slot list needs the explicit selector, so an old packed
-         * numeric mask cannot silently become a different slot selection. */
-        expect_native(0, CMD_LEVEL_MESHMAPMASK, 4,
-            (const char *const[]){"meshmapmask", "0", "0", invalid_selectors[i]});
+        /* The slots selector prevents an old packed numeric mask from being
+         * silently interpreted as a different child selection. */
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 3,
+            (const char *const[]){"meshmap_mask", "0", invalid_selectors[i]});
         assert(root->active_mask == (UINT64_C(1) << 63) && root->present_mask == sparse);
     }
-    expect_native(0, CMD_LEVEL_MESHMAPMASK, 3,
-        (const char *const[]){"meshmapmask", "0", "0"});
-    expect_native(0, CMD_LEVEL_MESHMAPMASK, 4,
-        (const char *const[]){"meshmapmask", "0", "0", "slots"});
-    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
-        (const char *const[]){"meshmapmask", "0", "0", "all", "0"});
-    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
-        (const char *const[]){"meshmapmask", "0", "0", "none", "63"});
-    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
-        (const char *const[]){"meshmapmask", "0", "0", "none", "all"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 2,
+        (const char *const[]){"meshmap_mask", "0"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "0", "slots"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 4,
+        (const char *const[]){"meshmap_mask", "0", "all", "0"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 4,
+        (const char *const[]){"meshmap_mask", "0", "none", "63"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_MASK, 4,
+        (const char *const[]){"meshmap_mask", "0", "none", "all"});
     assert(root->active_mask == (UINT64_C(1) << 63));
 
-    /* A complete 64-slot selection must be accepted. This exercises the
-     * public list length independently of the line tokenizer's own tests. */
-    many[0] = "meshmapmask"; many[1] = "0"; many[2] = "0"; many[3] = "slots";
+    /* The full 64-slot selection must reach the parser. Its count is now 67:
+     * command, depth, slots selector, then the ordinary numeric indices. */
+    many[0] = "meshmap_mask"; many[1] = "0"; many[2] = "slots";
     for(i = 0; i < MESHMAP_BANK_SLOTS; ++i)
     {
         if(i && i != 63)
@@ -641,12 +656,279 @@ static void test_native_symbolic_bank_masks(void)
             assert(meshmap_create(level->meshmaps, id));
         }
         snprintf(indices[i], sizeof(indices[i]), "%u", (unsigned)i);
-        many[4 + i] = indices[i];
+        many[3 + i] = indices[i];
     }
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
-        (const char *const[]){"meshmapmask", "0", "0", "none"});
-    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4 + MESHMAP_BANK_SLOTS, many);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "0", "none"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3 + MESHMAP_BANK_SLOTS, many);
     assert(root->active_mask == UINT64_MAX && root->present_mask == UINT64_MAX);
+    meshmap_store_free(level->meshmaps);
+    level = previous_level;
+}
+
+/* Selection belongs to an explicit level-loading context, never to a global
+ * runtime target. Interleave contexts, visit ancestors, and start another
+ * level so a hidden static selector cannot accidentally satisfy these checks. */
+static void test_native_authoring_contexts(void)
+{
+    s_level first_stage = {0}, next_stage = {0};
+    s_level *previous_level = level;
+    s_meshmap_authoring_context first = {0}, second = {0}, fresh = {0};
+    const char *selection[] = {"meshmap_index", "1", "2", "3", "4"};
+    const char *invalid[] = {"-1", "64", "bad", "1.5"};
+    s_meshmap *selected, *zero;
+    uint32_t first_id, ancestor_id;
+    size_t i, slot;
+    level = &first_stage;
+    assert(meshmap_pack_id(1, 2, 3, 4, &first_id));
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
+    assert(first.id == first_id && !level->meshmaps);
+    for(slot = 1; slot < 5; ++slot)
+    {
+        const char *saved = selection[slot];
+        for(i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i)
+        {
+            selection[slot] = invalid[i];
+            expect_native(&first, 0, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
+            assert(first.id == first_id && !level->meshmaps);
+        }
+        selection[slot] = saved;
+    }
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_INDEX, 4, selection);
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_INDEX, 6,
+        (const char *const[]){"meshmap_index", "1", "2", "3", "4", "5"});
+    assert(first.id == first_id && !level->meshmaps);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "63", "63", "63", "63"});
+    assert(first.id == MESHMAP_ID_MAX && !level->meshmaps);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
+
+    /* Invalid settings must not create a default leaf as a side effect. */
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_SPACING, 3,
+        (const char *const[]){"meshmap_spacing", "0", "1"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "typo"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_RULES, 2,
+        (const char *const[]){"meshmap_rules", "2"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_ACTIVE, 2,
+        (const char *const[]){"meshmap_active", "2"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_BOUNDS, 7,
+        (const char *const[]){"meshmap_bounds", "2", "0", "0", "1", "1", "1"});
+    assert(first.id == first_id && (!level->meshmaps || !level->meshmaps->map_count));
+
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_RULES, 5,
+        (const char *const[]){"meshmap_rules", "1", "42", "35", "12"});
+    selected = meshmap_get(level->meshmaps, first_id);
+    assert(selected && !selected->samples && selected->config.flags == MESHMAP_FLAGS_DEFAULT);
+    expect_native(&second, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "draw"});
+    zero = meshmap_get(level->meshmaps, 0);
+    assert(zero && zero != selected && zero->config.flags == MESHMAP_DRAW);
+    assert(first.id == first_id && second.id == 0 && level->meshmaps->map_count == 2);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "0", "0", "0", "0"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_SPACING, 3,
+        (const char *const[]){"meshmap_spacing", "8", "16"});
+    assert(zero->config.spacing_u == 8 && zero->config.flags == MESHMAP_DRAW);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "walkable"});
+    assert(selected->config.spacing_u == 1 && selected->config.side == MESHMAP_SIDE_POSITIVE
+           && selected->config.support_group == 42 && selected->config.layer == 12);
+
+    /* Runtime script addressing stays explicit and does not consult or alter
+     * either authoring context, even when their selected indices differ. */
+    map_arguments(0, MESHMAP_PROPERTY_LAYER);
+    integer(3, 77);
+    expect(1, openbor_set_meshmap_property(argument_pointers, &result, 4));
+    assert(zero->config.layer == 77 && selected->config.layer == 12);
+    assert(first.id == first_id && second.id == 0);
+
+    assert(meshmap_pack_id(2, 3, 4, 5, &ancestor_id));
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "2", "3", "4", "5"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_AREA, 7,
+        (const char *const[]){"meshmap_area", "-100", "-10", "-10", "100", "10", "10"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_SECTOR, 7,
+        (const char *const[]){"meshmap_sector", "-200", "-10", "-10", "200", "10", "10"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_ROOM, 7,
+        (const char *const[]){"meshmap_room", "-300", "-10", "-10", "300", "10", "10"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_BANK, 8,
+        (const char *const[]){"meshmap_bank", "2", "-250", "-10", "-10", "250", "10", "10"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_BANK, 8,
+        (const char *const[]){"meshmap_bank", "0", "-400", "-10", "-10", "400", "10", "10"});
+    assert(first.id == ancestor_id && !meshmap_get(level->meshmaps, ancestor_id));
+    assert(meshmap_bank_get(level->meshmaps, 1, ancestor_id, 0)->gate.bounds.min.x == -100);
+    assert(meshmap_bank_get(level->meshmaps, 2, ancestor_id, 0)->gate.bounds.min.x == -250);
+    assert(meshmap_bank_get(level->meshmaps, 3, ancestor_id, 0)->gate.bounds.min.x == -300);
+    assert(level->meshmaps->root.gate.bounds.min.x == -400);
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
+        (const char *const[]){"meshmap_active", "1"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 4,
+        (const char *const[]){"meshmap_mask", "1", "slots", "3"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 4,
+        (const char *const[]){"meshmap_mask", "2", "slots", "4"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "3", "none"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "collide"});
+    assert(!meshmap_is_active(level->meshmaps, ancestor_id));
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "3", "all"});
+    assert(first.id == ancestor_id && meshmap_is_active(level->meshmaps, ancestor_id));
+
+    /* A new loader context always starts at zero, regardless of where the
+     * previous level stopped. Existing contexts remain untouched. */
+    level = &next_stage;
+    expect_native(&fresh, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "collide"});
+    assert(fresh.id == 0 && level->meshmaps->map_count == 1);
+    assert(meshmap_get(level->meshmaps, 0) && !meshmap_get(level->meshmaps, ancestor_id));
+    assert(first.id == ancestor_id && second.id == 0);
+    meshmap_store_free(next_stage.meshmaps);
+    meshmap_store_free(first_stage.meshmaps);
+    level = previous_level;
+}
+
+/* Failed combined definitions must preserve both the map record and the data
+ * behind its sample pointer. Track every ancestor's selection as well: keeping
+ * a record alive is insufficient if a failed load accidentally reactivates it. */
+static void expect_definition_unchanged(s_meshmap_authoring_context *context,
+                                      s_meshmap *map, size_t count,
+                                      const char *const *tokens)
+{
+    s_meshmap before;
+    uint16_t samples[9];
+    uint64_t active[4];
+    size_t maps = level->meshmaps->map_count;
+    unsigned depth;
+    assert(map->width == 3 && map->height == 3);
+    memcpy(&before, map, sizeof(before));
+    memcpy(samples, map->samples, sizeof(samples));
+    for(depth = 0; depth < 4; ++depth)
+        active[depth] = meshmap_bank_get(level->meshmaps, depth, map->id, 0)->active_mask;
+    expect_native(context, 0, CMD_LEVEL_MESHMAP, count, tokens);
+    assert(context->id == before.id && meshmap_get(level->meshmaps, before.id) == map);
+    assert(!memcmp(&before, map, sizeof(before)) && !memcmp(samples, map->samples, sizeof(samples)));
+    assert(level->meshmaps->map_count == maps);
+    for(depth = 0; depth < 4; ++depth)
+        assert(meshmap_bank_get(level->meshmaps, depth, map->id, 0)->active_mask == active[depth]);
+}
+
+static void test_native_definition_transactions(const char *directory)
+{
+    s_level scratch_stage = {0};
+    s_level *previous_level = level;
+    s_meshmap_authoring_context context = {0};
+    char geometry[1024], indexed[1024], rgb[1024], missing[1024];
+    const char *axes[] = {"x", "y", "z"};
+    s_meshmap *map, *other;
+    s_meshmap_gate original_gate;
+    void *original_artwork;
+    char *original_artwork_path;
+    uint64_t generation, revision;
+    size_t count;
+    unsigned axis, releases;
+    snprintf(geometry, sizeof(geometry), "%s/geometry.png", directory);
+    snprintf(indexed, sizeof(indexed), "%s/indexed.png", directory);
+    snprintf(rgb, sizeof(rgb), "%s/rgb.png", directory);
+    snprintf(missing, sizeof(missing), "%s/does-not-exist.png", directory);
+    level = &scratch_stage;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "63", "63", "63", "63"});
+    assert(context.id == MESHMAP_ID_MAX && !level->meshmaps);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_BOUNDS, 8,
+        (const char *const[]){"meshmap_bounds", "-10", "-20", "-30", "100", "200", "300", "1"});
+    map = meshmap_get(level->meshmaps, MESHMAP_ID_MAX);
+    assert(map && !map->samples && map->config.flags == MESHMAP_FLAGS_DEFAULT);
+    memcpy(&original_gate, &map->gate, sizeof(original_gate));
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SPACING, 3,
+        (const char *const[]){"meshmap_spacing", "4", "8"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
+        (const char *const[]){"meshmap_flags", "all"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5,
+        (const char *const[]){"meshmap_rules", "1", "7", "30", "-12"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
+        (const char *const[]){"meshmap_active", "0"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3,
+        (const char *const[]){"meshmap_mask", "0", "none"});
+    generation = map->generation;
+    revision = map->revision;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP, 9,
+        (const char *const[]){"meshmap", "y", "10", "20", "30", "-5", "15", geometry, indexed});
+    assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX) == map && map->generation == generation);
+    assert(map->revision == revision + 1 && map->width == 3 && map->height == 3);
+    assert(map->config.spacing_u == 4 && map->config.spacing_v == 8
+           && map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE
+           && map->config.support_group == 7 && map->config.slope_limit == 30 && map->config.layer == -12);
+    assert(!memcmp(&original_gate, &map->gate, sizeof(original_gate))
+           && meshmap_store_uses_body_gates(level->meshmaps));
+    assert(!level->meshmaps->root.active_mask && !meshmap_is_active(level->meshmaps, map->id));
+    original_artwork = map->artwork;
+    original_artwork_path = map->artwork_path;
+    assert(original_artwork && !strcmp(original_artwork_path, indexed));
+
+    /* Every orientation works at the highest packed address. Replacing a
+     * definition changes its explicit fields, while omitted artwork, prior
+     * settings, gates, generation and activation remain attached to the map. */
+    for(axis = 0; axis < 3; ++axis)
+    {
+        revision = map->revision;
+        expect_native(&context, 1, CMD_LEVEL_MESHMAP, 8,
+            (const char *const[]){"meshmap", axes[axis], "11", "22", "33", "-6", "16", geometry});
+        assert(map->config.axis == (e_meshmap_axis)axis && map->revision == revision + 1);
+        assert(map->config.origin.x == 11 && map->config.origin.y == 22 && map->config.origin.z == 33
+               && map->config.min_height == -6 && map->config.max_height == 16);
+        assert(map->artwork == original_artwork && map->artwork_path == original_artwork_path);
+        assert(map->generation == generation && map->config.spacing_u == 4
+               && map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE);
+        assert(!memcmp(&original_gate, &map->gate, sizeof(original_gate))
+               && !level->meshmaps->root.active_mask);
+    }
+
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "0", "0", "0", "0"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP, 8,
+        (const char *const[]){"meshmap", "z", "0", "0", "0", "0", "1", geometry});
+    other = meshmap_get(level->meshmaps, 0);
+    assert(other && other != map && !other->artwork && other->config.flags == MESHMAP_FLAGS_DEFAULT);
+    assert(other->config.spacing_u == 1 && other->config.side == MESHMAP_SIDE_NEGATIVE
+           && !other->gate.enabled && meshmap_is_active(level->meshmaps, 0));
+    revision = map->revision;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "63", "63", "63", "63"});
+    assert(map->revision == revision && map->artwork == original_artwork && map->generation == generation);
+
+    /* Valid new geometry followed by bad artwork is the critical transaction:
+     * neither the fresh samples nor the changed config may leak into the map. */
+    expect_definition_unchanged(&context, map, 8,
+        (const char *const[]){"meshmap", "x", "90", "80", "70", "0", "50", rgb});
+    expect_definition_unchanged(&context, map, 9,
+        (const char *const[]){"meshmap", "x", "90", "80", "70", "0", "50", geometry, geometry});
+    expect_definition_unchanged(&context, map, 9,
+        (const char *const[]){"meshmap", "x", "90", "80", "70", "0", "50", geometry, missing});
+    expect_definition_unchanged(&context, map, 9,
+        (const char *const[]){"meshmap", "x", "90", "80", "70", "0", "50", rgb, "none"});
+    expect_definition_unchanged(&context, map, 8,
+        (const char *const[]){"meshmap", "x", "90", "80", "70", "50", "0", geometry});
+    releases = released_screens;
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP, 9,
+        (const char *const[]){"meshmap", "z", "11", "22", "33", "-6", "16", geometry, "NoNe"});
+    assert(!map->artwork && (!map->artwork_path || !map->artwork_path[0]));
+    assert(released_screens == releases + 1 && map->generation == generation);
+    assert(!memcmp(&original_gate, &map->gate, sizeof(original_gate))
+           && !meshmap_is_active(level->meshmaps, MESHMAP_ID_MAX));
+
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_INDEX, 5,
+        (const char *const[]){"meshmap_index", "0", "0", "0", "1"});
+    count = level->meshmaps->map_count;
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP, 9,
+        (const char *const[]){"meshmap", "y", "0", "0", "0", "0", "1", geometry, missing});
+    assert(context.id == 1 && !meshmap_get(level->meshmaps, 1) && level->meshmaps->map_count == count);
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP, 8,
+        (const char *const[]){"meshmap", "y", "0", "0", "0", "0", "1", missing});
+    assert(context.id == 1 && !meshmap_get(level->meshmaps, 1) && level->meshmaps->map_count == count);
+    assert(!open_files);
     meshmap_store_free(level->meshmaps);
     level = previous_level;
 }
@@ -764,6 +1046,8 @@ int main(int argc, char **argv)
     test_native_commands(argv[1]);
     test_native_symbolic_flags_and_rules();
     test_native_symbolic_bank_masks();
+    test_native_authoring_contexts();
+    test_native_definition_transactions(argv[1]);
     test_entity_and_draw();
     test_world_surface_properties();
     bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_EXISTS);
@@ -775,6 +1059,6 @@ int main(int argc, char **argv)
     prepare();
     StrCache_Clear();
     assert(open_files == 0);
-    printf("meshmap script/native authoring checks passed: %u assertions, symbolic flags and 64-bit slots, indexed bank activation, real PNG transactions, samples/holes, native banks, entity settings and draw arguments\n", checks);
+    printf("meshmap script/native authoring checks passed: %u assertions, per-load selection, settings before geometry, atomic PNG definitions, symbolic flags, indexed bank activation, samples/holes, entity settings and draw arguments\n", checks);
     return 0;
 }
