@@ -456,8 +456,7 @@ static void test_native_commands(const char *directory)
     const char *texture[] = {"meshmap_texture", artwork};
     const char *area[] = {"meshmap_area", "-100", "-200", "-300", "400", "500", "600", "1"};
     const char *spacing[] = {"meshmap_spacing", "4", "8"};
-    const char *flags[] = {"meshmap_flags", "all"};
-    const char *rules[] = {"meshmap_rules", "1", "4294967295", "60", "-10"};
+    const char *flags[] = {"meshmap_config", "all"};
     const char *mask[] = {"meshmap_mask", "0", "slots", "63", "0", "1"};
     s_meshmap *map;
     s_meshmap_bank *bank;
@@ -478,8 +477,15 @@ static void test_native_commands(const char *directory)
     map = meshmap_get(level->meshmaps, id);
     assert(map && !map->samples && map->config.flags == MESHMAP_FLAGS_DEFAULT);
     generation = map->generation;
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2, flags);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5, rules);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 2, flags);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "1"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "4294967295"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "60"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "-10"});
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
         (const char *const[]){"meshmap_active", "0"});
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_GEOMETRY, 8, create);
@@ -514,79 +520,121 @@ static void test_native_commands(const char *directory)
 /* Native authoring replaces complete selections only after every name has
  * been validated. Keep these independent of PNG loading so parser failures
  * cannot be mistaken for an image or filesystem failure. */
-static void test_native_symbolic_flags_and_rules(void)
+static void test_native_config_and_scalar_properties(void)
 {
     s_meshmap_authoring_context context = {0};
     s_meshmap *map = meshmap_get(level->meshmaps, 0);
-    const char *flags[] = {"meshmap_flags", "CoLlIdE", "DRAW", "walkable", "one_way", "drop_through"};
+    const char *flags[] = {"meshmap_config", "CoLlIdE", "DRAW", "walkable", "one_way", "drop_through"};
     const char *invalid_flags[] = {"0", "7", "0x1f", "unknown", "collide|draw", "collide,draw"};
     const char *invalid_sides[] = {"-1", "2", "7", "0x1f", "unknown"};
     unsigned char saved[sizeof(map->config)];
     uint64_t revision;
     size_t i;
     assert(map);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 6, flags);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 6, flags);
     assert(map->config.flags == MESHMAP_FLAGS_ALL);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "NONE"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "NONE"});
     assert(map->config.flags == MESHMAP_FLAGS_NONE);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "DeFaUlT"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "DeFaUlT"});
     assert(map->config.flags == MESHMAP_FLAGS_DEFAULT);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "ALL"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "ALL"});
     assert(map->config.flags == MESHMAP_FLAGS_ALL);
 
     /* NONE contributes zero, rather than acting as a reset in the middle of
      * a command. Repeated names are idempotent, and the previous ALL value
      * must not leak into this new two-flag selection. */
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 5,
-        (const char *const[]){"meshmap_flags", "collide", "none", "walkable", "collide"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 5,
+        (const char *const[]){"meshmap_config", "collide", "none", "walkable", "collide"});
     assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
     memcpy(saved, &map->config, sizeof(saved));
     revision = map->revision;
     for(i = 0; i < sizeof(invalid_flags) / sizeof(invalid_flags[0]); ++i)
     {
         /* Place the invalid name after a valid name to expose partial writes. */
-        expect_native(&context, 0, CMD_LEVEL_MESHMAP_FLAGS, 3,
-            (const char *const[]){"meshmap_flags", "draw", invalid_flags[i]});
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_CONFIG, 3,
+            (const char *const[]){"meshmap_config", "draw", invalid_flags[i]});
         assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
     }
-    expect_native(&context, 0, CMD_LEVEL_MESHMAP_FLAGS, 1,
-        (const char *const[]){"meshmap_flags"});
+    expect_native(&context, 0, CMD_LEVEL_MESHMAP_CONFIG, 1,
+        (const char *const[]){"meshmap_config"});
     assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
 
-    /* Side, support group, slope and layer are scalar values, not masks.
-     * They stay numeric when behavioral flags move into their own command. */
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5,
-        (const char *const[]){"meshmap_rules", "1", "42", "60", "-10"});
+    /* Independent scalar assignments preserve every other property. */
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "-10"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "42"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "60"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "1"});
     assert(map->config.side == MESHMAP_SIDE_POSITIVE && map->config.support_group == 42
            && map->config.slope_limit == 60 && map->config.layer == -10);
     assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 2,
-        (const char *const[]){"meshmap_rules", "0"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "0"});
     assert(map->config.side == MESHMAP_SIDE_NEGATIVE && map->config.support_group == 42
            && map->config.slope_limit == 60 && map->config.layer == -10);
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 3,
-        (const char *const[]){"meshmap_rules", "1", "4294967295"});
-    assert(map->config.support_group == MESHMAP_GROUP_NONE);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "4294967295"});
+    assert(map->config.support_group == MESHMAP_GROUP_NONE && map->config.side == MESHMAP_SIDE_NEGATIVE);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "0"});
+    assert(map->config.slope_limit == 0 && map->config.layer == -10);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "90"});
+    assert(map->config.slope_limit == 90);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "37.5"});
+    assert(map->config.slope_limit == 37.5 && map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "2147483647"});
+    assert(map->config.layer == 2147483647 && map->config.slope_limit == 37.5);
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "-2147483648"});
+    assert(map->config.layer == (-2147483647 - 1));
+
+    /* Reject invalid values and argument counts without modifying the map. */
     memcpy(saved, &map->config, sizeof(saved));
     revision = map->revision;
     for(i = 0; i < sizeof(invalid_sides) / sizeof(invalid_sides[0]); ++i)
     {
-        expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 3,
-            (const char *const[]){"meshmap_rules", invalid_sides[i], "1"});
+        expect_native(&context, 0, CMD_LEVEL_MESHMAP_SIDE, 2,
+            (const char *const[]){"meshmap_side", invalid_sides[i]});
         assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
     }
-    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 6,
-        (const char *const[]){"meshmap_rules", "0", "1", "30", "5", "9"});
-    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
-    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 5,
-        (const char *const[]){"meshmap_rules", "0", "13", "nan", "5"});
-    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
-    expect_native(&context, 0, CMD_LEVEL_MESHMAP_RULES, 5,
-        (const char *const[]){"meshmap_rules", "0", "13", "30", "bad-layer"});
-    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+    {
+        static const struct
+        {
+            int command;
+            const char *name;
+            const char *invalid;
+        } invalid[] = {
+            {CMD_LEVEL_MESHMAP_SIDE, "meshmap_side", "1.5"},
+            {CMD_LEVEL_MESHMAP_SUPPORT_GROUP, "meshmap_support_group", "-1"},
+            {CMD_LEVEL_MESHMAP_SUPPORT_GROUP, "meshmap_support_group", "4294967296"},
+            {CMD_LEVEL_MESHMAP_SUPPORT_GROUP, "meshmap_support_group", "1.5"},
+            {CMD_LEVEL_MESHMAP_SLOPE_LIMIT, "meshmap_slope_limit", "nan"},
+            {CMD_LEVEL_MESHMAP_SLOPE_LIMIT, "meshmap_slope_limit", "-0.1"},
+            {CMD_LEVEL_MESHMAP_SLOPE_LIMIT, "meshmap_slope_limit", "90.1"},
+            {CMD_LEVEL_MESHMAP_LAYER, "meshmap_layer", "bad-layer"},
+            {CMD_LEVEL_MESHMAP_LAYER, "meshmap_layer", "2147483648"},
+            {CMD_LEVEL_MESHMAP_LAYER, "meshmap_layer", "-2147483649"}
+        };
+        for(i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i)
+        {
+            expect_native(&context, 0, invalid[i].command, 2,
+                (const char *const[]){invalid[i].name, invalid[i].invalid});
+            expect_native(&context, 0, invalid[i].command, 1,
+                (const char *const[]){invalid[i].name});
+            expect_native(&context, 0, invalid[i].command, 3,
+                (const char *const[]){invalid[i].name, "0", "1"});
+            assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+        }
+    }
 }
 
 static void test_native_symbolic_bank_masks(void)
@@ -709,22 +757,34 @@ static void test_native_authoring_contexts(void)
     /* Invalid settings must not create a default leaf as a side effect. */
     expect_native(&first, 0, CMD_LEVEL_MESHMAP_SPACING, 3,
         (const char *const[]){"meshmap_spacing", "0", "1"});
-    expect_native(&first, 0, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "typo"});
-    expect_native(&first, 0, CMD_LEVEL_MESHMAP_RULES, 2,
-        (const char *const[]){"meshmap_rules", "2"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "typo"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "2"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "-1"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "91"});
+    expect_native(&first, 0, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "bad"});
     expect_native(&first, 0, CMD_LEVEL_MESHMAP_ACTIVE, 2,
         (const char *const[]){"meshmap_active", "2"});
     expect_native(&first, 0, CMD_LEVEL_MESHMAP_BOUNDS, 7,
         (const char *const[]){"meshmap_bounds", "2", "0", "0", "1", "1", "1"});
     assert(first.id == first_id && (!level->meshmaps || !level->meshmaps->map_count));
 
-    expect_native(&first, 1, CMD_LEVEL_MESHMAP_RULES, 5,
-        (const char *const[]){"meshmap_rules", "1", "42", "35", "12"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "1"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "42"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "35"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "12"});
     selected = meshmap_get(level->meshmaps, first_id);
     assert(selected && !selected->samples && selected->config.flags == MESHMAP_FLAGS_DEFAULT);
-    expect_native(&second, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "draw"});
+    expect_native(&second, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "draw"});
     zero = meshmap_get(level->meshmaps, 0);
     assert(zero && zero != selected && zero->config.flags == MESHMAP_DRAW);
     assert(first.id == first_id && second.id == 0 && level->meshmaps->map_count == 2);
@@ -734,8 +794,8 @@ static void test_native_authoring_contexts(void)
         (const char *const[]){"meshmap_spacing", "8", "16"});
     assert(zero->config.spacing_u == 8 && zero->config.flags == MESHMAP_DRAW);
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_INDEX, 5, selection);
-    expect_native(&first, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "walkable"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "walkable"});
     assert(selected->config.spacing_u == 1 && selected->config.side == MESHMAP_SIDE_POSITIVE
            && selected->config.support_group == 42 && selected->config.layer == 12);
 
@@ -773,8 +833,8 @@ static void test_native_authoring_contexts(void)
         (const char *const[]){"meshmap_mask", "2", "slots", "4"});
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 3,
         (const char *const[]){"meshmap_mask", "3", "none"});
-    expect_native(&first, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "collide"});
+    expect_native(&first, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "collide"});
     assert(!meshmap_is_active(level->meshmaps, ancestor_id));
     expect_native(&first, 1, CMD_LEVEL_MESHMAP_MASK, 3,
         (const char *const[]){"meshmap_mask", "3", "all"});
@@ -783,8 +843,8 @@ static void test_native_authoring_contexts(void)
     /* A new loader context always starts at zero, regardless of where the
      * previous level stopped. Existing contexts remain untouched. */
     level = &next_stage;
-    expect_native(&fresh, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "collide"});
+    expect_native(&fresh, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "collide"});
     assert(fresh.id == 0 && level->meshmaps->map_count == 1);
     assert(meshmap_get(level->meshmaps, 0) && !meshmap_get(level->meshmaps, ancestor_id));
     assert(first.id == ancestor_id && second.id == 0);
@@ -851,10 +911,16 @@ static void test_native_definition_transactions(const char *directory)
     memcpy(&original_gate, &map->gate, sizeof(original_gate));
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_SPACING, 3,
         (const char *const[]){"meshmap_spacing", "4", "8"});
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_FLAGS, 2,
-        (const char *const[]){"meshmap_flags", "all"});
-    expect_native(&context, 1, CMD_LEVEL_MESHMAP_RULES, 5,
-        (const char *const[]){"meshmap_rules", "1", "7", "30", "-12"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_CONFIG, 2,
+        (const char *const[]){"meshmap_config", "all"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SIDE, 2,
+        (const char *const[]){"meshmap_side", "1"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SUPPORT_GROUP, 2,
+        (const char *const[]){"meshmap_support_group", "7"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_SLOPE_LIMIT, 2,
+        (const char *const[]){"meshmap_slope_limit", "30"});
+    expect_native(&context, 1, CMD_LEVEL_MESHMAP_LAYER, 2,
+        (const char *const[]){"meshmap_layer", "-12"});
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_ACTIVE, 2,
         (const char *const[]){"meshmap_active", "0"});
     expect_native(&context, 1, CMD_LEVEL_MESHMAP_MASK, 3,
@@ -1092,7 +1158,7 @@ int main(int argc, char **argv)
     test_indexed_bank_properties();
     test_geometry_and_artwork(argv[1]);
     test_native_commands(argv[1]);
-    test_native_symbolic_flags_and_rules();
+    test_native_config_and_scalar_properties();
     test_native_symbolic_bank_masks();
     test_native_authoring_contexts();
     test_native_definition_transactions(argv[1]);

@@ -24847,11 +24847,14 @@ void load_level(char *filename)
         case CMD_LEVEL_MESHMAP_AREA:
         case CMD_LEVEL_MESHMAP_BANK:
         case CMD_LEVEL_MESHMAP_BOUNDS:
-        case CMD_LEVEL_MESHMAP_FLAGS:
+        case CMD_LEVEL_MESHMAP_CONFIG:
         case CMD_LEVEL_MESHMAP_INDEX:
         case CMD_LEVEL_MESHMAP_MASK:
         case CMD_LEVEL_MESHMAP_ROOM:
-        case CMD_LEVEL_MESHMAP_RULES:
+        case CMD_LEVEL_MESHMAP_SIDE:
+        case CMD_LEVEL_MESHMAP_SUPPORT_GROUP:
+        case CMD_LEVEL_MESHMAP_SLOPE_LIMIT:
+        case CMD_LEVEL_MESHMAP_LAYER:
         case CMD_LEVEL_MESHMAP_SECTOR:
         case CMD_LEVEL_MESHMAP_SPACING:
             if(!load_meshmap_command(&meshmap_authoring, cmd, buf + pos,

@@ -36,7 +36,7 @@ void borShutdown(int status, const char *message, ...)
     abort();
 }
 
-/* These declarations only change rules and active children. Loading images is
+/* These declarations only change properties and active children. Loading images is
  * covered by the image and script suites, and must not occur in this fixture. */
 int meshmap_image_replace_geometry(s_meshmap *map, const char *filename,
                                    const char *archive, char *error, size_t capacity)
@@ -115,9 +115,14 @@ int main(void)
     assert(getLevelCommand(commands, "meshmap_geometry") == CMD_LEVEL_MESHMAP_GEOMETRY);
     assert(getLevelCommand(commands, "MeShMaP_TeXtUrE") == CMD_LEVEL_MESHMAP_TEXTURE);
     assert(getLevelCommand(commands, "meshmap_index") == CMD_LEVEL_MESHMAP_INDEX);
-    assert(getLevelCommand(commands, "meshmap_flags") == CMD_LEVEL_MESHMAP_FLAGS);
-    assert(getLevelCommand(commands, "MeShMaP_FlAgS") == CMD_LEVEL_MESHMAP_FLAGS);
-    assert(getLevelCommand(commands, "meshmap_rules") == CMD_LEVEL_MESHMAP_RULES);
+    assert(getLevelCommand(commands, "meshmap_config") == CMD_LEVEL_MESHMAP_CONFIG);
+    assert(getLevelCommand(commands, "MeShMaP_CoNfIg") == CMD_LEVEL_MESHMAP_CONFIG);
+    assert(!getLevelCommand(commands, "meshmap_rules"));
+    assert(!getLevelCommand(commands, "meshmap_flags"));
+    assert(getLevelCommand(commands, "meshmap_side") == CMD_LEVEL_MESHMAP_SIDE);
+    assert(getLevelCommand(commands, "meshmap_support_group") == CMD_LEVEL_MESHMAP_SUPPORT_GROUP);
+    assert(getLevelCommand(commands, "meshmap_slope_limit") == CMD_LEVEL_MESHMAP_SLOPE_LIMIT);
+    assert(getLevelCommand(commands, "meshmap_layer") == CMD_LEVEL_MESHMAP_LAYER);
     assert(getLevelCommand(commands, "meshmap_mask") == CMD_LEVEL_MESHMAP_MASK);
 
     /* The real line adapter must receive and retain the caller's selection.
@@ -128,11 +133,17 @@ int main(void)
     strcpy(line, "meshmap_index 63 63 64 63");
     assert(!load_command(&context, commands, line, error, sizeof(error)));
     assert(context.id == MESHMAP_ID_MAX && !level->meshmaps);
-    strcpy(line, "meshmap_flags draw");
+    strcpy(line, "meshmap_config draw");
     assert(load_command(&second, commands, line, error, sizeof(error)));
     map = meshmap_get(level->meshmaps, 0);
     assert(map && map->config.flags == MESHMAP_DRAW);
-    strcpy(line, "meshmap_rules 1 7 30 -5");
+    strcpy(line, "meshmap_side 1");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_support_group 7");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_slope_limit 30");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_layer -5");
     assert(load_command(&context, commands, line, error, sizeof(error)));
     assert(meshmap_get(level->meshmaps, MESHMAP_ID_MAX)->config.side == MESHMAP_SIDE_POSITIVE);
     assert(context.id == MESHMAP_ID_MAX && second.id == 0);
@@ -166,7 +177,7 @@ int main(void)
     assert(load_command(&context, commands, line, error, sizeof(error)));
     assert(level->meshmaps->root.active_mask == ((UINT64_C(1) << 1) | (UINT64_C(1) << 63)));
 
-    strcpy(line, "meshmap_flags");
+    strcpy(line, "meshmap_config");
     for(i = 0; i < MAX_ARG_COUNT + 10; ++i) strcat(line, " collide");
     strcat(line, " walkable");
     assert(strlen(line) > MAX_ARG_LEN);
@@ -178,18 +189,32 @@ int main(void)
     assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
     assert(map->revision == revision);
 
-    strcpy(line, "MESHMAP_FLAGS\t'DrAw' \"WaLkAbLe\" # all is a comment\nmeshmap_flags none");
+    strcpy(line, "MESHMAP_CONFIG\t'DrAw' \"WaLkAbLe\" # all is a comment\nmeshmap_config none");
     assert(load_command(&context, commands, line, error, sizeof(error)));
     assert(map->config.flags == (MESHMAP_DRAW | MESHMAP_WALKABLE));
-    strcpy(line, "meshmap_rules 0 4294967295 45 -3");
+    strcpy(line, "meshmap_side 0");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_support_group 4294967295");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_slope_limit 45");
+    assert(load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_layer -3");
     assert(load_command(&context, commands, line, error, sizeof(error)));
     assert(map->config.side == MESHMAP_SIDE_NEGATIVE);
     assert(map->config.support_group == MESHMAP_GROUP_NONE);
     assert(map->config.slope_limit == 45 && map->config.layer == -3);
     assert(map->config.flags == (MESHMAP_DRAW | MESHMAP_WALKABLE));
-    strcpy(line, "meshmap_rules 2 4294967295 45 0");
+    revision = map->revision;
+    strcpy(line, "meshmap_side 2");
     assert(!load_command(&context, commands, line, error, sizeof(error)));
-    assert(context.id == 0);
+    assert(context.id == 0 && map->revision == revision);
+    strcpy(line, "meshmap_support_group 4294967296");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_slope_limit 91");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    strcpy(line, "meshmap_layer -3 4");
+    assert(!load_command(&context, commands, line, error, sizeof(error)));
+    assert(map->revision == revision);
 
     meshmap_store_free(level->meshmaps);
     level = NULL;

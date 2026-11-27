@@ -687,7 +687,7 @@ static int meshmap_text_axis(const char *text, e_meshmap_axis *axis)
  * declaration must not silently enable a different combination of behavior.
  * "none" contributes no options; "default" and "all" are named combinations.
  */
-static int meshmap_text_flags(size_t count, const char *const *arguments, uint32_t *flags)
+static int meshmap_text_config(size_t count, const char *const *arguments, uint32_t *flags)
 {
     static const struct
     {
@@ -905,29 +905,33 @@ int meshmap_level_command(s_meshmap_authoring_context *context, int command,
             return meshmap_text_error(error, error_capacity, "meshmap_spacing expects positive finite U and V spacing");
         return meshmap_text_configure_selected(id, &config, error, error_capacity);
 
-    case CMD_LEVEL_MESHMAP_FLAGS:
-        if(count < 2 || !meshmap_text_flags(count - 1, arguments + 1, &config.flags))
+    case CMD_LEVEL_MESHMAP_CONFIG:
+        if(count < 2 || !meshmap_text_config(count - 1, arguments + 1, &config.flags))
             return meshmap_text_error(error, error_capacity,
-                "meshmap_flags expects collide draw walkable one_way drop_through none default or all");
+                "meshmap_config expects collide draw walkable one_way drop_through none default or all");
         return meshmap_text_configure_selected(id, &config, error, error_capacity);
 
-    case CMD_LEVEL_MESHMAP_RULES:
-        /* Side and support group are scalar values. Behavior combinations are
-         * authored separately through meshmap_flags and remain unchanged here. */
-        if(count < 2 || count > 5 || !meshmap_text_uint(arguments[1], MESHMAP_SIDE_POSITIVE, &value))
-            return meshmap_text_error(error, error_capacity,
-                "meshmap_rules expects side (0 or 1) [support_group] [slope_limit] [layer]; use meshmap_flags for behavior");
+    case CMD_LEVEL_MESHMAP_SIDE:
+        if(count != 2 || !meshmap_text_uint(arguments[1], MESHMAP_SIDE_POSITIVE, &value))
+            return meshmap_text_error(error, error_capacity, "meshmap_side expects 0 (negative) or 1 (positive)");
         config.side = (e_meshmap_side)value;
-        if(count > 2)
-        {
-            if(!meshmap_text_uint(arguments[2], UINT32_MAX, &value))
-                return meshmap_text_error(error, error_capacity, "invalid meshmap support group");
-            config.support_group = (uint32_t)value;
-        }
-        if((count > 3 && !meshmap_text_number(arguments[3], &config.slope_limit))
-           || (count > 4 && !meshmap_text_int(arguments[4], &config.layer))
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_SUPPORT_GROUP:
+        if(count != 2 || !meshmap_text_uint(arguments[1], UINT32_MAX, &value))
+            return meshmap_text_error(error, error_capacity, "meshmap_support_group expects an unsigned 32-bit group ID");
+        config.support_group = (uint32_t)value;
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_SLOPE_LIMIT:
+        if(count != 2 || !meshmap_text_number(arguments[1], &config.slope_limit)
            || !meshmap_config_valid(&config))
-            return meshmap_text_error(error, error_capacity, "invalid meshmap collision/rendering rule value");
+            return meshmap_text_error(error, error_capacity, "meshmap_slope_limit expects a finite angle from 0 through 90 degrees");
+        return meshmap_text_configure_selected(id, &config, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_LAYER:
+        if(count != 2 || !meshmap_text_int(arguments[1], &config.layer))
+            return meshmap_text_error(error, error_capacity, "meshmap_layer expects a signed integer");
         return meshmap_text_configure_selected(id, &config, error, error_capacity);
 
     case CMD_LEVEL_MESHMAP_ACTIVE:

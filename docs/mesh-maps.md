@@ -219,10 +219,13 @@ meshmap_texture data/terrain/road24.png
 meshmap_spacing 16 16
 
 # Collision, automatic drawing and walkable support.
-meshmap_flags collide draw walkable
+meshmap_config collide draw walkable
 
 # Solid below; independent support; 45-degree slope limit; layer -1000.
-meshmap_rules 0 4294967295 45 -1000
+meshmap_side 0
+meshmap_support_group 4294967295
+meshmap_slope_limit 45
+meshmap_layer -1000
 ```
 
 Place an entity over this patch, with X between 0 and 1024 and Z between 0
@@ -241,7 +244,7 @@ position.
 Commands use the fields in the order below. Brackets denote optional
 trailing arguments and are not typed in the level sheet. Address components
 are integers from 0 through 63. Axis accepts `x`, `y`, `z`, their uppercase
-forms or the numeric values in the coordinate table. Flags use
+forms or the numeric values in the coordinate table. Configuration flags use
 case-insensitive names separated by spaces or tabs. Addresses, child-slot
 indices, side selectors and support-group IDs remain ordinary integers.
 
@@ -251,8 +254,11 @@ meshmap_geometry axis x y z minimum maximum geometry_png
 meshmap_texture texture_png
 meshmap_texture none
 meshmap_spacing spacing_u spacing_v
-meshmap_flags flag [flag ...]
-meshmap_rules side [support_group] [slope_limit] [layer]
+meshmap_config flag [flag ...]
+meshmap_side side
+meshmap_support_group group_id
+meshmap_slope_limit degrees
+meshmap_layer layer
 meshmap_active enabled
 meshmap_bounds min_x min_y min_z max_x max_y max_z [gate_mode]
 
@@ -274,8 +280,8 @@ Every level load starts at 0/0/0/0. Selection persists until another
 advance the index. Selection itself allocates nothing and does not reset an
 existing map. Script APIs continue to take explicit map IDs.
 
-The geometry, texture, spacing, flags, rules, active and bounds commands
-configure the selected map. If it does not yet exist, a valid assignment
+The geometry, texture, spacing, config, side, support group, slope limit,
+layer, active and bounds commands configure the selected map. If it does not yet exist, a valid assignment
 creates a map with the remaining defaults. Geometry and texture may be
 supplied in either order.
 Reselecting an existing map lets these commands change individual settings
@@ -285,12 +291,12 @@ while preserving its other properties.
 # Configure map 1 before loading its geometry.
 meshmap_index 0 0 0 1
 meshmap_spacing 160 32
-meshmap_flags collide walkable one_way drop_through
+meshmap_config collide walkable one_way drop_through
 meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
 
 # Return to the original map and change only its slope limit.
 meshmap_index 0 0 0 0
-meshmap_rules 0 4294967295 30
+meshmap_slope_limit 30
 ```
 
 `meshmap_geometry` loads geometry at the selected address and sets the
@@ -313,21 +319,26 @@ unchanged. Ancestors created implicitly by a map start with unrestricted
 gates. The default `gate_mode` is 0, current position; 1 selects the optional
 current body box. `meshmap_bounds` adds the same kind of gate to the map.
 
-`meshmap_flags` replaces the map's complete flag selection with the named
+`meshmap_config` replaces the map's complete flag selection with the named
 flags on that line. The names are combined internally. For example,
 `collide walkable` enables collision and supporting contacts without
 automatic drawing. Numeric masks, pipe-delimited expressions and unknown
 names are rejected. `none` contributes no flags; used alone, it disables all
 flags. It does not remove names already included on the same line.
 
-`meshmap_rules` requires side 0 for the negative side or 1 for the positive
-side. Its optional arguments retain their current values when omitted.
-Support-group IDs are ordinary unsigned integers; 4294967295 means
-independent support identity. Optional arguments are positional: supply the
-group before the slope limit or layer. IDs and other integer data fields
-accept decimal or hexadecimal text.
+Each scalar command assigns only its named property and preserves the
+other settings, including the configuration flags:
 
-### Default map settings and named flags
+| Command | Value |
+| --- | --- |
+| `meshmap_side` | 0 for the negative solid side or 1 for the positive solid side |
+| `meshmap_support_group` | Unsigned 32-bit group ID; 4294967295 means independent support identity |
+| `meshmap_slope_limit` | Maximum walkable slope in degrees, from 0 through 90 |
+| `meshmap_layer` | Signed integer painter layer |
+
+IDs and other integer data fields accept decimal or hexadecimal text.
+
+### Default map settings and configuration flags
 
 | Setting | Default |
 | --- | --- |
@@ -488,8 +499,10 @@ Use the generated `side16.png` in a separate test level:
 meshmap_area -128 -256 -8 256 256 8
 meshmap_geometry z 0 128 0 -1 1 data/terrain/side16.png
 meshmap_spacing 8 8
-meshmap_flags collide walkable
-meshmap_rules 0 4294967295 45
+meshmap_config collide walkable
+meshmap_side 0
+meshmap_support_group 4294967295
+meshmap_slope_limit 45
 ```
 
 This map spans X = 0..128 and Y = 128..0. At the play plane Z = 0, values
@@ -516,8 +529,8 @@ Y = 0..128 and Z = 0..128:
 ```text
 meshmap_geometry x 300 128 0 0 0 data/terrain/flat16.png
 meshmap_spacing 128 128
-meshmap_flags collide
-meshmap_rules 1
+meshmap_config collide
+meshmap_side 1
 ```
 
 The positive solid side blocks entry toward increasing X. Using the
@@ -832,8 +845,11 @@ meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
 meshmap_spacing 160 32
 
 # One-way, drop-through, walkable collision; no artwork attached.
-meshmap_flags collide walkable one_way drop_through
-meshmap_rules 0 12 45 80
+meshmap_config collide walkable one_way drop_through
+meshmap_side 0
+meshmap_support_group 12
+meshmap_slope_limit 45
+meshmap_layer 80
 ```
 
 This platform spans X = 160..320, Z = 96..128, at Y = 80. The negative solid

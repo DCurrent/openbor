@@ -79,8 +79,12 @@ context = re.search(r'(?m)^\s*s_meshmap_authoring_context\s+(\w+)\s*=\s*\{\s*0\s
 if not context:
     raise SystemExit('Each load_level call must initialize its own authoring context to zero')
 adapter_call = r'load_meshmap_command\(\s*&' + re.escape(context.group(1)) + r'\s*,\s*cmd\s*,\s*buf\s*\+\s*pos\s*,'
-if ('case CMD_LEVEL_MESHMAP_FLAGS:' not in dispatch
+if ('case CMD_LEVEL_MESHMAP_CONFIG:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_TEXTURE:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_SIDE:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_SUPPORT_GROUP:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_SLOPE_LIMIT:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_LAYER:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_INDEX:' not in dispatch
         or not re.search(adapter_call, dispatch)):
     raise SystemExit('Meshmap level dispatch must use the complete source-line adapter')
