@@ -18,11 +18,17 @@ s_level *level;
 entity *self;
 uint64_t _time = 1;
 s_global_config global_config = {.game_speed = 100};
+s_savedata savedata;
+s_global_sample global_sample_list = {.fall = -1};
+float default_level_gravity = -0.1f;
+float default_level_maxfallspeed = -6.0f;
+float default_level_maxtossspeed = 100.0f;
+int autoland;
 static s_level stage;
 static s_anim animation;
 static s_move frame_move;
 static s_move *moves[] = {&frame_move};
-static unsigned checks, move_y_events;
+static unsigned checks, move_y_events, land_events;
 static float event_x, event_y;
 
 #define CHECK(condition) do { ++checks; if(!(condition)) { \
@@ -30,6 +36,7 @@ static float event_x, event_y;
 #define NEAR(actual, expected) CHECK(fabs((double)(actual) - (expected)) < 0.025)
 
 entity *check_platform_below_entity(entity *e) { (void)e; return NULL; }
+entity *check_platform_above_entity(entity *e) { (void)e; return NULL; }
 entity *check_platform_below(float x, float z, float y, entity *e)
 { (void)x; (void)z; (void)y; (void)e; return NULL; }
 int checkwall_below(float x, float z, float y)
@@ -42,12 +49,31 @@ int checkholeindex_in(float x, float z, float y)
 float get_platform_base(entity *e) { return e->position.y; }
 int testplatform(entity *platform, float x, float z, entity *e)
 { (void)platform; (void)x; (void)z; (void)e; return 0; }
-void check_gravity(entity *e) { (void)e; CHECK(0); }
 void check_link_move(float x, float z) { (void)x; (void)z; CHECK(0); }
 void ent_unlink(entity *e) { (void)e; }
 void execute_inhole_script(entity *e, s_terrain *hole, int index)
 { (void)e; (void)hole; (void)index; CHECK(0); }
 int is_frozen(entity *e) { (void)e; return 0; }
+int check_edge(entity *e) { (void)e; return EDGE_NONE; }
+bool check_bind_override(entity *e, bind_config_t config)
+{ (void)e; (void)config; return false; }
+bool check_frame_set_drop(entity *e) { (void)e; return false; }
+bool check_landframe(entity *e) { (void)e; ++land_events; return false; }
+void checkdamageonlanding(entity *e) { (void)e; }
+void execute_onblocky_script(entity *e, entity *other)
+{ (void)e; (void)other; CHECK(0); }
+void common_walkoff(void) { CHECK(0); }
+void ent_set_anim(entity *e, animation_id_t animation_id, int resetable)
+{ (void)e; (void)animation_id; (void)resetable; CHECK(0); }
+entity *spawn(const float x, const float z, const float y, const e_direction direction,
+              char *name, const int index, s_model *model)
+{ (void)x; (void)z; (void)y; (void)direction; (void)name; (void)index; (void)model; CHECK(0); return NULL; }
+void execute_onspawn_script(entity *e) { (void)e; CHECK(0); }
+void toss(entity *e, float lift) { (void)e; (void)lift; CHECK(0); }
+int sound_play_sample(int sample, unsigned int priority, int left, int right, unsigned int speed)
+{ (void)sample; (void)priority; (void)left; (void)right; (void)speed; CHECK(0); return 0; }
+void control_rumble(int port, int ratio, int duration)
+{ (void)port; (void)ratio; (void)duration; CHECK(0); }
 void execute_onmovea_script(entity *e)
 {
     ++move_y_events;
@@ -62,9 +88,13 @@ static void scene(void)
     if(level) meshmap_store_free(level->meshmaps);
     memset(&stage, 0, sizeof(stage));
     level = &stage;
+    level->gravity = default_level_gravity;
+    level->maxfallspeed = default_level_maxfallspeed;
+    level->maxtossspeed = default_level_maxtossspeed;
     level->meshmaps = meshmap_store_create();
     CHECK(level->meshmaps != NULL);
     move_y_events = 0;
+    land_events = 0;
     self = NULL;
 }
 
@@ -233,6 +263,86 @@ static void test_legacy_floor_unchanged(void)
     NEAR(e.velocity.z, 0);
 }
 
+/* Exercise the production movement and gravity hooks consecutively, as the
+ * game does. Traversing this very shallow 16-bit exit must never invoke a land
+ * callback or clear horizontal speed while the feet retain mesh support. */
+static void test_shallow_exit_gravity(void)
+{
+    const uint16_t samples[] = {32782, 32783, 32768, 32768, 32768, 32768};
+    const float velocity_x = -1.6772f * 0.5f;
+    const float velocity_z = 12.617609f * 0.5f + 250 * 0.00001f;
+    entity e;
+    s_meshmap_config config;
+    s_meshmap_sample sample;
+    s_meshmap *map;
+    scene();
+    map = flat(0, MESHMAP_AXIS_Y, 7168, 0, 7936, 128, 128, 0);
+    config = map->config;
+    config.min_height = -128;
+    config.max_height = 128;
+    CHECK(meshmap_configure(map, &config));
+    CHECK(meshmap_set_geometry(map, 2, 3, samples, "native shallow exit"));
+    e = actor(7279.8427734375f, 0, 7955.044921875f, 4);
+    CHECK(meshmap_sample_world(map, (s_meshmap_vec3){e.position.x, 0, e.position.z}, &sample));
+    e.position.y = e.base = (float)sample.position.y;
+    e.modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+    animation.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+    e.velocity.x = velocity_x;
+    e.velocity.z = velocity_z;
+    for(unsigned tick = 0; tick < 32; ++tick)
+    {
+        ++_time;
+        e.update_mark = 0;
+        e.movex = velocity_x;
+        e.movez = velocity_z;
+        check_move(&e);
+        check_gravity(&e);
+        CHECK(e.velocity.x == velocity_x && e.velocity.z == velocity_z);
+        CHECK(e.position.y == e.base);
+        CHECK(e.meshmap.support_id == 0);
+        CHECK(land_events == 0);
+        CHECK(self == NULL);
+    }
+    CHECK(e.position.z > 8064);
+    CHECK(e.position.y == 0);
+}
+
+/* Canonical contact must not suppress a genuine fall. Ordinary native landing
+ * still clears velocity and notifies once; the next grounded tick must retain
+ * any newly applied horizontal movement without a second landing. */
+static void test_gravity_lands_once(void)
+{
+    const double floors[] = {0.0, -31.67531677};
+    for(unsigned variant = 0; variant < sizeof(floors) / sizeof(floors[0]); ++variant)
+    {
+        entity e;
+        scene();
+        flat(7, MESHMAP_AXIS_Y, -10, 0, -10, 20, 20, floors[variant]);
+        e = actor(0, (float)(floors[variant] + 3.0), 0, 4);
+        e.modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+        animation.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+        e.velocity = (s_axis_principal_float){7, -5, 3};
+        e.falling = 1;
+        ++_time;
+        check_gravity(&e);
+        CHECK(e.position.y == (float)floors[variant]);
+        CHECK(e.position.y == e.base);
+        CHECK(e.velocity.x == 0 && e.velocity.y == 0 && e.velocity.z == 0);
+        CHECK(e.falling == 0);
+        CHECK(e.meshmap.support_id == 7);
+        CHECK(land_events == 1);
+        e.velocity.x = 7;
+        e.velocity.z = 3;
+        e.update_mark = 0;
+        ++_time;
+        check_gravity(&e);
+        CHECK(e.velocity.x == 7 && e.velocity.z == 3);
+        CHECK(e.position.y == e.base);
+        CHECK(land_events == 1);
+        CHECK(self == NULL);
+    }
+}
+
 int main(void)
 {
     test_explicit_zero_basemap();
@@ -240,6 +350,8 @@ int main(void)
     test_direct_movement();
     test_step_movement_event();
     test_legacy_floor_unchanged();
+    test_shallow_exit_gravity();
+    test_gravity_lands_once();
     meshmap_store_free(level->meshmaps);
     level = NULL;
     printf("meshmap production native hooks: %u outcome checks passed\n", checks);

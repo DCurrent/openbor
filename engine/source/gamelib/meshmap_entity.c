@@ -222,17 +222,43 @@ static void terrain_refresh_drop(entity *e)
     }
 }
 
+/*
+ * A trace selects the exposed contact and all of its rules, then reconstructs
+ * its position along the ray. At a flat Y=0 face that final subtraction can
+ * leave a tiny signed residue. Movement and base refresh use different ray
+ * spans, so their residues need not match even at identical stored X/Z.
+ * Native gravity deliberately compares position.y and base exactly; feeding
+ * it those two residues invents a new landing and clears horizontal velocity.
+ *
+ * For a Y-map height face, obtain the stored height from that selected map's
+ * geometric sample instead. This is independent of the ray's start and end.
+ * Keep the trace's identity, normal, admission and one-way decisions intact.
+ * Domain/hole edges and X/Z-map faces have different geometry, so they retain
+ * their original contact. The same conversion serves support refresh, walking
+ * and vertical landing, rather than making gravity tolerate unrelated gaps.
+ */
+static void terrain_canonical_contact_height(s_meshmap_hit *hit)
+{
+    s_meshmap_sample sample;
+    if(!hit->boundary && hit->map->config.axis == MESHMAP_AXIS_Y &&
+       meshmap_sample_world(hit->map, hit->position, &sample))
+        hit->position.y = sample.position.y;
+}
+
 static int terrain_support(const s_meshmap_query *snapshot,
                            double x, double z, double top, double bottom,
                            s_meshmap_hit *hit)
 {
     s_meshmap_query query = *snapshot;
     const s_meshmap_vec3 start = {x, top, z};
+    int result;
     if(top <= bottom) return 0;
     query.flags |= MESHMAP_QUERY_INCLUDE_ONE_WAY | MESHMAP_QUERY_SUPPORT_ONLY |
                    MESHMAP_QUERY_ENTER_ONLY;
-    return meshmap_trace_axis(level->meshmaps, &query, start,
+    result = meshmap_trace_axis(level->meshmaps, &query, start,
                                MESHMAP_AXIS_Y, bottom, hit);
+    if(result > 0) terrain_canonical_contact_height(hit);
+    return result;
 }
 
 /*
@@ -347,6 +373,7 @@ float meshmap_entity_vertical(entity *e, float destination_y)
                                   destination_y + (descending ? 0.0 : height), &hit);
     if(result < 0) return e->position.y;
     if(!result || !hit.entering) return destination_y;
+    terrain_canonical_contact_height(&hit);
     if(descending)
     {
         if(hit.walkable)

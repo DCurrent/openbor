@@ -192,6 +192,80 @@ static void test_large_world_resting_contact(void)
     }
 }
 
+/* This is the final shallow cell and first flat cell of a 16-bit banked road.
+ * A ray's interpolated contact can retain a signed rounding residue at Y=0.
+ * Stored support must agree exactly with the next base query, otherwise native
+ * gravity treats continued grounded movement as a fresh landing. */
+static void test_shallow_exit_resting_contact(void)
+{
+    const uint16_t samples[] = {32782, 32783, 32768, 32768, 32768, 32768};
+    const double origins[] = {0.0, 0.00390637, -31.67531677};
+    for(unsigned variant = 0; variant < sizeof(origins) / sizeof(origins[0]); ++variant)
+    {
+        entity e;
+        s_meshmap_config config;
+        s_meshmap_sample sample;
+        s_meshmap *map;
+        scene();
+        map = flat(0, MESHMAP_AXIS_Y, 7168, origins[variant], 7936, 128, 128, 0);
+        config = map->config;
+        config.min_height = -128;
+        config.max_height = 128;
+        REQUIRE(meshmap_configure(map, &config));
+        REQUIRE(meshmap_set_geometry(map, 2, 3, samples, "shallow road to flat ground"));
+        e = actor(7279.8427734375f, 0, 7955.044921875f, 4);
+        REQUIRE(meshmap_sample_world(map, (s_meshmap_vec3){e.position.x, 0, e.position.z}, &sample));
+        e.position.y = e.base = (float)sample.position.y;
+        meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+        for(unsigned tick = 0; tick < 32; ++tick)
+        {
+            const float requested_x = -1.6772f * 0.5f;
+            const float requested_z = 12.617609f * 0.5f + 250 * 0.00001f;
+            float dx = requested_x, dz = requested_z;
+            meshmap_entity_move(&e, &dx, &dz);
+            REQUIRE(dx == requested_x && dz == requested_z);
+            e.position.x += dx;
+            e.position.z += dz;
+            REQUIRE(meshmap_sample_world(map, (s_meshmap_vec3){e.position.x, 0, e.position.z}, &sample));
+            REQUIRE(e.position.y == (float)sample.position.y);
+            meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+            REQUIRE(e.meshmap.support_id == 0);
+            REQUIRE(e.position.y == e.base);
+        }
+        REQUIRE(e.position.z > 8064);
+        REQUIRE(e.position.y == (float)origins[variant]);
+    }
+}
+
+/* A genuine downward crossing must choose the same stored surface as a later
+ * resting query, including a zero-height floor and fractional negative floors.
+ * The return value is used directly as the entity's Y by native gravity. */
+static void test_vertical_contact_height(void)
+{
+    const double floors[] = {0.0, 0.00390637, -31.67531677};
+    for(unsigned variant = 0; variant < sizeof(floors) / sizeof(floors[0]); ++variant)
+    {
+        entity e;
+        s_meshmap *map;
+        scene();
+        map = flat(7, MESHMAP_AXIS_Y, -10, 0, -10, 20, 20, floors[variant]);
+        for(unsigned fall = 1; fall <= 16; ++fall)
+        {
+            e = actor(0, (float)(floors[variant] + fall * 0.031), 0, 4);
+            e.velocity.y = -3;
+            e.position.y = meshmap_entity_vertical(&e, (float)(floors[variant] - fall * 0.179));
+            REQUIRE(e.position.y == (float)floors[variant]);
+            REQUIRE(e.base == e.position.y);
+            REQUIRE(e.meshmap.support_id == 7);
+            REQUIRE(e.meshmap.support_generation == map->generation);
+            meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+            REQUIRE(e.base == e.position.y);
+            meshmap_entity_land(&e);
+            REQUIRE(e.meshmap.support_id == 7);
+        }
+    }
+}
+
 static void test_side_platforms(void)
 {
     entity e;
@@ -480,6 +554,8 @@ int main(void)
     test_slopes();
     test_landing_support_identity();
     test_large_world_resting_contact();
+    test_shallow_exit_resting_contact();
+    test_vertical_contact_height();
     test_side_platforms();
     test_steps_and_intervening_wall();
     test_x_wall_and_gates();

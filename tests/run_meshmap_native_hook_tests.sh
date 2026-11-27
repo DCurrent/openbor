@@ -44,7 +44,8 @@ import pathlib, re, sys
 source = pathlib.Path('engine/openbor.c').read_text()
 tokens = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|/\*[\s\S]*?\*/|//[^\n]*|[{}]')
 parts = []
-for name in ('check_basemap', 'check_basemap_index', 'checkbase', 'adjust_base', 'check_move'):
+for name in ('diff', 'inair', 'check_basemap', 'check_basemap_index', 'checkbase',
+             'adjust_base', 'check_move', 'check_gravity'):
     matches = list(re.finditer(r'(?m)^(?:float|int|void) ' + re.escape(name) + r'\([^;{}]*\)\s*\{', source))
     if len(matches) != 1:
         raise SystemExit(f'Expected exactly one production definition of {name}')
