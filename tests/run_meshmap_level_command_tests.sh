@@ -71,7 +71,7 @@ for name in ('ParseArgs', 'load_meshmap_command'):
                 break
     else:
         raise SystemExit(f'Unterminated production definition of {name}')
-dispatch_start = source.index('        case CMD_LEVEL_MESHMAP:', source.index('void load_level('))
+dispatch_start = source.index('        case CMD_LEVEL_MESHMAP_GEOMETRY:', source.index('void load_level('))
 dispatch = source[dispatch_start:source.index('        case CMD_LEVEL_BASEMAP:', dispatch_start)]
 load_level_start = source.index('void load_level(')
 load_level_prefix = source[load_level_start:dispatch_start]
@@ -80,6 +80,7 @@ if not context:
     raise SystemExit('Each load_level call must initialize its own authoring context to zero')
 adapter_call = r'load_meshmap_command\(\s*&' + re.escape(context.group(1)) + r'\s*,\s*cmd\s*,\s*buf\s*\+\s*pos\s*,'
 if ('case CMD_LEVEL_MESHMAP_FLAGS:' not in dispatch
+        or 'case CMD_LEVEL_MESHMAP_TEXTURE:' not in dispatch
         or 'case CMD_LEVEL_MESHMAP_INDEX:' not in dispatch
         or not re.search(adapter_call, dispatch)):
     raise SystemExit('Meshmap level dispatch must use the complete source-line adapter')

@@ -24841,7 +24841,8 @@ void load_level(char *filename)
         case CMD_LEVEL_WALL:
             addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
             break;
-        case CMD_LEVEL_MESHMAP:
+        case CMD_LEVEL_MESHMAP_GEOMETRY:
+        case CMD_LEVEL_MESHMAP_TEXTURE:
         case CMD_LEVEL_MESHMAP_ACTIVE:
         case CMD_LEVEL_MESHMAP_AREA:
         case CMD_LEVEL_MESHMAP_BANK:

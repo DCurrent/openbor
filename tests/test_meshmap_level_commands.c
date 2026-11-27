@@ -54,15 +54,24 @@ int meshmap_image_replace_artwork(s_meshmap *map, const char *filename,
     return 0;
 }
 
-int meshmap_image_apply_definition(s_meshmap_store *store, uint32_t id,
-                                   const s_meshmap_config *config,
-                                   const char *geometry_filename,
-                                   const char *artwork_filename,
-                                   const char *archive, char *error, size_t capacity)
+int meshmap_image_apply_geometry(s_meshmap_store *store, uint32_t id,
+                                 const s_meshmap_config *config,
+                                 const char *geometry_filename,
+                                 const char *archive, char *error, size_t capacity)
 {
     (void)store; (void)id; (void)config; (void)geometry_filename;
-    (void)artwork_filename; (void)archive; (void)error; (void)capacity;
-    assert(!"unexpected image definition");
+    (void)archive; (void)error; (void)capacity;
+    assert(!"unexpected geometry definition");
+    return 0;
+}
+
+int meshmap_image_apply_texture(s_meshmap_store *store, uint32_t id,
+                                const char *texture_filename,
+                                const char *archive, char *error, size_t capacity)
+{
+    (void)store; (void)id; (void)texture_filename;
+    (void)archive; (void)error; (void)capacity;
+    assert(!"unexpected texture definition");
     return 0;
 }
 
@@ -102,6 +111,9 @@ int main(void)
     unsigned i;
 
     level = &fixture;
+    assert(!getLevelCommand(commands, "meshmap"));
+    assert(getLevelCommand(commands, "meshmap_geometry") == CMD_LEVEL_MESHMAP_GEOMETRY);
+    assert(getLevelCommand(commands, "MeShMaP_TeXtUrE") == CMD_LEVEL_MESHMAP_TEXTURE);
     assert(getLevelCommand(commands, "meshmap_index") == CMD_LEVEL_MESHMAP_INDEX);
     assert(getLevelCommand(commands, "meshmap_flags") == CMD_LEVEL_MESHMAP_FLAGS);
     assert(getLevelCommand(commands, "MeShMaP_FlAgS") == CMD_LEVEL_MESHMAP_FLAGS);

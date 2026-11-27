@@ -325,23 +325,21 @@ int meshmap_image_replace_artwork(s_meshmap *map, const char *filename,
     return result;
 }
 
+/* Exchange owned fields so publication needs no further allocation.
+ * The staging map then owns any retired resources. */
+#define MESHMAP_SWAP_FIELD(type, member) do { type previous = map->member; map->member = staged.member; staged.member = previous; } while(0)
+
 /*
- * Selected-index authoring may set spacing or rules before geometry, and may
- * later revisit the same map. Stage the complete resource declaration in an
- * unowned map so those earlier settings survive failed PNG loads. Geometry
- * validates against the proposed configuration and its own new dimensions.
- *
- * Only after every requested resource is ready do we find or create the live
- * map. Exchanging owned fields then publishes the declaration without another
- * allocation. The staging record receives the retired resources for cleanup;
- * live identity, generation, gates and bank activation remain in place.
+ * Geometry includes configuration (axis, origin and displacement range).
+ * Validate the proposed configuration against the new samples in an unowned
+ * map before publishing either. Preserve the selected map's texture, identity,
+ * gates and activation, including when geometry is replaced.
  */
-int meshmap_image_apply_definition(s_meshmap_store *store, uint32_t id,
-                                   const s_meshmap_config *config,
-                                   const char *geometry_filename,
-                                   const char *artwork_filename,
-                                   const char *packfilename,
-                                   char *error, size_t error_capacity)
+int meshmap_image_apply_geometry(s_meshmap_store *store, uint32_t id,
+                                 const s_meshmap_config *config,
+                                 const char *geometry_filename,
+                                 const char *packfilename,
+                                 char *error, size_t error_capacity)
 {
     s_meshmap staged = {0};
     s_meshmap *map;
@@ -351,28 +349,23 @@ int meshmap_image_apply_definition(s_meshmap_store *store, uint32_t id,
        || !meshmap_configure(&staged, config))
     {
         if(error && error_capacity)
-            snprintf(error, error_capacity, "Invalid meshmap declaration configuration");
+            snprintf(error, error_capacity, "Invalid meshmap geometry declaration");
         return 0;
     }
     if(!meshmap_image_replace_geometry(&staged, geometry_filename, packfilename,
-                                       error, error_capacity)
-       || (artwork_filename && !meshmap_image_replace_artwork(&staged, artwork_filename,
-                                       packfilename, error, error_capacity)))
+                                       error, error_capacity))
         goto cleanup;
 
-    map = meshmap_get(store, id);
-    if(!map) map = meshmap_create(store, id);
+    map = meshmap_create(store, id);
     if(!map)
     {
         if(error && error_capacity)
-            snprintf(error, error_capacity, "Out of memory applying the selected meshmap");
+            snprintf(error, error_capacity, "Out of memory applying the selected meshmap geometry");
         goto cleanup;
     }
 
-    /* Exchange only resource/configuration fields. The map object stays owned
-     * by its original bank, and a single revision change identifies the new
-     * complete definition to consumers of its geometry or artwork. */
-#define MESHMAP_SWAP_FIELD(type, member) do { type previous = map->member; map->member = staged.member; staged.member = previous; } while(0)
+    /* Publish geometry and its configuration together under one revision.
+     * The existing map remains owned by its original bank. */
     MESHMAP_SWAP_FIELD(s_meshmap_config, config);
     MESHMAP_SWAP_FIELD(uint32_t, width);
     MESHMAP_SWAP_FIELD(uint32_t, height);
@@ -381,23 +374,58 @@ int meshmap_image_apply_definition(s_meshmap_store *store, uint32_t id,
     MESHMAP_SWAP_FIELD(size_t, cell_count);
     MESHMAP_SWAP_FIELD(size_t, present_cells);
     MESHMAP_SWAP_FIELD(char *, geometry_path);
-    if(artwork_filename)
-    {
-        MESHMAP_SWAP_FIELD(void *, artwork);
-        MESHMAP_SWAP_FIELD(meshmap_art_release_fn, artwork_release);
-        MESHMAP_SWAP_FIELD(char *, artwork_path);
-    }
-#undef MESHMAP_SWAP_FIELD
     ++map->revision;
     store->minimum_y_dirty = 1;
     result = 1;
 
 cleanup:
-    /* Empty replacements release owned storage without allocating. Before
-     * publication these are rejected new resources; afterwards they are the
-     * old resources exchanged out of the live map. NULL owner keeps this
-     * cleanup independent of the level's map counts and collision caches. */
+    /* With no owner, cleanup is independent of the level's map counts
+     * and collision caches. An empty replacement releases storage. */
     meshmap_set_geometry(&staged, 0, 0, NULL, NULL);
+    return result;
+}
+
+/*
+ * Load the texture and own its path in a staging map before creating or
+ * modifying the selected map. This permits texture-first authoring without
+ * leaving an empty leaf after a failed image load. An empty path clears the
+ * texture. Geometry and collision settings remain untouched.
+ */
+int meshmap_image_apply_texture(s_meshmap_store *store, uint32_t id,
+                                const char *texture_filename,
+                                const char *packfilename,
+                                char *error, size_t error_capacity)
+{
+    s_meshmap staged = {0};
+    s_meshmap *map;
+    int result = 0;
+    if(error && error_capacity) error[0] = '\0';
+    if(!store || id > MESHMAP_ID_MAX || !texture_filename)
+    {
+        if(error && error_capacity)
+            snprintf(error, error_capacity, "Invalid meshmap texture declaration");
+        return 0;
+    }
+    if(!meshmap_image_replace_artwork(&staged, texture_filename, packfilename,
+                                       error, error_capacity))
+        goto cleanup;
+
+    map = meshmap_create(store, id);
+    if(!map)
+    {
+        if(error && error_capacity)
+            snprintf(error, error_capacity, "Out of memory applying the selected meshmap texture");
+        goto cleanup;
+    }
+
+    MESHMAP_SWAP_FIELD(void *, artwork);
+    MESHMAP_SWAP_FIELD(meshmap_art_release_fn, artwork_release);
+    MESHMAP_SWAP_FIELD(char *, artwork_path);
+    ++map->revision;
+    result = 1;
+
+cleanup:
     meshmap_set_artwork(&staged, NULL, NULL, NULL);
     return result;
 }
+#undef MESHMAP_SWAP_FIELD

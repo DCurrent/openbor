@@ -833,8 +833,8 @@ static int meshmap_text_configure_selected(uint32_t id, const s_meshmap_config *
  *
  * Bank commands derive their ancestor prefix from the same selection. Their
  * ranges remain authored values; loading geometry does not infer or reset them.
- * Geometry and optional artwork are staged by the image helper as one update,
- * preserving a preconfigured object if either resource fails validation.
+ * Geometry and texture are staged independently, preserving the selected
+ * object's other properties if either resource fails validation.
  */
 int meshmap_level_command(s_meshmap_authoring_context *context, int command,
                           size_t count, const char *const *arguments,
@@ -848,7 +848,6 @@ int meshmap_level_command(s_meshmap_authoring_context *context, int command,
     uint32_t id;
     uint64_t value, depth = 0, mask;
     size_t first_bound = 1;
-    const char *artwork = NULL;
     int enabled;
     if(error && error_capacity) error[0] = '\0';
     if(!context || !level || !arguments || !count)
@@ -872,10 +871,10 @@ int meshmap_level_command(s_meshmap_authoring_context *context, int command,
 
     switch(command)
     {
-    case CMD_LEVEL_MESHMAP:
-        if(count != 8 && count != 9)
+    case CMD_LEVEL_MESHMAP_GEOMETRY:
+        if(count != 8)
             return meshmap_text_error(error, error_capacity,
-                "meshmap expects axis x y z minimum maximum geometry_png [artwork_png] for the selected index");
+                "meshmap_geometry expects axis x y z minimum maximum geometry_png for the selected index");
         if(!meshmap_text_axis(arguments[1], &config.axis)
            || !meshmap_text_number(arguments[2], &config.origin.x)
            || !meshmap_text_number(arguments[3], &config.origin.y)
@@ -883,17 +882,21 @@ int meshmap_level_command(s_meshmap_authoring_context *context, int command,
            || !meshmap_text_number(arguments[5], &config.min_height)
            || !meshmap_text_number(arguments[6], &config.max_height)
            || !meshmap_config_valid(&config))
-            return meshmap_text_error(error, error_capacity, "meshmap has an invalid axis, origin or displacement range");
-        if(count == 9)
-        {
-            if(!arguments[8])
-                return meshmap_text_error(error, error_capacity, "meshmap artwork must be an image path or none");
-            artwork = !stricmp(arguments[8], "none") ? "" : arguments[8];
-        }
+            return meshmap_text_error(error, error_capacity, "meshmap_geometry has an invalid axis, origin or displacement range");
         store = meshmap_text_require_store(error, error_capacity);
         if(!store) return 0;
-        return meshmap_image_apply_definition(store, id, &config, arguments[7], artwork,
-                                              packfile, error, error_capacity);
+        return meshmap_image_apply_geometry(store, id, &config, arguments[7],
+                                            packfile, error, error_capacity);
+
+    case CMD_LEVEL_MESHMAP_TEXTURE:
+        if(count != 2 || !arguments[1] || !arguments[1][0])
+            return meshmap_text_error(error, error_capacity,
+                "meshmap_texture expects texture_png or none for the selected index");
+        store = meshmap_text_require_store(error, error_capacity);
+        if(!store) return 0;
+        return meshmap_image_apply_texture(store, id,
+            !stricmp(arguments[1], "none") ? "" : arguments[1],
+            packfile, error, error_capacity);
 
     case CMD_LEVEL_MESHMAP_SPACING:
         if(count != 3 || !meshmap_text_number(arguments[1], &config.spacing_u)

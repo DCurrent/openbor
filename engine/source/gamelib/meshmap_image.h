@@ -29,15 +29,18 @@ int meshmap_image_replace_geometry(s_meshmap *map, const char *filename,
 int meshmap_image_replace_artwork(s_meshmap *map, const char *filename,
                                   const char *packfilename, char *error, size_t error_capacity);
 
-/* Apply a selected level declaration as one transaction. Existing properties
- * are carried in config; geometry is required. NULL artwork preserves the
- * current picture, while an empty path removes it. Failed input leaves an
- * existing map intact and never creates a new map at the selected address. */
-int meshmap_image_apply_definition(s_meshmap_store *store, uint32_t id,
-                                   const s_meshmap_config *config,
-                                   const char *geometry_filename,
-                                   const char *artwork_filename,
-                                   const char *packfilename,
-                                   char *error, size_t error_capacity);
+/* Independent resource transactions for selected level declarations.
+ * Geometry includes its proposed configuration and preserves the texture.
+ * Texture changes preserve geometry; an empty path removes the texture.
+ * Failed input leaves an existing map intact and creates no new map. */
+int meshmap_image_apply_geometry(s_meshmap_store *store, uint32_t id,
+                                 const s_meshmap_config *config,
+                                 const char *geometry_filename,
+                                 const char *packfilename,
+                                 char *error, size_t error_capacity);
+int meshmap_image_apply_texture(s_meshmap_store *store, uint32_t id,
+                                const char *texture_filename,
+                                const char *packfilename,
+                                char *error, size_t error_capacity);
 
 #endif

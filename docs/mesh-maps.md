@@ -211,8 +211,9 @@ address starts at 0/0/0/0, so this single-map example needs no selector:
 # Current-position gate, deliberately larger than the grid.
 meshmap_area -128 -256 -128 1152 512 384
 
-# Address 0/0/0/0, Y displacement, origin XYZ, minimum/maximum, images.
-meshmap y 0 0 0 -24 0 data/terrain/trough16.png data/terrain/road24.png
+# Address 0/0/0/0, Y displacement, origin XYZ, minimum/maximum, geometry.
+meshmap_geometry y 0 0 0 -24 0 data/terrain/trough16.png
+meshmap_texture data/terrain/road24.png
 
 # 65x17 vertices now span 1024x256 world units.
 meshmap_spacing 16 16
@@ -246,7 +247,9 @@ indices, side selectors and support-group IDs remain ordinary integers.
 
 ```text
 meshmap_index area sector room index
-meshmap axis x y z minimum maximum geometry_png [artwork_png]
+meshmap_geometry axis x y z minimum maximum geometry_png
+meshmap_texture texture_png
+meshmap_texture none
 meshmap_spacing spacing_u spacing_v
 meshmap_flags flag [flag ...]
 meshmap_rules side [support_group] [slope_limit] [layer]
@@ -271,9 +274,10 @@ Every level load starts at 0/0/0/0. Selection persists until another
 advance the index. Selection itself allocates nothing and does not reset an
 existing map. Script APIs continue to take explicit map IDs.
 
-The spacing, flags, rules, active and bounds commands configure the
-selected map. If it does not yet exist, a valid setting creates an empty
-map with the remaining defaults. Its geometry can be supplied later.
+The geometry, texture, spacing, flags, rules, active and bounds commands
+configure the selected map. If it does not yet exist, a valid assignment
+creates a map with the remaining defaults. Geometry and texture may be
+supplied in either order.
 Reselecting an existing map lets these commands change individual settings
 while preserving its other properties.
 
@@ -282,20 +286,24 @@ while preserving its other properties.
 meshmap_index 0 0 0 1
 meshmap_spacing 160 32
 meshmap_flags collide walkable one_way drop_through
-meshmap y 160 80 96 0 0 data/terrain/flat16.png
+meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
 
 # Return to the original map and change only its slope limit.
 meshmap_index 0 0 0 0
 meshmap_rules 0 4294967295 30
 ```
 
-`meshmap` loads geometry at the selected address and sets the declared
-axis, XYZ origin and displacement range. It creates the map if needed.
-When the map exists, its spacing, flags, traversal settings, bounds and
-active state remain intact. Supplying an artwork path replaces artwork;
-omitting the path preserves existing artwork, and `none` clears it. New
-maps without an artwork path remain invisible. Invalid definitions retain
-the existing map and its resources.
+`meshmap_geometry` loads geometry at the selected address and sets the
+declared axis, XYZ origin and displacement range. It preserves the texture,
+spacing, flags, traversal settings, bounds and active state of an existing
+map.
+
+`meshmap_texture` loads or replaces the visual surface texture independently
+of geometry. Use `meshmap_texture none` to remove it without affecting
+collision. A texture may be assigned before geometry; it cannot be drawn
+until geometry is present. Geometry without a texture remains invisible.
+Each command stages and validates its own resources before changing the
+selected map, so a failed load preserves its previous properties.
 
 Bank declarations can precede maps. `meshmap_area`, `meshmap_sector` and
 `meshmap_room` configure the area, sector and room along the selected path.
@@ -323,9 +331,9 @@ accept decimal or hexadecimal text.
 
 | Setting | Default |
 | --- | --- |
-| Axis | Y for an empty map; required explicitly by `meshmap` |
+| Axis | Y for an empty map; required explicitly by `meshmap_geometry` |
 | Origin | `(0, 0, 0)` |
-| Displacement range | `0..1` for an empty map; explicit in `meshmap` |
+| Displacement range | `0..1` for an empty map; explicit in `meshmap_geometry` |
 | Spacing U/V | `1 / 1` |
 | Solid side | Negative |
 | Flags | `default`: collide, automatic draw and walkable |
@@ -478,7 +486,7 @@ Use the generated `side16.png` in a separate test level:
 
 ```text
 meshmap_area -128 -256 -8 256 256 8
-meshmap z 0 128 0 -1 1 data/terrain/side16.png
+meshmap_geometry z 0 128 0 -1 1 data/terrain/side16.png
 meshmap_spacing 8 8
 meshmap_flags collide walkable
 meshmap_rules 0 4294967295 45
@@ -506,7 +514,7 @@ The following creates a solid region beginning at X = 300, covering
 Y = 0..128 and Z = 0..128:
 
 ```text
-meshmap x 300 128 0 0 0 data/terrain/flat16.png
+meshmap_geometry x 300 128 0 0 0 data/terrain/flat16.png
 meshmap_spacing 128 128
 meshmap_flags collide
 meshmap_rules 1
@@ -820,7 +828,7 @@ For a simple one-way platform above the first terrain patch:
 
 ```text
 meshmap_index 0 0 0 1
-meshmap y 160 80 96 0 0 data/terrain/flat16.png
+meshmap_geometry y 160 80 96 0 0 data/terrain/flat16.png
 meshmap_spacing 160 32
 
 # One-way, drop-through, walkable collision; no artwork attached.
