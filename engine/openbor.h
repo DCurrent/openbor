@@ -19,6 +19,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include    <stdint.h>
+#include    "source/gamelib/meshmap.h"
+#include    "source/gamelib/meshmap_entity.h"
 
 // INCS in makefile
 #include	"types.h"
@@ -1094,7 +1096,9 @@ typedef enum
     LEVEL_PROPERTY_WAITING,                         // int waiting;
     LEVEL_PROPERTY_WALL_COLLECTION,                 // s_terrain *walls;
     LEVEL_PROPERTY_WALL_COUNT,                      // int numwalls;
-    LEVEL_PROPERTY_WEAPON                           // int setweap;
+    LEVEL_PROPERTY_WEAPON,                          // int setweap;
+    LEVEL_PROPERTY_MESHMAP_COLLECTION,               // Level-owned sparse meshmap store.
+    LEVEL_PROPERTY_MESHMAP_COUNT                     // Number of instantiated maps.
 } e_level_properties;
 
 typedef enum
@@ -3875,6 +3879,7 @@ typedef struct
 
 typedef struct entity
 {    
+    s_meshmap_entity meshmap; /* Terrain capabilities and current support. */
 	// Resident structures.
 	s_damage_on_landing		damage_on_landing;					// ~~
 	s_bind					binding;							// Binding self to another entity. ~~
@@ -4282,6 +4287,7 @@ typedef struct
     s_terrain *holes;
     s_terrain *walls;
     s_basemap *basemaps;
+    s_meshmap_store *meshmaps;
     int scrolldir;
     int width;
     int rocking;

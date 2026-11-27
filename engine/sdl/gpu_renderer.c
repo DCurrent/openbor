@@ -2672,7 +2672,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                             int source_is_sprite, int primitive, unsigned color,
                             const gpu_affine_sampling *affine, const gpu_shear_sampling *shear,
                             const gpu_water_sampling *water, const gpu_plane_sampling *plane,
-                            GLuint plane_texture, const float *curve_weights)
+                            GLuint plane_texture, const float *curve_weights, int mesh_geometry)
 {
     int rectangle[4], i, wrap, geometry_ready;
     int indexed = source && source->format == PIXEL_x8;
@@ -2936,7 +2936,12 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     if(curve_weights)
     {
         gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
-        ++stats.curve_draws;
+        if(mesh_geometry)
+        {
+            ++stats.mesh_draws;
+            stats.mesh_triangles += quad_count;
+        }
+        else ++stats.curve_draws;
     }
     if(water)
     {
@@ -3059,6 +3064,88 @@ static int gpu_collect_curve(const gpu_curve_mesh *mesh, const s_drawmethod *met
     return 1;
 }
 
+/*
+ * Damon V. Caskey - 2026-11-27
+ * Native terrain arrives as already projected triangles. Expand each to the
+ * stream's established [a,b,c,c] quad so the shared index buffer emits exactly
+ * its triangle and one degenerate triangle. Material, palette, resampling and
+ * target ownership remain in the common renderer. Validate and collect the
+ * entire list before its first target write.
+ */
+static int gpu_mesh_draw_body(s_screen *dest, s_screen *artwork,
+                              const gpu_mesh_vertex *vertices, size_t triangles,
+                              const s_drawmethod *drawmethod)
+{
+    const s_drawmethod *method = drawmethod && (drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
+                               ? drawmethod : &plainmethod;
+    gpu_image *target, *source;
+    const unsigned char *palette;
+    size_t triangle, corner;
+    ep_scope geometry_scope;
+    int collected = 1, result;
+    native_failure = EP_FALLBACK_OTHER;
+    if(!dest || !artwork || !vertices || dest->pixelformat != PIXEL_32 ||
+       (artwork->pixelformat != PIXEL_x8 && artwork->pixelformat != PIXEL_32) ||
+       triangles > (size_t)INT_MAX / 6 || triangles > SIZE_MAX / (4 * sizeof(float)))
+        goto failed;
+    if(!triangles) return 1;
+    if(triangles > curve_depth_capacity)
+    {
+        float *replacement = (float *)realloc(curve_depths, triangles * 4 * sizeof(float));
+        if(!replacement) goto failed;
+        curve_depths = replacement;
+        curve_depth_capacity = triangles;
+    }
+    geometry_scope = engine_profile_span_begin();
+    quad_count = 0;
+    for(triangle = 0; triangle < triangles && collected; ++triangle)
+    {
+        gpu_vertex quad[4];
+        for(corner = 0; corner < 4; ++corner)
+        {
+            const gpu_mesh_vertex *vertex = &vertices[triangle * 3 + (corner < 3 ? corner : 2)];
+            if(!isfinite(vertex->w) || vertex->w <= 0.0f)
+            {
+                collected = 0;
+                break;
+            }
+            quad[corner] = (gpu_vertex){vertex->x, vertex->y, vertex->u, vertex->v};
+            curve_depths[triangle * 4 + corner] = vertex->w;
+        }
+        if(collected) collected = gpu_collect_quad(quad, GPU_SAMPLE_CONTINUOUS, NULL);
+    }
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    if(!collected) goto failed;
+    target = gpu_screen_image(dest, 1);
+    source = gpu_screen_image(artwork, 1);
+    if(!target || !source) goto failed;
+    palette = method->table ? method->table : artwork->palette;
+    result = gpu_render_quads(target, source, NULL, palette, method, 0, 0, 0,
+                              NULL, NULL, NULL, NULL, 0, curve_depths, 1);
+    if(!result)
+    {
+        gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
+        goto failed;
+    }
+    return 1;
+failed:
+    engine_profile_fallback(native_failure);
+    ++stats.fallback_draws;
+    return 0;
+}
+
+static int gpu_mesh_draw(s_screen *dest, s_screen *source,
+                         const gpu_mesh_vertex *vertices, size_t triangles,
+                         const s_drawmethod *method)
+{
+    int result;
+    if(!gpu_context_ready()) return 0;
+    ++context_guard_busy;
+    result = gpu_mesh_draw_body(dest, source, vertices, triangles, method);
+    --context_guard_busy;
+    return result;
+}
+
 static int gpu_render_curve_image(gpu_image *target, gpu_image *source, gpu_image *mask,
                                    const unsigned char *palette, int x, int y,
                                    gpu_transform_parameters *parameters,
@@ -3102,7 +3189,7 @@ static int gpu_render_curve_image(gpu_image *target, gpu_image *source, gpu_imag
             engine_profile_span_end(scope, EP_SPAN_GPU_GEOMETRY);
             if(!gpu_render_quads(target, source, mask, palette, method,
                                   parameters->is_sprite, 0, 0,
-                                  NULL, NULL, NULL, NULL, 0, curve_depths))
+                                  NULL, NULL, NULL, NULL, 0, curve_depths, 0))
             {
                 gpu_DisableVertexAttribArray(GPU_CURVE_DEPTH_ATTRIBUTE);
                 if(submitted) gpu_fatal("repeated curve draw");
@@ -3362,7 +3449,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
                                  !use_affine && shear_supported && shear.enabled ? &shear : NULL,
                                  !use_affine && water_supported && water.enabled ? &water : NULL,
                                  plane.enabled ? &plane : NULL,
-                                 plane.enabled ? plane_map->texture : 0, NULL))
+                                 plane.enabled ? plane_map->texture : 0, NULL, 0))
             {
                 /* Earlier instances may already have changed the target.
                  * Only failure before any submission can safely return. */
@@ -3546,7 +3633,7 @@ static int gpu_gl_draw_screen_scaled_body(s_screen *dest, s_screen *src,
     method.alpha = 0;
     method.resample = DC_RESAMPLE_NEAREST;
     if(gpu_render_quads(target, source, NULL, src->palette, &method, 0, 0, 0,
-                         NULL, NULL, NULL, NULL, 0, NULL))
+                         NULL, NULL, NULL, NULL, 0, NULL, 0))
     {
         return 1;
     }
@@ -3681,7 +3768,7 @@ static int gpu_box_draw_body(s_screen *dest, int x, int y, int width, int height
         int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
         engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
         if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
-                                             NULL, NULL, NULL, NULL, 0, NULL))
+                                             NULL, NULL, NULL, NULL, 0, NULL, 0))
         {
             return 1;
         }
@@ -3907,7 +3994,7 @@ static int gpu_line_draw_body(s_screen *dest, int sx, int sy, int ex, int ey,
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
     if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color,
-                                         NULL, NULL, NULL, NULL, 0, NULL))
+                                         NULL, NULL, NULL, NULL, 0, NULL, 0))
     {
         return 1;
     }
@@ -4195,7 +4282,7 @@ static int gpu_gl_draw_launcher_text_body(s_screen *screen, int x, int y,
     method.channelr = method.channelg = method.channelb = 255;
     method.resample = DC_RESAMPLE_NEAREST;
     if(!gpu_render_quads(target, &launcher_font_image, NULL, (const unsigned char *)palette,
-                         &method, !fill, 0, 0, NULL, NULL, NULL, NULL, 0, NULL)) goto failed;
+                         &method, !fill, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0)) goto failed;
     ++stats.launcher_text_draws;
     stats.launcher_text_glyphs += quad_count;
     return 1;
@@ -5189,7 +5276,7 @@ static const gpu_backend renderer_backend = {
     gpu_screen_clear, gpu_screen_copy, gpu_read_screen, gpu_dirty_screen,
     gpu_free_screen, gpu_free_sprite, gpu_dirty_tables,
     gpu_movie_draw_screen, gpu_movie_release,
-    gpu_gif_compose, gpu_gif_merge
+    gpu_gif_compose, gpu_gif_merge, gpu_mesh_draw
 };
 
 /*
@@ -5335,6 +5422,14 @@ static void gpu_log_capability_result(int native_available)
             "\tScene pixel processing/readback:   None on CPU\n"
             "\tSoftware implementation:           None; unavailable curves logged and skipped\n",
             native_available ? "NATIVE - shared desktop/GLES material shader" : "UNAVAILABLE");
+    gpu_log("Terrain Meshmaps\n"
+            "\tRendering path:                    %s\n"
+            "\tGeometry:                          Fixed X, Y or Z displacement; zero samples open holes\n"
+            "\tProjection:                        Orthographic or homogeneous 3x4; near/screen clipping\n"
+            "\tArtwork:                           Indexed or RGB; shared palette/material stream\n"
+            "\tVisibility:                        Painter order; no depth buffer\n"
+            "\tScene pixel processing/readback:   None on CPU\n",
+            native_available ? "NATIVE - shared desktop/GLES triangle stream" : "UNAVAILABLE");
     gpu_log("Drawmethod Resampling\n"
             "\tBuilt-in formulas:                 %s\n"
             "\tDefault:                           Nearest (existing exact sampling)\n"

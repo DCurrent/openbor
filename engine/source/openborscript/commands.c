@@ -725,6 +725,16 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_MAP, "map");
     LIST_ADD(CMD_LEVEL_MAXFALLSPEED, "maxfallspeed");
     LIST_ADD(CMD_LEVEL_MAXTOSSSPEED, "maxtossspeed");
+    LIST_ADD(CMD_LEVEL_MESHMAP, "meshmap");
+    LIST_ADD(CMD_LEVEL_MESHMAPACTIVE, "meshmapactive");
+    LIST_ADD(CMD_LEVEL_MESHMAPAREA, "meshmaparea");
+    LIST_ADD(CMD_LEVEL_MESHMAPBANK, "meshmapbank");
+    LIST_ADD(CMD_LEVEL_MESHMAPBOUNDS, "meshmapbounds");
+    LIST_ADD(CMD_LEVEL_MESHMAPMASK, "meshmapmask");
+    LIST_ADD(CMD_LEVEL_MESHMAPROOM, "meshmaproom");
+    LIST_ADD(CMD_LEVEL_MESHMAPRULES, "meshmaprules");
+    LIST_ADD(CMD_LEVEL_MESHMAPSECTOR, "meshmapsector");
+    LIST_ADD(CMD_LEVEL_MESHMAPSPACING, "meshmapspacing");
     LIST_ADD(CMD_LEVEL_MIRROR, "mirror");
     LIST_ADD(CMD_LEVEL_MP, "mp");
     LIST_ADD(CMD_LEVEL_MUSIC, "music");

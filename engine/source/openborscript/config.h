@@ -30,6 +30,7 @@
 #include "spawn_hud.h"
 #include "status_dial.h"
 #include "movie.h"
+#include "meshmap.h"
 
 
 //osc

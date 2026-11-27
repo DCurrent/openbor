@@ -19,7 +19,7 @@ static int declined_movie_warning;
 static int declined_gif_frame_warning, declined_gif_merge_warning;
 static const char *const operation_names[GPU_OPERATION_COUNT] = {
     "screen draw", "sprite draw", "rectangle draw", "line draw",
-    "pixel draw", "screen clear", "screen copy", "scene presentation"
+    "pixel draw", "screen clear", "screen copy", "scene presentation", "mesh draw"
 };
 
 /*
@@ -216,6 +216,23 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
      * can log it without falsely reporting a completed native draw.
      */
     return active_backend->draw_screen(dest, src, x, y, method) != 0;
+}
+
+/* Geometry is prepared by its native owner. Dispatch keeps source residency
+ * and target ownership identical to ordinary screen draws and never retries
+ * a failed mesh in software. An empty list has no image-side effects. */
+int gpu_draw_mesh(s_screen *dest, s_screen *source, const gpu_mesh_vertex *vertices,
+                   size_t triangle_count, const s_drawmethod *method)
+{
+    if(!gpu_scene_target_valid(dest) ||
+       !gpu_screen_format_valid(source, EP_FALLBACK_SOURCE_FORMAT)) return 0;
+    if(!triangle_count) return 1;
+    if(!vertices || !active_backend || !active_backend->draw_mesh)
+    {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
+        return 0;
+    }
+    return active_backend->draw_mesh(dest, source, vertices, triangle_count, method) != 0;
 }
 
 /*

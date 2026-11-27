@@ -7,7 +7,16 @@
 #define OPENBOR_GPU_H
 
 #include "types.h"
+#include <stddef.h>
 #include <stdint.h>
+
+/* Native mesh producers submit triangle lists in projected pixel coordinates.
+ * Source UVs are texel coordinates and positive W preserves perspective
+ * interpolation. The backend borrows this storage only for the draw call. */
+typedef struct gpu_mesh_vertex
+{
+    float x, y, u, v, w;
+} gpu_mesh_vertex;
 
 /*
  * Damon V. Caskey
@@ -103,6 +112,10 @@ typedef struct gpu_backend
     /* GIF patches retain their RGB32 canvas; RGB streams merge bytewise OR. */
     int (*compose_indexed)(s_screen *, const gpu_indexed_frame *);
     int (*merge_channels)(s_screen *, s_screen *, s_screen *, s_screen *);
+
+    /* Terrain and other native geometry reuse the ordinary image material. */
+    int (*draw_mesh)(s_screen *, s_screen *, const gpu_mesh_vertex *, size_t,
+                     const s_drawmethod *);
 } gpu_backend;
 
 /* Root dispatch uses separate warning bits so a failed operation logs once,
@@ -117,6 +130,7 @@ typedef enum gpu_operation
     GPU_OPERATION_CLEAR,
     GPU_OPERATION_COPY,
     GPU_OPERATION_PRESENT,
+    GPU_OPERATION_MESH,
     GPU_OPERATION_COUNT
 } gpu_operation;
 
@@ -144,5 +158,7 @@ int gpu_draw_yuv(s_screen *dest, const gpu_yuv_source *source, const gpu_movie_d
 void gpu_release_yuv(const void *owner);
 int gpu_compose_indexed(s_screen *dest, const gpu_indexed_frame *frame);
 int gpu_merge_channels(s_screen *dest, s_screen *red, s_screen *green, s_screen *blue);
+int gpu_draw_mesh(s_screen *dest, s_screen *source, const gpu_mesh_vertex *vertices,
+                   size_t triangle_count, const s_drawmethod *method);
 
 #endif

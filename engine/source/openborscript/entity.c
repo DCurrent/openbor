@@ -7,6 +7,9 @@
  */
 
  #include "scriptcommon.h"
+#include "../gamelib/meshmap_entity.h"
+#include <float.h>
+#include <math.h>
 
 typedef struct {
 	e_entity_properties property;
@@ -883,6 +886,84 @@ static const entity_property_info entity_properties[] = {
 	.offset = PROPERTY_MEMBER_OFFSET(entity, weapon_state),
 	.type = VT_INTEGER },
 
+	{.property = ENTITY_PROPERTY_MESHMAP_ENABLED,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_ENABLED",
+	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.enabled),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_MAX_SLOPE,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_MAX_SLOPE",
+	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.max_slope_degrees),
+	.type = VT_DECIMAL },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_STEP_HEIGHT,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_STEP_HEIGHT",
+	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.max_step_height),
+	.type = VT_DECIMAL },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_MOVEMENT_PLANE,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_MOVEMENT_PLANE",
+	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.movement_plane),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_SUPPORT_ID,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_SUPPORT_ID",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.support_id),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_SUPPORT_GROUP,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_SUPPORT_GROUP",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.support_group),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_SUPPORT_GENERATION,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_SUPPORT_GENERATION",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.support_generation),
+	.type = VT_UINTEGER64 },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_SUPPORT_Y,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_SUPPORT_Y",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.support_y),
+	.type = VT_DECIMAL },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_DROP_REQUEST,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_DROP_REQUEST",
+	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.drop_id),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_DROP_ID,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_DROP_ID",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.drop_id),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_DROP_GROUP,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_DROP_GROUP",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.drop_group),
+	.type = VT_INTEGER },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_DROP_GENERATION,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_DROP_GENERATION",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.drop_generation),
+	.type = VT_UINTEGER64 },
+
+	{.property = ENTITY_PROPERTY_MESHMAP_DROP_Y,
+	.id_string = "ENTITY_PROPERTY_MESHMAP_DROP_Y",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, meshmap.drop_y),
+	.type = VT_DECIMAL },
+
 	{.property = ENTITY_PROPERTY_END,
 	.id_string = "Entity",
 	.config_flags = PROPERTY_ACCESS_CONFIG_NONE,
@@ -938,7 +1019,9 @@ HRESULT openbor_get_entity_property(const ScriptVariant* const* varlist, ScriptV
 	* Should at least be a pointer to the
 	* acting object and a property id.
 	*/
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
+	if (paramCount < 2 || !varlist
+        || !varlist[ARG_OBJECT] || !varlist[ARG_PROPERTY]
+        || varlist[ARG_OBJECT]->vt != VT_PTR || !varlist[ARG_OBJECT]->ptrVal
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
 		return E_FAIL;
@@ -962,6 +1045,21 @@ HRESULT openbor_get_entity_property(const ScriptVariant* const* varlist, ScriptV
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 
 	const e_entity_properties property_id = (e_entity_properties)(property_id_param);
+    if(property_id == ENTITY_PROPERTY_MESHMAP_SUPPORT_GROUP
+       || property_id == ENTITY_PROPERTY_MESHMAP_DROP_GROUP)
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+        (*pretvar)->ullVal = property_id == ENTITY_PROPERTY_MESHMAP_SUPPORT_GROUP
+            ? acting_object->meshmap.support_group : acting_object->meshmap.drop_group;
+        return S_OK;
+    }
+    if(property_id == ENTITY_PROPERTY_MESHMAP_DROP_REQUEST)
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = acting_object->meshmap.drop_id >= 0;
+        return S_OK;
+    }
+
 	const s_property_access_map property_map = entity_get_property_map(acting_object, property_id);
 
 	/*
@@ -1014,9 +1112,10 @@ HRESULT openbor_set_entity_property(ScriptVariant** varlist, ScriptVariant** con
 	* a new value.
 	*/
 
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER
-		|| paramCount < ARG_MINIMUM) {
+	if (paramCount < ARG_MINIMUM || !varlist
+        || !varlist[ARG_OBJECT] || !varlist[ARG_PROPERTY] || !varlist[ARG_VALUE]
+        || varlist[ARG_OBJECT]->vt != VT_PTR || !varlist[ARG_OBJECT]->ptrVal
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
 		*pretvar = NULL;
 		return E_FAIL;
@@ -1040,7 +1139,7 @@ HRESULT openbor_set_entity_property(ScriptVariant** varlist, ScriptVariant** con
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 	const e_entity_properties property_id = (e_entity_properties)(property_id_param);
 
-	if (property_id_param < 0 && property_id_param >= ENTITY_PROPERTY_END) {
+	if (property_id_param < 0 || property_id_param >= ENTITY_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
 		return E_FAIL;
 	}
@@ -1052,6 +1151,60 @@ HRESULT openbor_set_entity_property(ScriptVariant** varlist, ScriptVariant** con
 	* appropriate data member, text name,
 	* read only, etc.
 	*/
+
+    /* Terrain capabilities are validated here before they reach the common
+     * property writer. Drop is an action on the current permitted support;
+     * it cannot be implemented by assigning an arbitrary support pointer. */
+    if(property_id >= ENTITY_PROPERTY_MESHMAP_ENABLED
+       && property_id <= ENTITY_PROPERTY_MESHMAP_DROP_Y)
+    {
+        entity *mutable_entity = (entity *)acting_object;
+        DOUBLE number;
+        int64_t integer;
+        switch(property_id)
+        {
+        case ENTITY_PROPERTY_MESHMAP_ENABLED:
+            if(!(varlist[ARG_VALUE]->vt & VT_INTANY)
+               || FAILED(ScriptVariant_Integer64Value(varlist[ARG_VALUE], &integer))
+               || (integer != 0 && integer != 1)) return E_FAIL;
+            mutable_entity->meshmap.enabled = (int)integer;
+            return S_OK;
+        case ENTITY_PROPERTY_MESHMAP_MAX_SLOPE:
+            if(FAILED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &number))
+               || !isfinite(number) || number < 0.0 || number > 90.0) return E_FAIL;
+            mutable_entity->meshmap.max_slope_degrees = (float)number;
+            return S_OK;
+        case ENTITY_PROPERTY_MESHMAP_STEP_HEIGHT:
+            if(FAILED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &number))
+               || !isfinite(number) || number < 0.0 || number > FLT_MAX) return E_FAIL;
+            mutable_entity->meshmap.max_step_height = (float)number;
+            return S_OK;
+        case ENTITY_PROPERTY_MESHMAP_MOVEMENT_PLANE:
+            if(!(varlist[ARG_VALUE]->vt & VT_INTANY)
+               || FAILED(ScriptVariant_Integer64Value(varlist[ARG_VALUE], &integer))
+               || integer < MESHMAP_PLANE_NONE || integer > MESHMAP_AXIS_Z) return E_FAIL;
+            mutable_entity->meshmap.movement_plane = (int)integer;
+            return S_OK;
+        case ENTITY_PROPERTY_MESHMAP_DROP_REQUEST:
+            if(!(varlist[ARG_VALUE]->vt & VT_INTANY)
+               || FAILED(ScriptVariant_Integer64Value(varlist[ARG_VALUE], &integer))
+               || (integer != 0 && integer != 1)) return E_FAIL;
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            if(integer)
+                (*pretvar)->lVal = meshmap_entity_drop(mutable_entity);
+            else
+            {
+                mutable_entity->meshmap.drop_id = -1;
+                mutable_entity->meshmap.drop_group = MESHMAP_GROUP_NONE;
+                mutable_entity->meshmap.drop_generation = 0;
+                (*pretvar)->lVal = 1;
+            }
+            return S_OK;
+        default:
+            printf("\nScript error: %s. Meshmap contact state is read-only.\n", SELF_NAME);
+            return E_FAIL;
+        }
+    }
 
 	const s_property_access_map property_map = entity_get_property_map(acting_object, property_id);
 

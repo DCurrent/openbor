@@ -366,12 +366,34 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         handle = (s_level *)varlist[ARG_OBJECT]->ptrVal;
     }
 
+    if(!handle)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+
     // Get the property argument.
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to get?
     switch(property)
     {
+
+        case LEVEL_PROPERTY_MESHMAP_COLLECTION:
+            // An explicit request creates only the root. Child banks and maps
+            // remain unallocated until a native or script definition needs them.
+            if(!handle->meshmaps && !(handle->meshmaps = meshmap_store_create()))
+            {
+                goto error_local;
+            }
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = handle->meshmaps;
+            break;
+
+        case LEVEL_PROPERTY_MESHMAP_COUNT:
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = handle->meshmaps ? (LONG)handle->meshmaps->map_count : 0;
+            break;
 
         case LEVEL_PROPERTY_AUTO_SCROLL_DIRECTION:
 
@@ -968,6 +990,12 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     // Which property to modify?
     switch(property)
     {
+        case LEVEL_PROPERTY_MESHMAP_COLLECTION:
+        case LEVEL_PROPERTY_MESHMAP_COUNT:
+            // Collection ownership stays with the level. Use the meshmap
+            // property API for mutations so masks and resources stay coherent.
+            goto error_local;
+
         case LEVEL_PROPERTY_AUTO_SCROLL_DIRECTION:
 
             if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))

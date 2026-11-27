@@ -661,6 +661,30 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_level_property";
     }
+    else if (functionRef == ((void *)openbor_get_meshmap_property))
+    {
+        return "get_meshmap_property";
+    }
+    else if (functionRef == ((void *)openbor_set_meshmap_property))
+    {
+        return "set_meshmap_property";
+    }
+    else if (functionRef == ((void *)openbor_get_meshmap_bank_property))
+    {
+        return "get_meshmap_bank_property";
+    }
+    else if (functionRef == ((void *)openbor_set_meshmap_bank_property))
+    {
+        return "set_meshmap_bank_property";
+    }
+    else if (functionRef == ((void *)openbor_draw_meshmap))
+    {
+        return "draw_meshmap";
+    }
+    else if (functionRef == ((void *)openbor_draw_meshmap_projected))
+    {
+        return "draw_meshmap_projected";
+    }
     else if (functionRef == ((void *)openbor_get_set_property))
     {
         return "get_set_property";
@@ -1674,6 +1698,18 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_level_property, "get_level_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_level_property, "set_level_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_meshmap_property, "get_meshmap_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_meshmap_property, "set_meshmap_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_meshmap_bank_property, "get_meshmap_bank_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_meshmap_bank_property, "set_meshmap_bank_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_draw_meshmap, "draw_meshmap");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_draw_meshmap_projected, "draw_meshmap_projected");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_set_property, "get_set_property");
     List_InsertAfter(&theFunctionList,

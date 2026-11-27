@@ -29,6 +29,12 @@ void spriteq_add_dot(int sx, int sy, int z, int colour, s_drawmethod *pdrawmetho
 void spriteq_add_line(int sx, int sy, int ex, int ey, int z, int colour, s_drawmethod *pdrawmethod);
 void spriteq_add_box(int x, int y, int width, int height, int z, int colour, s_drawmethod *pdrawmethod);
 void spriteq_add_screen(int x, int y, int z, s_screen *ps, s_drawmethod *pdrawmethod, int sortid);
+/* Native geometry keeps a stable owner and numeric ID in the queue. Resolving
+ * the ID during playback permits script replacement/removal after queueing. */
+typedef void (*spriteq_mesh_draw_fn)(s_screen *target, void *owner, unsigned id,
+                                    int offset_x, int offset_y, const s_drawmethod *method);
+void spriteq_add_mesh(void *owner, unsigned id, int x, int y, int z,
+                     const s_drawmethod *method, spriteq_mesh_draw_fn draw);
 void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int dy);
 
 // Quantity readouts.

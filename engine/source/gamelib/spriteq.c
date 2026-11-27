@@ -16,6 +16,7 @@
 #include "draw.h"
 #include "globals.h"
 #include "engine_profile.h"
+#include "spriteq.h"
 
 // This should be enough for most games...
 // But bear in mind that text is also composed of sprites!
@@ -28,6 +29,7 @@
 #define         SQT_CIRCLE      4
 #define         SQT_SHADOW      5 //current unused, use common sprite method instead
 #define         SQT_SCREEN      6
+#define         SQT_MESH        7
 
 #define         SQ_MAX_PARAMS   3
 #define         SPRITEQ_INSERTION_SORT_THRESHOLD 32
@@ -42,6 +44,7 @@ typedef struct
     s_drawmethod drawmethod;
     int     params[SQ_MAX_PARAMS];
     int     type;
+    spriteq_mesh_draw_fn mesh_draw;
 } qstruct;
 
 static qstruct queue[MAXQSPRITES];
@@ -153,6 +156,24 @@ void spriteq_add_screen(int x, int y, int z, s_screen *ps, s_drawmethod *pdrawme
     }
     order[spritequeue_len] = &queue[spritequeue_len];
     ++spritequeue_len;
+}
+
+void spriteq_add_mesh(void *owner, unsigned id, int x, int y, int z,
+                     const s_drawmethod *method, spriteq_mesh_draw_fn draw)
+{
+    qstruct *entry;
+    if(!owner || !draw || spritequeue_len >= MAXQSPRITES) return;
+    entry = &queue[spritequeue_len];
+    entry->type = SQT_MESH;
+    entry->x = x;
+    entry->y = y;
+    entry->z = z;
+    entry->sortid = (int)id;
+    entry->params[0] = (int)id;
+    entry->frame = owner;
+    entry->drawmethod = method ? *method : plainmethod;
+    entry->mesh_draw = draw;
+    order[spritequeue_len++] = entry;
 }
 
 void spriteq_add_dot(int sx, int sy, int z, int colour, s_drawmethod *pdrawmethod)
@@ -380,6 +401,10 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int
             break;
         case SQT_SCREEN: // draw a screen instead of sprite
             putscreen(screen, (s_screen *)(order[i]->frame), x, y, &(order[i]->drawmethod));
+            break;
+        case SQT_MESH:
+            order[i]->mesh_draw(screen, order[i]->frame, (unsigned)order[i]->params[0],
+                               x, y, &order[i]->drawmethod);
             break;
         case SQT_DOT:
             putpixel(x, y, order[i]->params[0], screen, &(order[i]->drawmethod));

@@ -18,6 +18,7 @@
 #include "translation.h"
 #include "soundmix.h"
 #include "gpu.h"
+#include "source/gamelib/meshmap_render.h"
 #include "engine_profile.h"
 #include "video_settings.h"
 #include "source/bitmask.h" // Inline bitmask utility functions.
@@ -23719,6 +23720,16 @@ void free_level(s_level *lv)
         return;
     }
 
+    /* Queued mesh draws resolve their ID through this level's store. Retire
+     * those queue entries before releasing the collection and its textures. */
+    if(lv->meshmaps)
+    {
+        spriteq_clear();
+        meshmap_store_free(lv->meshmaps);
+        lv->meshmaps = NULL;
+        meshmap_render_shutdown();
+    }
+
     //offload layers
     for(i = 1; i < lv->numlayers; i++)
     {
@@ -24101,6 +24112,7 @@ void load_level(char *filename)
     levelCommands cmd2;
     int line = 0;
     char *errormessage = NULL;
+    char meshmap_error[512] = {0};
     char *scriptname = NULL;
     Script *tempscript = NULL;
     s_drawmethod *dm;
@@ -24752,6 +24764,24 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_WALL:
             addwall(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7), GET_FLOAT_ARG(8), GET_FLOAT_ARG(9));
+            break;
+        case CMD_LEVEL_MESHMAP:
+        case CMD_LEVEL_MESHMAPACTIVE:
+        case CMD_LEVEL_MESHMAPAREA:
+        case CMD_LEVEL_MESHMAPBANK:
+        case CMD_LEVEL_MESHMAPBOUNDS:
+        case CMD_LEVEL_MESHMAPMASK:
+        case CMD_LEVEL_MESHMAPROOM:
+        case CMD_LEVEL_MESHMAPRULES:
+        case CMD_LEVEL_MESHMAPSECTOR:
+        case CMD_LEVEL_MESHMAPSPACING:
+            if(!meshmap_level_command(cmd, arglist.count,
+                                      (const char *const *)arglist.args,
+                                      meshmap_error, sizeof(meshmap_error)))
+            {
+                errormessage = meshmap_error;
+                goto lCleanup;
+            }
             break;
         case CMD_LEVEL_BASEMAP:
             addbasemap(GET_FLOAT_ARG(1), GET_FLOAT_ARG(2), GET_FLOAT_ARG(3), GET_FLOAT_ARG(4), GET_FLOAT_ARG(5), GET_FLOAT_ARG(6), GET_FLOAT_ARG(7));
@@ -27208,6 +27238,7 @@ entity *alloc_ent()
 {
     entity *ent = malloc(sizeof(*ent));
     memset(ent, 0, sizeof(*ent));
+    meshmap_entity_initialize(ent);
     
     ent->object_type = OBJECT_TYPE_ENTITY;
     ent->defense = defense_allocate_object();    
@@ -28708,6 +28739,7 @@ entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_d
 
             scripts = acting_entity->scripts;
             memset(acting_entity, 0, sizeof(*acting_entity));
+            meshmap_entity_initialize(acting_entity);
             acting_entity->unique_id = entity_unique_id_next();
             
 			// e->drawmethod = plainmethod;
@@ -30132,12 +30164,19 @@ float checkbase(float x, float z, float y, entity *ent)
     float maxbase = -1.0f, base = -1.0f;
     int index = -1;
     entity *platform = NULL;
+    const int mesh_terrain = ent && ent->meshmap.enabled && level &&
+        level->meshmaps && level->meshmaps->map_count;
 
-    base = (checkhole(self->position.x, self->position.z)) ? -1.0f : 0.0f;
-    if (base > maxbase) maxbase = base;
+    if(mesh_terrain) maxbase = MESHMAP_ENTITY_VOID_BASE;
+    else
+    {
+        base = checkhole(x, z) ? -1.0f : 0.0f;
+        if(base > maxbase) maxbase = base;
+    }
 
-    base = check_basemap(self->position.x, self->position.z);
-    if (base > maxbase) maxbase = base;
+    base = check_basemap(x, z);
+    if(base != T_MIN_BASEMAP && (!mesh_terrain || check_basemap_index(x, z) >= 0) &&
+       base > maxbase) maxbase = base;
 
     base = -1.0f;
     if((index = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0)
@@ -30154,7 +30193,7 @@ float checkbase(float x, float z, float y, entity *ent)
         if (base > maxbase) maxbase = base;
     }
 
-    return maxbase;
+    return meshmap_entity_check_base(ent, x, z, y, maxbase);
 }
 
 // find the 1st platform entity here
@@ -30213,7 +30252,7 @@ entity *get_platform_on(entity *ent)
 // special return values:
 // -1: ent can jump over walls, for jump check
 // -2: for hole ai reaction check
-int testmove(entity *ent, float sx, float sz, float x, float z)
+static int testmove_legacy(entity *ent, float sx, float sz, float x, float z)
 {
     entity *other = NULL, *platbelow = NULL;
     int wall, heightvar;
@@ -30325,6 +30364,13 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
 
     return 1;
 
+}
+
+int testmove(entity *ent, float sx, float sz, float x, float z)
+{
+    const int legacy = testmove_legacy(ent, sx, sz, x, z);
+    if(legacy <= 0) return legacy;
+    return meshmap_entity_test_move(ent, sx, sz, x, z);
 }
 
 // find real opponent
@@ -32320,7 +32366,16 @@ void check_gravity(entity *e)
             }
             
             // gravity, antigravity factors
-            self->position.y += self->velocity.y * 100.0 / global_config.game_speed;
+            {
+                const float rising_velocity = self->velocity.y;
+                self->position.y = meshmap_entity_vertical(self,
+                    self->position.y + self->velocity.y * 100.0 / global_config.game_speed);
+                /* Mesh ceilings have no platform entity. Preserve the native
+                 * vertical-block event and explicitly pass a null obstacle,
+                 * rather than disguising a map as an entity pointer. */
+                if(rising_velocity > 0.0f && self->velocity.y == 0.0f)
+                    execute_onblocky_script(self, NULL);
+            }
             if(!(self->animation->move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY))
             {
                 gravity = 0;
@@ -32474,11 +32529,12 @@ bool check_lost() {
 
     s_attack attack = emptyattack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
+    const float terrain_pit_depth = meshmap_entity_pit_depth(self);
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
                               (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.y > osk || self->position.z - self->position.y - advancey - videomodes.vRes > osk)) ||
                               ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.y < -osk || self->position.z - self->position.y > videomodes.vRes + osk))		) )
-            || self->position.y < 2 * PIT_DEPTH) {
+            || self->position.y < terrain_pit_depth + PIT_DEPTH) {
     
         if(self->modeldata.type & TYPE_PLAYER) {
             player_die();
@@ -32492,7 +32548,7 @@ bool check_lost() {
     const s_defense* defense_object = defense_find_current_object(self, NULL, attack.attack_type);
 
     // fall into a pit
-    if(self->position.y < PIT_DEPTH) {
+    if(self->position.y < terrain_pit_depth) {
         
         if(!self->takedamage) {
             kill_entity(self, KILL_ENTITY_TRIGGER_PIT);
@@ -32663,14 +32719,16 @@ int check_basemap_index(int x, int z)
                 z >= level->basemaps[i].position.z && z < level->basemaps[i].position.z + level->basemaps[i].size.z)
         {
             base = level->basemaps[i].map[x - level->basemaps[i].position.x + level->basemaps[i].size.x * (z - level->basemaps[i].position.z)];
-            if(base > maxbase)
+            /* Presence is independent of height. Zero is a real legacy
+             * floor, and a hole sample must not replace a valid overlap. */
+            if(base != T_MIN_BASEMAP && (index < 0 || base > maxbase))
             {
                 maxbase = base;
                 index = i;
             }
         }
     }
-    return base == T_MIN_BASEMAP ? -1 : index;
+    return index;
 }
 
 
@@ -32680,11 +32738,14 @@ void adjust_base(entity *acting_entity, entity **pla)
     int wall = WALL_INDEX_NONE; 
     int in_hole = 0;
     int hole_index = HOLE_INDEX_NONE;
+    int basemap_index = -1;
     float seta = 0; 
     float maxbase = 0;
     float base_adjust = 0.0;
     entity* other = NULL; 
     entity* platform = NULL;    
+    const int mesh_terrain = acting_entity->meshmap.enabled && level &&
+        level->meshmaps && level->meshmaps->map_count;
 
     if(acting_entity->velocity.y > 0)
     {
@@ -32780,6 +32841,8 @@ void adjust_base(entity *acting_entity, entity **pla)
     if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP)
     {
         maxbase = check_basemap(acting_entity->position.x, acting_entity->position.z);
+        if(mesh_terrain)
+            basemap_index = check_basemap_index(acting_entity->position.x, acting_entity->position.z);
     }
 
     /* 
@@ -32807,7 +32870,9 @@ void adjust_base(entity *acting_entity, entity **pla)
             acting_entity->base = T_MIN_BASEMAP;
             ent_unlink(acting_entity);
         }
-        else if(!in_hole && acting_entity->base == T_MIN_BASEMAP)
+        /* Mesh support may legitimately be at Y=-1000. Only legacy terrain
+         * uses that value itself as the remembered hole state. */
+        else if(!mesh_terrain && !in_hole && acting_entity->base == T_MIN_BASEMAP)
         {
             if(acting_entity->position.y >= 0)
             {
@@ -32825,7 +32890,7 @@ void adjust_base(entity *acting_entity, entity **pla)
     * adjustments.
     */
 
-    if(acting_entity->base != T_MIN_BASEMAP || wall >= 0)
+    if((mesh_terrain && !in_hole) || acting_entity->base != T_MIN_BASEMAP || wall >= 0)
     {       
         base_adjust = (seta + acting_entity->altbase >= 0) * (seta + acting_entity->altbase);
         
@@ -32877,7 +32942,11 @@ void adjust_base(entity *acting_entity, entity **pla)
         }
     }
 
-    if(acting_entity->base != T_MIN_BASEMAP && maxbase > acting_entity->base)
+    /* In mesh stages the old default maxbase=0 is not a floor. Requiring an
+     * actual basemap also prevents animation-driven movement below zero from
+     * being snapped back to zero before the mesh adapter selects support. */
+    if(acting_entity->base != T_MIN_BASEMAP && maxbase > acting_entity->base &&
+       (!mesh_terrain || basemap_index >= 0))
     {
         acting_entity->base = maxbase;
         // White Dragon: fix bug for floating entity on basemaps using a threshold
@@ -32887,6 +32956,16 @@ void adjust_base(entity *acting_entity, entity **pla)
         }
         //debug_printf("y:%f maxbase:%f",acting_entity->position.y,maxbase);
     }    
+
+    if(mesh_terrain)
+    {
+        float legacy_base = MESHMAP_ENTITY_VOID_BASE;
+        if(other || wall >= 0 || seta >= 0 || acting_entity->altbase > 0)
+            legacy_base = acting_entity->base;
+        if(basemap_index >= 0 && maxbase > legacy_base)
+            legacy_base = maxbase;
+        meshmap_entity_adjust_base(acting_entity, legacy_base);
+    }
 }
 
 // Caskey Damon V.
@@ -33840,8 +33919,14 @@ void check_move(entity *e)
             }
             else
             {
-                self->position.x += plat->movex;
-                self->position.z += plat->movez;
+                /* Projectiles and other entities without a legacy trymove
+                 * callback still honor their native mesh-terrain switch. */
+                float move_x = plat->movex, move_z = plat->movez;
+                const float original_y = self->position.y;
+                meshmap_entity_move(self, &move_x, &move_z);
+                self->position.x += move_x;
+                self->position.z += move_z;
+                if(self->position.y != original_y) execute_onmovea_script(self);
             }
         }
     }
@@ -33871,8 +33956,12 @@ void check_move(entity *e)
             }
             else
             {
-                self->position.x += self->movex;
-                self->position.z += self->movez;
+                float move_x = self->movex, move_z = self->movez;
+                const float original_y = self->position.y;
+                meshmap_entity_move(self, &move_x, &move_z);
+                self->position.x += move_x;
+                self->position.z += move_z;
+                if(self->position.y != original_y) execute_onmovea_script(self);
             }
         }
         if(self->nextmove <= _time)
@@ -39355,7 +39444,8 @@ int common_takedamage(entity* target_entity, entity* attacking_entity, s_attack*
     {
         if (savedata.joyrumble[target_entity->playerindex]) control_rumble(target_entity->playerindex, 1, attack_object->attack_force * 3);
     }
-    if(target_entity->position.y <= PIT_DEPTH && target_entity->death_state & DEATH_STATE_DEAD)
+    if(target_entity->position.y <= meshmap_entity_pit_depth(target_entity) &&
+       target_entity->death_state & DEATH_STATE_DEAD)
     {
         if(target_entity->modeldata.type & TYPE_PLAYER)
         {
@@ -40574,16 +40664,24 @@ int common_trymove(float xdir, float zdir)
     */
     //xdir = zdir = 0;
     // TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
-    t = testmove(self, self->position.x, self->position.z, x, z);
+    t = testmove_legacy(self, self->position.x, self->position.z, x, z);
     // extra hole check, only avoid hole while idling
     if(t <= 0 && (t != -2 || needcheckhole))
     {
         return 0;
     }
 
+    /* Mesh terrain accepts partial movement and step/ramp Y adjustments.
+     * The legacy tests above retain their established event and platform
+     * policy. Query the mesh only once on this actual movement path. */
+    const float original_mesh_y = self->position.y;
+    meshmap_entity_move(self, &xdir, &zdir);
+    if(!xdir && !zdir) return 0;
+
     // do move and return
     self->position.x += xdir;
     self->position.z += zdir;
+    if(self->position.y != original_mesh_y) execute_onmovea_script(self);
 
     if(xdir)
     {
@@ -49352,7 +49450,7 @@ int biker_takedamage(entity* target_entity, entity* attacking_entity, s_attack* 
         return 0;
     }
     // Fell in a hole
-    if(target_entity->position.y < PIT_DEPTH)
+    if(target_entity->position.y < meshmap_entity_pit_depth(target_entity))
     {
         kill_entity(target_entity, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_BIKER_PIT);
         return 0;
@@ -49430,7 +49528,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 int obstacle_takedamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, int fall_flag, const s_defense* defense_object)
 {
-    if(target_entity->position.y <= PIT_DEPTH)
+    if(target_entity->position.y <= meshmap_entity_pit_depth(target_entity))
     {
         kill_entity(target_entity, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_OBSTACLE_PIT);
         return 0;
@@ -51683,6 +51781,8 @@ void update(int ingame, int usevwait)
     if(ingame == 1 && !_pause)
     {
         draw_scrolled_bg();
+        meshmap_queue_native(level->meshmaps,
+            (int)(-screenx + gfx_x_offset), (int)(-screeny + gfx_y_offset));
         if(level->type != 2)
         {
             predrawstatus();
