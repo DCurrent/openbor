@@ -129,12 +129,6 @@ static void integer(unsigned index, int value)
     arguments[index].lVal = value;
 }
 
-static void wide(unsigned index, uint64_t value)
-{
-    ScriptVariant_ChangeType(&arguments[index], VT_UINTEGER64);
-    arguments[index].ullVal = value;
-}
-
 static void decimal(unsigned index, double value)
 {
     ScriptVariant_ChangeType(&arguments[index], VT_DECIMAL);
@@ -151,6 +145,14 @@ static void string(unsigned index, const char *value)
 {
     ScriptVariant_ChangeType(&arguments[index], VT_STR);
     arguments[index].strVal = StrCache_CreateNewFrom(value);
+}
+
+/* Follow the real constant translation path before calling a script setter.
+ * Named values describe behavior flags; addresses remain ordinary integers. */
+static void named_constant(unsigned index, const char *name)
+{
+    string(index, name);
+    assert(mapstrings_transconst(argument_pointers + index, 1));
 }
 
 static void map_arguments(uint32_t id, int property)
@@ -180,16 +182,28 @@ static void check_constant(const char *name, uint64_t value)
 {
     uint64_t actual;
     prepare();
-    string(0, name);
-    assert(mapstrings_transconst(argument_pointers, 1));
+    named_constant(0, name);
     assert(SUCCEEDED(ScriptVariant_Unsigned64Value(&arguments[0], &actual)));
     assert(actual == value);
+    ++checks;
+}
+
+static void expect_native(int success, int command, size_t count, const char *const *tokens)
+{
+    char error[512];
+    int actual = meshmap_level_command(command, count, tokens, error, sizeof(error));
+    if(!!actual != !!success)
+        fprintf(stderr, "%s: expected %s, received %s (%s)\n", tokens[0],
+                success ? "success" : "failure", actual ? "success" : "failure", error);
+    assert(!!actual == !!success);
+    assert(success || error[0]);
     ++checks;
 }
 
 static void test_level_and_masks(void)
 {
     s_meshmap_store *store;
+    ScriptVariant saved = {{.ptrVal = NULL}, VT_EMPTY};
     prepare();
     integer(0, 0);
     integer(1, LEVEL_PROPERTY_MESHMAP_COUNT);
@@ -212,14 +226,29 @@ static void test_level_and_masks(void)
     bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
     expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 4));
     assert(returned.vt == VT_UINTEGER64 && returned.ullVal == (UINT64_C(1) << 63 | 1));
-    wide(4, UINT64_C(1) << 63);
-    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    ScriptVariant_Copy(&saved, &returned);
+    integer(3, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    integer(4, 0); integer(5, 0);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
     assert(meshmap_is_active(store, MESHMAP_ID_MAX) && !meshmap_is_active(store, 0));
-    wide(4, UINT64_C(1) << 5);
-    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
-    assert(store->root.active_mask == (UINT64_C(1) << 63));
-    wide(4, UINT64_C(1) << 63 | 1);
+
+    /* Opaque snapshots must retain slot 63 exactly through a read/clear/write
+     * round trip. Creators select slots by integer index and do not need to
+     * know the numeric representation of these returned masks. */
+    integer(3, MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 4));
+    assert(returned.vt == VT_UINTEGER64 && returned.ullVal == (UINT64_C(1) << 63));
+    ScriptVariant_Copy(&arguments[6], &returned);
+    named_constant(4, "MESHMAP_BANK_MASK_NONE");
     expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(!store->root.active_mask);
+    ScriptVariant_Copy(&arguments[4], &arguments[6]);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(store->root.active_mask == (UINT64_C(1) << 63));
+    ScriptVariant_Copy(&arguments[4], &saved);
+    assert(arguments[4].vt == VT_UINTEGER64 && arguments[4].ullVal == (UINT64_C(1) << 63 | 1));
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    ScriptVariant_Clear(&saved);
     decimal(4, 9223372036854775808.0);
     expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
     map_arguments(0, MESHMAP_PROPERTY_EXISTS);
@@ -232,6 +261,121 @@ static void test_level_and_masks(void)
     check_constant("MESHMAP_PROPERTY_SAMPLE", MESHMAP_PROPERTY_SAMPLE);
     check_constant("MESHMAP_BANK_PROPERTY_ACTIVE_MASK", MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
     check_constant("ENTITY_PROPERTY_MESHMAP_DROP_REQUEST", ENTITY_PROPERTY_MESHMAP_DROP_REQUEST);
+}
+
+/* Behavioral masks use named constants and the VM's ordinary bitwise OR.
+ * The integer slot indices are deliberately absent from this name registry. */
+static void test_symbolic_script_values(void)
+{
+    s_meshmap *map = meshmap_get(level->meshmaps, 0);
+    assert(map && map->config.flags == MESHMAP_FLAGS_DEFAULT);
+    check_constant("MESHMAP_FLAGS_NONE", MESHMAP_FLAGS_NONE);
+    check_constant("MESHMAP_FLAGS_DEFAULT", MESHMAP_FLAGS_DEFAULT);
+    check_constant("MESHMAP_FLAGS_ALL", MESHMAP_FLAGS_ALL);
+    check_constant("MESHMAP_BANK_MASK_NONE", 0);
+    check_constant("MESHMAP_BANK_PROPERTY_CHILD_PRESENT", MESHMAP_BANK_PROPERTY_CHILD_PRESENT);
+    check_constant("MESHMAP_BANK_PROPERTY_CHILD_ACTIVE", MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    map_arguments(0, MESHMAP_PROPERTY_FLAGS);
+    named_constant(3, "MESHMAP_COLLIDE");
+    named_constant(4, "MESHMAP_WALKABLE");
+    ScriptVariant_Copy(&arguments[3], ScriptVariant_Bit_Or(&arguments[3], &arguments[4]));
+    expect(1, openbor_set_meshmap_property(argument_pointers, &result, 4));
+    assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
+    named_constant(3, "MESHMAP_FLAGS_NONE");
+    expect(1, openbor_set_meshmap_property(argument_pointers, &result, 4));
+    assert(map->config.flags == MESHMAP_FLAGS_NONE);
+    named_constant(3, "MESHMAP_FLAGS_DEFAULT");
+    expect(1, openbor_set_meshmap_property(argument_pointers, &result, 4));
+    assert(map->config.flags == MESHMAP_FLAGS_DEFAULT);
+}
+
+/* Indexed activation is the ordinary script interface: slot numbers are
+ * addresses, while enabled remains a Boolean. Its result describes this
+ * bank's immediate child, independently of any disabled ancestor. */
+static void test_indexed_bank_properties(void)
+{
+    s_meshmap_store *store = level->meshmaps;
+    const uint64_t present = store->root.present_mask;
+    bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_CHILD_PRESENT);
+    integer(4, 63);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(returned.vt == VT_INTEGER && returned.lVal == 1);
+    integer(4, 5);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(returned.lVal == 0);
+    integer(3, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(returned.lVal == 0);
+    integer(4, 63);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(returned.lVal == 1);
+
+    /* Wrong arity, invalid indices, non-Boolean values and absent children
+     * must fail before changing the bank's previously active selection. */
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 4));
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(4, -1);
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    integer(4, 64);
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    decimal(4, 0.5);
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    integer(3, MESHMAP_BANK_PROPERTY_DEPTH); integer(4, 0);
+    expect(0, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    integer(3, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    integer(4, 0); integer(5, 63);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 7));
+    integer(4, 2);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    decimal(4, 0.0);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(4, 1); integer(5, 5);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(5, 64);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(5, -1);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    decimal(5, 63.0);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(3, MESHMAP_BANK_PROPERTY_CHILD_PRESENT); integer(5, 63);
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(3, MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
+    named_constant(4, "MESHMAP_BANK_MASK_NONE");
+    expect(0, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    assert(store->root.active_mask == present && store->root.present_mask == present);
+
+    bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    integer(4, 0); integer(5, 63);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    assert(!meshmap_is_active(store, MESHMAP_ID_MAX) && meshmap_is_active(store, 0));
+    bank_arguments(3, MESHMAP_ID_MAX, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    integer(4, 1); integer(5, 63);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    integer(4, 63);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(returned.lVal == 1);
+    map_arguments(MESHMAP_ID_MAX, MESHMAP_PROPERTY_ENABLED);
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 3));
+    assert(returned.lVal == 0);
+    bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_CHILD_ACTIVE);
+    integer(4, 1); integer(5, 63);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 6));
+    assert(meshmap_is_active(store, MESHMAP_ID_MAX));
+
+    /* Whole-mask snapshots remain opaque exact values. NONE clears them, and
+     * the returned PRESENT_MASK can reactivate all existing children without
+     * requiring the creator to calculate any bit pattern. */
+    bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
+    named_constant(4, "MESHMAP_BANK_MASK_NONE");
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(!store->root.active_mask && store->root.present_mask == present);
+    integer(3, MESHMAP_BANK_PROPERTY_PRESENT_MASK);
+    expect(1, openbor_get_meshmap_bank_property(argument_pointers, &result, 4));
+    ScriptVariant_Copy(&arguments[4], &returned);
+    integer(3, MESHMAP_BANK_PROPERTY_ACTIVE_MASK);
+    expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
+    assert(store->root.active_mask == present);
 }
 
 static void test_geometry_and_artwork(const char *directory)
@@ -304,45 +448,207 @@ static void test_geometry_and_artwork(const char *directory)
 
 static void test_native_commands(const char *directory)
 {
-    char geometry[1024], artwork[1024], error[512];
+    char geometry[1024], artwork[1024];
     const char *create[] = {"meshmap", "01", "02", "03", "08", "z", "10", "20", "30", "-40", "60", geometry, artwork};
     const char *area[] = {"meshmaparea", "1", "-100", "-200", "-300", "400", "500", "600", "1"};
     const char *spacing[] = {"meshmapspacing", "1", "2", "3", "8", "4", "8"};
-    const char *rules[] = {"meshmaprules", "1", "2", "3", "8", "0x1f", "1", "0xffffffff", "60", "-10"};
-    const char *mask[] = {"meshmapmask", "0", "0", "0x8000000000000003"};
+    const char *flags[] = {"meshmapflags", "1", "2", "3", "8", "all"};
+    const char *rules[] = {"meshmaprules", "1", "2", "3", "8", "1", "4294967295", "60", "-10"};
+    const char *mask[] = {"meshmapmask", "0", "0", "slots", "63", "0", "1"};
     s_meshmap *map;
     s_meshmap_bank *bank;
     uint32_t id;
     size_t old_count;
     snprintf(geometry, sizeof(geometry), "%s/geometry.png", directory);
     snprintf(artwork, sizeof(artwork), "%s/rgb.png", directory);
-    assert(meshmap_level_command(CMD_LEVEL_MESHMAPAREA, 9, area, error, sizeof(error)));
-    assert(meshmap_level_command(CMD_LEVEL_MESHMAP, 13, create, error, sizeof(error)));
+    expect_native(1, CMD_LEVEL_MESHMAPAREA, 9, area);
+    expect_native(1, CMD_LEVEL_MESHMAP, 13, create);
     assert(meshmap_pack_id(1, 2, 3, 8, &id));
     assert((map = meshmap_get(level->meshmaps, id)) && map->config.axis == MESHMAP_AXIS_Z);
     bank = meshmap_bank_get(level->meshmaps, 1, id, 0);
     assert(bank && bank->gate.mode == MESHMAP_GATE_BODY && bank->gate.bounds.min.y == -200.0);
-    assert(meshmap_level_command(CMD_LEVEL_MESHMAPSPACING, 7, spacing, error, sizeof(error)));
+    expect_native(1, CMD_LEVEL_MESHMAPSPACING, 7, spacing);
     assert(map->config.spacing_u == 4 && map->config.spacing_v == 8);
-    assert(meshmap_level_command(CMD_LEVEL_MESHMAPRULES, 10, rules, error, sizeof(error)));
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6, flags);
+    expect_native(1, CMD_LEVEL_MESHMAPRULES, 9, rules);
     assert(map->config.flags == MESHMAP_FLAGS_ALL && map->config.side == MESHMAP_SIDE_POSITIVE
+           && map->config.support_group == MESHMAP_GROUP_NONE
            && map->config.slope_limit == 60 && map->config.layer == -10);
-    assert(meshmap_level_command(CMD_LEVEL_MESHMAPMASK, 4, mask, error, sizeof(error)));
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 7, mask);
     assert(level->meshmaps->root.active_mask == UINT64_C(0x8000000000000003));
     old_count = level->meshmaps->map_count;
-    assert(!meshmap_level_command(CMD_LEVEL_MESHMAP, 13, create, error, sizeof(error)));
+    expect_native(0, CMD_LEVEL_MESHMAP, 13, create);
     assert(level->meshmaps->map_count == old_count && meshmap_get(level->meshmaps, id) == map);
-    assert(!meshmap_level_command(CMD_LEVEL_MESHMAPAREA, 8,
-           (const char *const[]){"meshmaparea", "64", "0", "0", "0", "1", "1", "1"}, error, sizeof(error)));
-    assert(!meshmap_level_command(CMD_LEVEL_MESHMAPSPACING, 7,
-           (const char *const[]){"meshmapspacing", "1", "2", "3", "8", "nan", "1"}, error, sizeof(error)));
+    expect_native(0, CMD_LEVEL_MESHMAPAREA, 8,
+        (const char *const[]){"meshmaparea", "64", "0", "0", "0", "1", "1", "1"});
+    expect_native(0, CMD_LEVEL_MESHMAPSPACING, 7,
+        (const char *const[]){"meshmapspacing", "1", "2", "3", "8", "nan", "1"});
     assert(map->config.spacing_u == 4);
     bank_arguments(1, id, MESHMAP_BANK_PROPERTY_EXISTS);
     integer(4, 0);
     expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
     assert(!meshmap_get(level->meshmaps, id) && !meshmap_bank_get(level->meshmaps, 1, id, 0));
     assert(level->meshmaps->map_count == old_count - 1 && !meshmap_store_uses_body_gates(level->meshmaps));
-    checks += 12;
+}
+
+/* Native authoring replaces complete selections only after every name has
+ * been validated. Keep these independent of PNG loading so parser failures
+ * cannot be mistaken for an image or filesystem failure. */
+static void test_native_symbolic_flags_and_rules(void)
+{
+    s_meshmap *map = meshmap_get(level->meshmaps, 0);
+    const char *flags[] = {"meshmapflags", "0", "0", "0", "0",
+                          "CoLlIdE", "DRAW", "walkable", "one_way", "drop_through"};
+    const char *invalid_flags[] = {"0", "7", "0x1f", "unknown", "collide|draw", "collide,draw"};
+    const char *invalid_sides[] = {"-1", "2", "7", "0x1f", "unknown"};
+    unsigned char saved[sizeof(map->config)];
+    uint64_t revision;
+    size_t i;
+    assert(map);
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 10, flags);
+    assert(map->config.flags == MESHMAP_FLAGS_ALL);
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
+        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "NONE"});
+    assert(map->config.flags == MESHMAP_FLAGS_NONE);
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
+        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "DeFaUlT"});
+    assert(map->config.flags == MESHMAP_FLAGS_DEFAULT);
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 6,
+        (const char *const[]){"meshmapflags", "0", "0", "0", "0", "ALL"});
+    assert(map->config.flags == MESHMAP_FLAGS_ALL);
+
+    /* NONE contributes zero, rather than acting as a reset in the middle of
+     * a command. Repeated names are idempotent, and the previous ALL value
+     * must not leak into this new two-flag selection. */
+    expect_native(1, CMD_LEVEL_MESHMAPFLAGS, 9,
+        (const char *const[]){"meshmapflags", "0", "0", "0", "0",
+                            "collide", "none", "walkable", "collide"});
+    assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
+    memcpy(saved, &map->config, sizeof(saved));
+    revision = map->revision;
+    for(i = 0; i < sizeof(invalid_flags) / sizeof(invalid_flags[0]); ++i)
+    {
+        /* Place the invalid name after a valid name to expose partial writes. */
+        expect_native(0, CMD_LEVEL_MESHMAPFLAGS, 7,
+            (const char *const[]){"meshmapflags", "0", "0", "0", "0", "draw", invalid_flags[i]});
+        assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+    }
+    expect_native(0, CMD_LEVEL_MESHMAPFLAGS, 5,
+        (const char *const[]){"meshmapflags", "0", "0", "0", "0"});
+    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+
+    /* Side, support group, slope and layer are scalar values, not masks.
+     * They stay numeric when behavioral flags move into their own command. */
+    expect_native(1, CMD_LEVEL_MESHMAPRULES, 9,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "1", "42", "60", "-10"});
+    assert(map->config.side == MESHMAP_SIDE_POSITIVE && map->config.support_group == 42
+           && map->config.slope_limit == 60 && map->config.layer == -10);
+    assert(map->config.flags == (MESHMAP_COLLIDE | MESHMAP_WALKABLE));
+    expect_native(1, CMD_LEVEL_MESHMAPRULES, 6,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0"});
+    assert(map->config.side == MESHMAP_SIDE_NEGATIVE && map->config.support_group == 42
+           && map->config.slope_limit == 60 && map->config.layer == -10);
+    expect_native(1, CMD_LEVEL_MESHMAPRULES, 7,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "1", "4294967295"});
+    assert(map->config.support_group == MESHMAP_GROUP_NONE);
+    memcpy(saved, &map->config, sizeof(saved));
+    revision = map->revision;
+    for(i = 0; i < sizeof(invalid_sides) / sizeof(invalid_sides[0]); ++i)
+    {
+        expect_native(0, CMD_LEVEL_MESHMAPRULES, 7,
+            (const char *const[]){"meshmaprules", "0", "0", "0", "0", invalid_sides[i], "1"});
+        assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+    }
+    /* A full old-form line still carries one extra positional flags field.
+     * Reject its arity without treating valid new side values 0/1 as masks. */
+    expect_native(0, CMD_LEVEL_MESHMAPRULES, 10,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "7", "1", "4294967295", "30", "5"});
+    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+    expect_native(0, CMD_LEVEL_MESHMAPRULES, 9,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0", "13", "nan", "5"});
+    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+    expect_native(0, CMD_LEVEL_MESHMAPRULES, 9,
+        (const char *const[]){"meshmaprules", "0", "0", "0", "0", "0", "13", "30", "bad-layer"});
+    assert(!memcmp(saved, &map->config, sizeof(saved)) && map->revision == revision);
+}
+
+static void test_native_symbolic_bank_masks(void)
+{
+    s_level scratch_stage = {0};
+    s_level *previous_level = level;
+    s_meshmap_bank *root;
+    const uint64_t sparse = (UINT64_C(1) << 63) | 1;
+    const char *invalid_slots[] = {"1", "64", "-1", "63junk", "0.5", "slot_63", "all", "none", "unknown"};
+    const char *invalid_selectors[] = {"0", "3", "0x8000000000000001", "slot_63", "unknown"};
+    const char *many[4 + MESHMAP_BANK_SLOTS];
+    char indices[MESHMAP_BANK_SLOTS][4];
+    uint32_t id;
+    size_t i;
+
+    /* Use a separate collection so a bank containing all 64 children cannot
+     * hide the sparse-bank ALL case or affect later entity/renderer tests. */
+    level = &scratch_stage;
+    assert((level->meshmaps = meshmap_store_create()));
+    assert(meshmap_create(level->meshmaps, 0));
+    assert(meshmap_create(level->meshmaps, MESHMAP_ID_MAX));
+    root = &level->meshmaps->root;
+    assert(root->present_mask == sparse && root->active_mask == sparse);
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
+        (const char *const[]){"meshmapmask", "0", "0", "NoNe"});
+    assert(!root->active_mask && root->present_mask == sparse);
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
+        (const char *const[]){"meshmapmask", "0", "0", "ALL"});
+    assert(root->active_mask == sparse);
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 6,
+        (const char *const[]){"meshmapmask", "0", "0", "SlOtS", "63", "63"});
+    assert(root->active_mask == (UINT64_C(1) << 63));
+    for(i = 0; i < sizeof(invalid_slots) / sizeof(invalid_slots[0]); ++i)
+    {
+        /* Index 1 is valid but has no child. No failure may first enable
+         * index 0 or erase the previously active high slot. */
+        expect_native(0, CMD_LEVEL_MESHMAPMASK, 6,
+            (const char *const[]){"meshmapmask", "0", "0", "slots", "0", invalid_slots[i]});
+        assert(root->active_mask == (UINT64_C(1) << 63) && root->present_mask == sparse);
+    }
+    for(i = 0; i < sizeof(invalid_selectors) / sizeof(invalid_selectors[0]); ++i)
+    {
+        /* A numeric slot list needs the explicit selector, so an old packed
+         * numeric mask cannot silently become a different slot selection. */
+        expect_native(0, CMD_LEVEL_MESHMAPMASK, 4,
+            (const char *const[]){"meshmapmask", "0", "0", invalid_selectors[i]});
+        assert(root->active_mask == (UINT64_C(1) << 63) && root->present_mask == sparse);
+    }
+    expect_native(0, CMD_LEVEL_MESHMAPMASK, 3,
+        (const char *const[]){"meshmapmask", "0", "0"});
+    expect_native(0, CMD_LEVEL_MESHMAPMASK, 4,
+        (const char *const[]){"meshmapmask", "0", "0", "slots"});
+    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
+        (const char *const[]){"meshmapmask", "0", "0", "all", "0"});
+    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
+        (const char *const[]){"meshmapmask", "0", "0", "none", "63"});
+    expect_native(0, CMD_LEVEL_MESHMAPMASK, 5,
+        (const char *const[]){"meshmapmask", "0", "0", "none", "all"});
+    assert(root->active_mask == (UINT64_C(1) << 63));
+
+    /* A complete 64-slot selection must be accepted. This exercises the
+     * public list length independently of the line tokenizer's own tests. */
+    many[0] = "meshmapmask"; many[1] = "0"; many[2] = "0"; many[3] = "slots";
+    for(i = 0; i < MESHMAP_BANK_SLOTS; ++i)
+    {
+        if(i && i != 63)
+        {
+            assert(meshmap_pack_id((unsigned)i, 0, 0, 0, &id));
+            assert(meshmap_create(level->meshmaps, id));
+        }
+        snprintf(indices[i], sizeof(indices[i]), "%u", (unsigned)i);
+        many[4 + i] = indices[i];
+    }
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4,
+        (const char *const[]){"meshmapmask", "0", "0", "none"});
+    expect_native(1, CMD_LEVEL_MESHMAPMASK, 4 + MESHMAP_BANK_SLOTS, many);
+    assert(root->active_mask == UINT64_MAX && root->present_mask == UINT64_MAX);
+    meshmap_store_free(level->meshmaps);
+    level = previous_level;
 }
 
 static void test_entity_and_draw(void)
@@ -452,8 +758,12 @@ int main(int argc, char **argv)
     assert(argc == 2);
     level = &stage;
     test_level_and_masks();
+    test_symbolic_script_values();
+    test_indexed_bank_properties();
     test_geometry_and_artwork(argv[1]);
     test_native_commands(argv[1]);
+    test_native_symbolic_flags_and_rules();
+    test_native_symbolic_bank_masks();
     test_entity_and_draw();
     test_world_surface_properties();
     bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_EXISTS);
@@ -465,6 +775,6 @@ int main(int argc, char **argv)
     prepare();
     StrCache_Clear();
     assert(open_files == 0);
-    printf("meshmap script/native authoring checks passed: %u assertions, exact 64-bit masks, real PNG transactions, samples/holes, native banks, entity settings and draw arguments\n", checks);
+    printf("meshmap script/native authoring checks passed: %u assertions, symbolic flags and 64-bit slots, indexed bank activation, real PNG transactions, samples/holes, native banks, entity settings and draw arguments\n", checks);
     return 0;
 }

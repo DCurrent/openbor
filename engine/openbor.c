@@ -24083,6 +24083,77 @@ void generate_basemap(int map_index, float rx, float rz, float x_size, float z_s
 	return;
 }
 
+/*
+ * Mesh declarations share the sequential argument reader used by named model
+ * flags. Read the original source line instead of the legacy ArgList buffer:
+ * full banks have 64 child slots, and truncating their trailing indices could turn
+ * an invalid declaration into a valid but incomplete active selection.
+ *
+ * First count the decoded arguments and their storage, then copy them into one
+ * owned text buffer. This keeps quote/comment handling identical to other flag
+ * commands without adding a whole-line or argument-count limit. The native
+ * authoring API receives the complete declaration and validates it before any
+ * selection changes. Both temporary allocations are released on every return.
+ */
+static int load_meshmap_command(int command, const char *command_line,
+                                char *error, size_t error_capacity)
+{
+    s_command_argument_reader reader;
+    const char *value;
+    const char **arguments = NULL;
+    char *text = NULL;
+    size_t count = 0, text_size = 0, length, i;
+    char *destination;
+    int result = 0;
+
+    command_argument_reader_initialize(&reader, command_line, 0);
+    while(command_argument_reader_next(&reader, &value))
+    {
+        length = strlen(value) + 1;
+        if(count == SIZE_MAX / sizeof(*arguments) || length > SIZE_MAX - text_size)
+            goto allocation_error;
+        ++count;
+        text_size += length;
+    }
+
+    if(!count)
+    {
+        if(error && error_capacity)
+            snprintf(error, error_capacity, "meshmap command requires a declaration");
+        return 0;
+    }
+    arguments = malloc(count * sizeof(*arguments));
+    text = malloc(text_size);
+    if(!arguments || !text) goto allocation_error;
+
+    command_argument_reader_initialize(&reader, command_line, 0);
+    destination = text;
+    for(i = 0; i < count; ++i)
+    {
+        if(!command_argument_reader_next(&reader, &value))
+        {
+            if(error && error_capacity)
+                snprintf(error, error_capacity, "could not read the complete meshmap declaration");
+            goto cleanup;
+        }
+        length = strlen(value) + 1;
+        arguments[i] = destination;
+        memcpy(destination, value, length);
+        destination += length;
+    }
+
+    result = meshmap_level_command(command, count, arguments, error, error_capacity);
+    goto cleanup;
+
+allocation_error:
+    if(error && error_capacity)
+        snprintf(error, error_capacity, "out of memory reading the meshmap declaration");
+cleanup:
+    free(text);
+    free(arguments);
+    return result;
+}
+
 void load_level(char *filename)
 {
     char *buf = NULL;
@@ -24770,14 +24841,13 @@ void load_level(char *filename)
         case CMD_LEVEL_MESHMAPAREA:
         case CMD_LEVEL_MESHMAPBANK:
         case CMD_LEVEL_MESHMAPBOUNDS:
+        case CMD_LEVEL_MESHMAPFLAGS:
         case CMD_LEVEL_MESHMAPMASK:
         case CMD_LEVEL_MESHMAPROOM:
         case CMD_LEVEL_MESHMAPRULES:
         case CMD_LEVEL_MESHMAPSECTOR:
         case CMD_LEVEL_MESHMAPSPACING:
-            if(!meshmap_level_command(cmd, arglist.count,
-                                      (const char *const *)arglist.args,
-                                      meshmap_error, sizeof(meshmap_error)))
+            if(!load_meshmap_command(cmd, buf + pos, meshmap_error, sizeof(meshmap_error)))
             {
                 errormessage = meshmap_error;
                 goto lCleanup;

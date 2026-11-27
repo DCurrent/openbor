@@ -429,19 +429,43 @@ static unsigned meshmap_mask_count(uint64_t mask)
     return count;
 }
 
+/* Diagnostics list ordinary slot indices, as in native text authoring. Keeping this
+ * conversion at the output boundary leaves the sparse traversal unchanged
+ * while avoiding a hexadecimal mask that creators would have to decode. */
+static void meshmap_dump_slots(const char *label, uint64_t mask)
+{
+    unsigned slot;
+    printf("  %s:", label);
+    if(!mask) printf(" none");
+    for(slot = 0; slot < MESHMAP_BANK_SLOTS; ++slot)
+    {
+        if(mask & (UINT64_C(1) << slot)) printf(" %u", slot);
+    }
+    printf("\n");
+}
+
 HRESULT openbor_get_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    const char *function = "get_meshmap_bank_property(collection, depth, prefix, property)";
+    const char *function = "get_meshmap_bank_property(collection, depth, prefix, property [, slot])";
     s_meshmap_store *store;
     s_meshmap_bank *bank;
-    uint64_t depth, prefix;
-    int property;
+    uint64_t depth, prefix, slot = 0;
+    int property, indexed;
     ScriptVariant_Clear(*pretvar);
-    if(paramCount != 4 || !(store = meshmap_script_store(varlist[0]))
+    if(paramCount < 4 || !(store = meshmap_script_store(varlist[0]))
        || !meshmap_script_uint(varlist[1], 3, &depth)
        || !meshmap_script_uint(varlist[2], MESHMAP_ID_MAX, &prefix)
        || !meshmap_script_int(varlist[3], &property))
         return meshmap_script_error(function, "expected collection, depth 0..3, packed prefix and property");
+    indexed = property == MESHMAP_BANK_PROPERTY_CHILD_PRESENT
+        || property == MESHMAP_BANK_PROPERTY_CHILD_ACTIVE;
+    if(indexed)
+    {
+        if(paramCount != 5 || !meshmap_script_uint(varlist[4], MESHMAP_BANK_SLOTS - 1, &slot))
+            return meshmap_script_error(function, "child properties require an integer slot from 0 through 63");
+    }
+    else if(paramCount != 4)
+        return meshmap_script_error(function, "only child properties accept a slot argument");
     bank = meshmap_bank_get(store, (unsigned)depth, (uint32_t)prefix, 0);
     if(property == MESHMAP_BANK_PROPERTY_EXISTS)
     {
@@ -460,9 +484,18 @@ HRESULT openbor_get_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant
     case MESHMAP_BANK_PROPERTY_PRESENT_MASK: meshmap_return_uint64(*pretvar, bank->present_mask); break;
     case MESHMAP_BANK_PROPERTY_ACTIVE_MASK: meshmap_return_uint64(*pretvar, bank->active_mask); break;
     case MESHMAP_BANK_PROPERTY_CHILD_COUNT: meshmap_return_int(*pretvar, meshmap_mask_count(bank->present_mask)); break;
+    case MESHMAP_BANK_PROPERTY_CHILD_PRESENT:
+        meshmap_return_int(*pretvar, (bank->present_mask & (UINT64_C(1) << slot)) != 0);
+        break;
+    case MESHMAP_BANK_PROPERTY_CHILD_ACTIVE:
+        /* This reads the bank's local selection. Inactive ancestors still
+         * suppresses traversal; use a map's ENABLED for the complete path. */
+        meshmap_return_int(*pretvar, (bank->active_mask & (UINT64_C(1) << slot)) != 0);
+        break;
     case PROPERTY_ACCESS_DUMP:
-        printf("\nMeshmap bank depth %u: present=0x%016llx active=0x%016llx\n", bank->depth,
-               (unsigned long long)bank->present_mask, (unsigned long long)bank->active_mask);
+        printf("\nMeshmap bank depth %u:\n", bank->depth);
+        meshmap_dump_slots("present", bank->present_mask);
+        meshmap_dump_slots("active", bank->active_mask);
         break;
     default: return meshmap_script_error(function, "unknown bank property");
     }
@@ -471,18 +504,29 @@ HRESULT openbor_get_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant
 
 HRESULT openbor_set_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    const char *function = "set_meshmap_bank_property(collection, depth, prefix, property, value)";
+    const char *function = "set_meshmap_bank_property(collection, depth, prefix, property, value [, slot])";
     s_meshmap_store *store;
     s_meshmap_bank *bank;
     s_meshmap_gate gate;
-    uint64_t depth, prefix, mask;
+    uint64_t depth, prefix, mask, slot = 0;
     int property, enabled, ok = 0;
     ScriptVariant_Clear(*pretvar);
-    if(paramCount != 5 || !(store = meshmap_script_store(varlist[0]))
+    if(paramCount < 5 || !(store = meshmap_script_store(varlist[0]))
        || !meshmap_script_uint(varlist[1], 3, &depth)
        || !meshmap_script_uint(varlist[2], MESHMAP_ID_MAX, &prefix)
        || !meshmap_script_int(varlist[3], &property))
         return meshmap_script_error(function, "expected collection, depth 0..3, packed prefix, property and value");
+    /* Validate argument shape before any allocation or mutation. Following the
+     * SAMPLE setter, the value precedes its extra index. Ordinary properties
+     * remain exact-arity calls, so accidental trailing indices cannot hide. */
+    if(property == MESHMAP_BANK_PROPERTY_CHILD_ACTIVE)
+    {
+        if(paramCount != 6 || !meshmap_script_uint(varlist[5], MESHMAP_BANK_SLOTS - 1, &slot)
+           || !meshmap_script_bool(varlist[4], &enabled))
+            return meshmap_script_error(function, "CHILD_ACTIVE requires value 0 or 1 followed by an integer slot from 0 through 63");
+    }
+    else if(paramCount != 5)
+        return meshmap_script_error(function, "only CHILD_ACTIVE accepts a slot argument");
     bank = meshmap_bank_get(store, (unsigned)depth, (uint32_t)prefix, 0);
     if(property == MESHMAP_BANK_PROPERTY_EXISTS)
     {
@@ -496,6 +540,8 @@ HRESULT openbor_set_meshmap_bank_property(ScriptVariant **varlist, ScriptVariant
         if(!bank) return meshmap_script_error(function, "create the bank before assigning its properties");
         if(property == MESHMAP_BANK_PROPERTY_ACTIVE_MASK)
             ok = meshmap_script_uint(varlist[4], UINT64_MAX, &mask) && meshmap_bank_set_mask(bank, mask);
+        else if(property == MESHMAP_BANK_PROPERTY_CHILD_ACTIVE)
+            ok = meshmap_bank_set_slot(bank, (unsigned)slot, enabled);
         else if(property >= MESHMAP_BANK_PROPERTY_GATE_ENABLED && property <= MESHMAP_BANK_PROPERTY_MAX_Z)
         {
             gate = bank->gate;
@@ -632,6 +678,87 @@ static int meshmap_text_axis(const char *text, e_meshmap_axis *axis)
     return 1;
 }
 
+/*
+ * Level authors select behavior by name, as they do for move_config and the
+ * other native flag commands. Build a replacement in local storage, then hand
+ * it to the validating configuration setter only after every name is known.
+ * There is intentionally no integer fallback: a mistyped or old numeric flag
+ * declaration must not silently enable a different combination of behavior.
+ * "none" contributes no options; "default" and "all" are named combinations.
+ */
+static int meshmap_text_flags(size_t count, const char *const *arguments, uint32_t *flags)
+{
+    static const struct
+    {
+        const char *name;
+        uint32_t value;
+    } options[] = {
+        {"none", MESHMAP_FLAGS_NONE},
+        {"default", MESHMAP_FLAGS_DEFAULT},
+        {"all", MESHMAP_FLAGS_ALL},
+        {"collide", MESHMAP_COLLIDE},
+        {"draw", MESHMAP_DRAW},
+        {"walkable", MESHMAP_WALKABLE},
+        {"one_way", MESHMAP_ONE_WAY},
+        {"drop_through", MESHMAP_DROP_THROUGH}
+    };
+    uint32_t replacement = MESHMAP_FLAGS_NONE;
+    size_t i, j;
+
+    for(i = 0; i < count; ++i)
+    {
+        if(!arguments[i]) return 0;
+        for(j = 0; j < sizeof(options) / sizeof(*options); ++j)
+        {
+            if(!stricmp(arguments[i], options[j].name))
+            {
+                replacement |= options[j].value;
+                break;
+            }
+        }
+        if(j == sizeof(options) / sizeof(*options)) return 0;
+    }
+    *flags = replacement;
+    return count != 0;
+}
+
+/*
+ * Child slots remain ordinary numeric indices. The "slots" keyword separates
+ * their list from a packed integer, so an old raw selection cannot silently
+ * become a child index. The alternative "none" and "all" forms stand alone;
+ * "all" refers only to children already present in this bank.
+ *
+ * Collect the complete selection before updating the bank. Repeated indices
+ * are harmless. An invalid or absent slot rejects the whole command, preserving
+ * the previous active selection even if earlier indices were valid.
+ */
+static int meshmap_text_slots(size_t count, const char *const *arguments,
+                              const s_meshmap_bank *bank, uint64_t *selection)
+{
+    uint64_t replacement = 0, slot;
+    size_t i;
+    if(!count || !arguments[0]) return 0;
+    if(count == 1 && !stricmp(arguments[0], "none"))
+    {
+        *selection = 0;
+        return 1;
+    }
+    if(count == 1 && !stricmp(arguments[0], "all"))
+    {
+        *selection = bank->present_mask;
+        return 1;
+    }
+    if(count < 2 || stricmp(arguments[0], "slots")) return 0;
+    for(i = 1; i < count; ++i)
+    {
+        if(!meshmap_text_uint(arguments[i], MESHMAP_BANK_SLOTS - 1u, &slot)
+           || !(bank->present_mask & (UINT64_C(1) << slot))) return 0;
+        replacement |= UINT64_C(1) << slot;
+    }
+    *selection = replacement;
+    return 1;
+}
+
 static int meshmap_text_address(const char *const *arguments, unsigned slots, uint32_t *id)
 {
     uint64_t address[4] = {0, 0, 0, 0};
@@ -718,6 +845,7 @@ int meshmap_level_command(int command, size_t count, const char *const *argument
         return 1;
 
     case CMD_LEVEL_MESHMAPSPACING:
+    case CMD_LEVEL_MESHMAPFLAGS:
     case CMD_LEVEL_MESHMAPRULES:
     case CMD_LEVEL_MESHMAPACTIVE:
     case CMD_LEVEL_MESHMAPBOUNDS:
@@ -740,6 +868,14 @@ int meshmap_level_command(int command, size_t count, const char *const *argument
                 return meshmap_text_error(error, error_capacity, "meshmapactive expects integer 0 or 1");
             return 1;
         }
+        if(command == CMD_LEVEL_MESHMAPFLAGS)
+        {
+            if(!meshmap_text_flags(count - 5, arguments + 5, &config.flags)
+               || !meshmap_configure(map, &config))
+                return meshmap_text_error(error, error_capacity,
+                    "meshmapflags expects collide draw walkable one_way drop_through none default or all");
+            return 1;
+        }
         if(command == CMD_LEVEL_MESHMAPBOUNDS)
         {
             if((count != 11 && count != 12) || !meshmap_text_gate(arguments + 5, count == 12, &gate)
@@ -747,20 +883,20 @@ int meshmap_level_command(int command, size_t count, const char *const *argument
                 return meshmap_text_error(error, error_capacity, "meshmapbounds expects min_x min_y min_z max_x max_y max_z [gate_mode]");
             return 1;
         }
-        if(count < 7 || count > 10 || !meshmap_text_uint(arguments[5], MESHMAP_FLAGS_ALL, &value))
-            return meshmap_text_error(error, error_capacity, "meshmaprules expects flags side [support_group] [slope_limit] [layer]");
-        config.flags = (uint32_t)value;
-        if(!meshmap_text_uint(arguments[6], MESHMAP_SIDE_POSITIVE, &value))
-            return meshmap_text_error(error, error_capacity, "meshmaprules side must be 0 (negative) or 1 (positive)");
+        /* Side and support group are scalar values. Behavior combinations are
+         * authored separately through meshmapflags and remain unchanged here. */
+        if(count > 9 || !meshmap_text_uint(arguments[5], MESHMAP_SIDE_POSITIVE, &value))
+            return meshmap_text_error(error, error_capacity,
+                "meshmaprules expects side (0 or 1) [support_group] [slope_limit] [layer]; use meshmapflags for behavior");
         config.side = (e_meshmap_side)value;
-        if(count > 7)
+        if(count > 6)
         {
-            if(!meshmap_text_uint(arguments[7], UINT32_MAX, &value))
+            if(!meshmap_text_uint(arguments[6], UINT32_MAX, &value))
                 return meshmap_text_error(error, error_capacity, "invalid meshmap support group");
             config.support_group = (uint32_t)value;
         }
-        if((count > 8 && !meshmap_text_number(arguments[8], &config.slope_limit))
-           || (count > 9 && !meshmap_text_int(arguments[9], &config.layer))
+        if((count > 7 && !meshmap_text_number(arguments[7], &config.slope_limit))
+           || (count > 8 && !meshmap_text_int(arguments[8], &config.layer))
            || !meshmap_configure(map, &config))
             return meshmap_text_error(error, error_capacity, "invalid meshmap collision/rendering rule value");
         return 1;
@@ -779,12 +915,13 @@ int meshmap_level_command(int command, size_t count, const char *const *argument
             return meshmap_text_error(error, error_capacity, "could not configure meshmap bank");
         return 1;
     case CMD_LEVEL_MESHMAPMASK:
-        if(count != 4 || !meshmap_text_uint(arguments[1], 3, &depth)
+        if(count < 4 || !meshmap_text_uint(arguments[1], 3, &depth)
            || !meshmap_text_uint(arguments[2], MESHMAP_ID_MAX, &prefix)
-           || !meshmap_text_uint(arguments[3], UINT64_MAX, &mask)
            || !(bank = meshmap_bank_get(store, (unsigned)depth, (uint32_t)prefix, 0))
+           || !meshmap_text_slots(count - 3, arguments + 3, bank, &mask)
            || !meshmap_bank_set_mask(bank, mask))
-            return meshmap_text_error(error, error_capacity, "meshmapmask expects an existing depth/prefix and a 64-bit mask containing only existing children");
+            return meshmap_text_error(error, error_capacity,
+                "meshmapmask expects an existing depth/prefix followed by none, all, or slots and existing child indices from 0 through 63");
         return 1;
     default:
         return meshmap_text_error(error, error_capacity, "unknown meshmap command");

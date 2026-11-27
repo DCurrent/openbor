@@ -102,7 +102,7 @@ void meshmap_config_default(s_meshmap_config *config)
     config->spacing_u = config->spacing_v = 1.0;
     config->max_height = 1.0;
     config->slope_limit = 45.0;
-    config->flags = MESHMAP_COLLIDE | MESHMAP_DRAW | MESHMAP_WALKABLE;
+    config->flags = MESHMAP_FLAGS_DEFAULT;
     config->support_group = MESHMAP_GROUP_NONE;
 }
 

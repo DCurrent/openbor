@@ -730,6 +730,7 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_MESHMAPAREA, "meshmaparea");
     LIST_ADD(CMD_LEVEL_MESHMAPBANK, "meshmapbank");
     LIST_ADD(CMD_LEVEL_MESHMAPBOUNDS, "meshmapbounds");
+    LIST_ADD(CMD_LEVEL_MESHMAPFLAGS, "meshmapflags");
     LIST_ADD(CMD_LEVEL_MESHMAPMASK, "meshmapmask");
     LIST_ADD(CMD_LEVEL_MESHMAPROOM, "meshmaproom");
     LIST_ADD(CMD_LEVEL_MESHMAPRULES, "meshmaprules");

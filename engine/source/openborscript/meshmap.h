@@ -85,6 +85,10 @@ typedef enum e_meshmap_bank_properties
     MESHMAP_BANK_PROPERTY_MAX_X,
     MESHMAP_BANK_PROPERTY_MAX_Y,
     MESHMAP_BANK_PROPERTY_MAX_Z,
+    /* Indexed Boolean access avoids requiring scripts to compose bank masks.
+     * These append a slot argument; CHILD_PRESENT is read-only. */
+    MESHMAP_BANK_PROPERTY_CHILD_PRESENT,
+    MESHMAP_BANK_PROPERTY_CHILD_ACTIVE,
     MESHMAP_BANK_PROPERTY_END
 } e_meshmap_bank_properties;
 

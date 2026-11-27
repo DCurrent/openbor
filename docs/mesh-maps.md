@@ -152,7 +152,7 @@ def chunk(kind, payload):
     return (
         struct.pack(">I", len(payload))
         + kind + payload
-        + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff)
+        + struct.pack(">I", zlib.crc32(kind + payload))
     )
 
 def write_png(name, width, height, depth, color_type, rows):
@@ -204,7 +204,7 @@ write_png("road24.png", 257, 65, 8, 2, rows)
 PY
 ```
 
-Add these declarations to an otherwise valid level sheet:
+Place these declarations in an otherwise valid level sheet:
 
 ```text
 # Current-position gate, deliberately larger than the grid.
@@ -216,9 +216,11 @@ meshmap 0 0 0 0 y 0 0 0 -24 0 data/terrain/trough16.png data/terrain/road24.png
 # 65x17 vertices now span 1024x256 world units.
 meshmapspacing 0 0 0 0 16 16
 
-# collide + automatic draw + walkable; solid below; independent support;
-# 45-degree slope limit; painter layer -1000.
-meshmaprules 0 0 0 0 7 0 4294967295 45 -1000
+# Collision, automatic drawing and walkable support.
+meshmapflags 0 0 0 0 collide draw walkable
+
+# Solid below; independent support; 45-degree slope limit; layer -1000.
+meshmaprules 0 0 0 0 0 4294967295 45 -1000
 ```
 
 Place an entity over this patch, with X between 0 and 1024 and Z between 0
@@ -234,15 +236,18 @@ position.
 
 ## Native level-sheet commands
 
-Commands use numeric fields in the order below. Brackets denote optional
+Commands use the fields in the order below. Brackets denote optional
 trailing arguments and are not typed in the level sheet. Address components
 are integers from 0 through 63. Axis accepts `x`, `y`, `z`, their uppercase
-forms or the numeric values in the coordinate table.
+forms or the numeric values in the coordinate table. Flags use
+case-insensitive names separated by spaces or tabs. Addresses, child-slot
+indices, side selectors and support-group IDs remain ordinary integers.
 
 ```text
 meshmap area sector room index axis x y z minimum maximum geometry_png [artwork_png]
 meshmapspacing area sector room index spacing_u spacing_v
-meshmaprules area sector room index flags side [support_group] [slope_limit] [layer]
+meshmapflags area sector room index flag [flag ...]
+meshmaprules area sector room index side [support_group] [slope_limit] [layer]
 meshmapactive area sector room index enabled
 meshmapbounds area sector room index min_x min_y min_z max_x max_y max_z [gate_mode]
 
@@ -251,12 +256,14 @@ meshmapsector area sector min_x min_y min_z max_x max_y max_z [gate_mode]
 meshmaproom area sector room min_x min_y min_z max_x max_y max_z [gate_mode]
 
 meshmapbank depth packed_prefix min_x min_y min_z max_x max_y max_z [gate_mode]
-meshmapmask depth packed_prefix active_mask
+meshmapmask depth packed_prefix none
+meshmapmask depth packed_prefix all
+meshmapmask depth packed_prefix slots slot [slot ...]
 ```
 
 `meshmap` creates an unoccupied address and loads its resources. Omit artwork
 or use the literal `none` to leave the map invisible. Repeating the same
-address is an error. The spacing, rules, active and bounds commands require
+address is an error. The spacing, flags, rules, active and bounds commands require
 an existing map.
 
 Bank declarations can precede maps. Ancestors created implicitly by a map
@@ -264,12 +271,21 @@ start with unrestricted gates. The default `gate_mode` is 0, current
 position; 1 selects the optional current body box. `meshmapbounds` adds the
 same kind of gate to an individual map.
 
-Flags, masks, IDs and other integer fields accept decimal or hexadecimal
-text. Level-sheet flags are a numeric bitmask; they are not a script
-expression such as `COLLIDE | WALKABLE`. Optional rule arguments are
-positional: supply a support group before supplying a slope limit or layer.
+`meshmapflags` replaces the map's complete flag selection with the named
+flags on that line. The names are combined internally. For example,
+`collide walkable` enables collision and supporting contacts without
+automatic drawing. Numeric masks, pipe-delimited expressions and unknown
+names are rejected. `none` contributes no flags; used alone, it disables all
+flags. It does not remove names already included on the same line.
 
-### Default map settings and rule bits
+`meshmaprules` requires side 0 for the negative side or 1 for the positive
+side. Its optional arguments retain their current values when omitted.
+Support-group IDs are ordinary unsigned integers; 4294967295 means
+independent support identity. Optional arguments are positional: supply the
+group before the slope limit or layer. IDs and other integer data fields
+accept decimal or hexadecimal text.
+
+### Default map settings and named flags
 
 | Setting | Default |
 | --- | --- |
@@ -278,32 +294,48 @@ positional: supply a support group before supplying a slope limit or layer.
 | Displacement range | `0..1` for a map created by script; explicit in a level declaration |
 | Spacing U/V | `1 / 1` |
 | Solid side | Negative |
-| Flags | 7: collide, automatic draw and walkable |
-| Support group | `MESHMAP_GROUP_NONE`, 4294967295 |
+| Flags | `default`: collide, automatic draw and walkable |
+| Support group | 4294967295 / `MESHMAP_GROUP_NONE` |
 | Maximum walkable slope | 45 degrees |
 | Painter layer | 0 |
 | Gates | Disabled, meaning unrestricted |
 | Active slot | Enabled when created |
 
-| Rule constant | Bit value | Meaning |
-| --- | ---: | --- |
-| `MESHMAP_COLLIDE` | 1 | Participate in native terrain collision |
-| `MESHMAP_DRAW` | 2 | Automatically queue artwork in the native scene |
-| `MESHMAP_WALKABLE` | 4 | Permit qualifying upward contacts to support an entity |
-| `MESHMAP_ONE_WAY` | 8 | Use the one-way platform behavior in the entity adapter |
-| `MESHMAP_DROP_THROUGH` | 16 | Permit an explicit drop request on a one-way support |
-| `MESHMAP_FLAGS_ALL` | 31 | All defined bits |
+| Native name | Script constant | Meaning |
+| --- | --- | --- |
+| `collide` | `MESHMAP_COLLIDE` | Participate in native terrain collision |
+| `draw` | `MESHMAP_DRAW` | Automatically queue artwork in the native scene |
+| `walkable` | `MESHMAP_WALKABLE` | Permit qualifying upward contacts to support an entity |
+| `one_way` | `MESHMAP_ONE_WAY` | Use the one-way platform behavior in the entity adapter |
+| `drop_through` | `MESHMAP_DROP_THROUGH` | Permit an explicit drop request on a one-way support |
+| `none` | `MESHMAP_FLAGS_NONE` | No flags |
+| `default` | `MESHMAP_FLAGS_DEFAULT` | Collision, automatic drawing and walkable support |
+| `all` | `MESHMAP_FLAGS_ALL` | Every defined flag |
+
+Scripts use these constants with `openborconstant()`. Combine constants
+with bitwise OR when assigning `MESHMAP_PROPERTY_FLAGS`:
+
+```c
+set_meshmap_property(maps, id,
+    openborconstant("MESHMAP_PROPERTY_FLAGS"),
+    openborconstant("MESHMAP_COLLIDE")
+        | openborconstant("MESHMAP_WALKABLE"));
+```
+
+The individual `COLLIDE`, `DRAW`, `WALKABLE`, `ONE_WAY` and `DROP_THROUGH`
+properties also accept ordinary Boolean 0/1 values. Use them when changing
+one option while preserving the others.
 
 `MESHMAP_DRAW` controls **automatic native scene drawing**. Explicit
 `draw_meshmap()` and `draw_meshmap_projected()` calls can draw an active map
-with artwork even when this bit is off. This is useful when a game renders
+with artwork even when this flag is off. This is useful when a game renders
 its terrain only into a projected subscreen.
 
 ### Solid side and overlapping maps
 
-`MESHMAP_SIDE_NEGATIVE` is 0. Within an existing cell, mapped coordinates at
-or below the sampled surface are solid. `MESHMAP_SIDE_POSITIVE` is 1 and
-makes coordinates at or above that surface solid instead.
+Side 0 / `MESHMAP_SIDE_NEGATIVE` makes mapped coordinates at or below the
+sampled surface solid within an existing cell. Side 1 /
+`MESHMAP_SIDE_POSITIVE` makes coordinates at or above that surface solid.
 
 For a Y map, negative means the ground below the surface. Positive can
 describe an overhead solid region. For an X map, negative is the lower-X
@@ -334,7 +366,7 @@ has a present mask and an active mask. Only existing, active children are
 visited; disabling a parent removes its descendants from collision and
 drawing without freeing their resources.
 
-| Bank depth | Bank addressed | Active-mask bits refer to |
+| Bank depth | Bank addressed | Child slots refer to |
 | ---: | --- | --- |
 | 0 | Collection root | Areas |
 | 1 | Area selected by the prefix | Sectors |
@@ -346,10 +378,30 @@ depth are ignored. Prefix 270532 therefore addresses area 1 at depth 1,
 sector 1/2 at depth 2, or room 1/2/3 at depth 3. The root convention is
 depth 0, prefix 0.
 
-The active mask may contain only bits whose children exist. Setting a
-nonexistent child's bit is rejected. Creating children activates their new
-slots; it does not reactivate an already disabled ancestor. Enabling one
-map's local slot likewise does not override a disabled area, sector or room.
+`meshmapmask` replaces a bank's active selection. Use `slots` followed by
+ordinary child indices from 0 through 63, `none` to disable every child, or
+`all` to enable every child present when the command runs. `none` and `all`
+appear alone after the prefix. Keywords are case-insensitive. The `slots`
+keyword identifies a list of indices; the engine builds its internal mask.
+Each selected slot must already exist. Packed numeric masks are rejected.
+
+For example, when areas 0 and 1 already exist:
+
+```text
+# Keep these two areas active and disable the other areas.
+meshmapmask 0 0 slots 0 1
+
+# Temporarily disable every area while retaining their resources.
+meshmapmask 0 0 none
+
+# Enable every area that currently exists.
+meshmapmask 0 0 all
+```
+
+The active selection cannot include a nonexistent child. Creating children
+activates their new slots; it does not reactivate an already disabled
+ancestor. Enabling one map's local slot likewise does not override a
+disabled area, sector or room.
 
 ### Position gates and optional body gates
 
@@ -388,7 +440,8 @@ Use the generated `side16.png` in a separate test level:
 meshmaparea 0 -128 -256 -8 256 256 8
 meshmap 0 0 0 0 z 0 128 0 -1 1 data/terrain/side16.png
 meshmapspacing 0 0 0 0 8 8
-meshmaprules 0 0 0 0 5 0 4294967295 45
+meshmapflags 0 0 0 0 collide walkable
+meshmaprules 0 0 0 0 0 4294967295 45
 ```
 
 This map spans X = 0..128 and Y = 128..0. At the play plane Z = 0, values
@@ -415,7 +468,8 @@ Y = 0..128 and Z = 0..128:
 ```text
 meshmap 0 0 0 0 x 300 128 0 0 0 data/terrain/flat16.png
 meshmapspacing 0 0 0 0 128 128
-meshmaprules 0 0 0 0 1 1
+meshmapflags 0 0 0 0 collide
+meshmaprules 0 0 0 0 1
 ```
 
 The positive solid side blocks entry toward increasing X. Using the
@@ -546,8 +600,8 @@ Only `SAMPLE` uses column and row. Prefix every suffix below with
 | `MINIMUM`, `MAXIMUM` | Read/write | Signed local displacement endpoints |
 | `SPACING_U`, `SPACING_V` | Read/write | Positive world units per vertex interval |
 | `SLOPE_LIMIT` | Read/write | Map's maximum supporting slope, 0..90 degrees |
-| `FLAGS` | Read/write | Complete defined rule bitmask |
-| `COLLIDE`, `DRAW`, `WALKABLE`, `ONE_WAY`, `DROP_THROUGH` | Read/write | Individual rule bits as integer 0/1 |
+| `FLAGS` | Read/write | Complete flag selection, supplied using named rule constants |
+| `COLLIDE`, `DRAW`, `WALKABLE`, `ONE_WAY`, `DROP_THROUGH` | Read/write | Individual rule switches as integer 0/1 |
 | `SUPPORT_GROUP` | Read/write | Unsigned group ID or `MESHMAP_GROUP_NONE` |
 | `LAYER` | Read/write | Automatic native painter layer |
 | `WIDTH`, `HEIGHT` | Read | Geometry dimensions in vertices |
@@ -560,9 +614,9 @@ Only `SAMPLE` uses column and row. Prefix every suffix below with
 | `GATE_MODE` | Read/write | `MESHMAP_GATE_POSITION` or `MESHMAP_GATE_BODY` |
 | `MIN_X`, `MIN_Y`, `MIN_Z`, `MAX_X`, `MAX_Y`, `MAX_Z` | Read/write | Creator-authored world gate bounds |
 
-IDs, selectors, sample coordinates, masks and booleans require integer
-arguments. Geometric quantities accept finite numeric values. Requests for
-an absent map are errors except for `EXISTS`.
+IDs, selectors, sample coordinates and booleans require integer arguments.
+Use named constants for flags. Geometric quantities accept finite numeric
+values. Requests for an absent map are errors except for `EXISTS`.
 
 ### World-space surface probes
 
@@ -606,6 +660,9 @@ allocation needs to be released.
 ```text
 get_meshmap_bank_property(collection, depth, prefix, property)
 set_meshmap_bank_property(collection, depth, prefix, property, value)
+
+get_meshmap_bank_property(collection, depth, prefix, child_property, slot)
+set_meshmap_bank_property(collection, depth, prefix, child_property, value, slot)
 ```
 
 Prefix the following names with `MESHMAP_BANK_PROPERTY_`:
@@ -614,8 +671,10 @@ Prefix the following names with `MESHMAP_BANK_PROPERTY_`:
 | --- | --- | --- |
 | `EXISTS` | Read/write | Create or remove the selected bank |
 | `DEPTH` | Read | Depth 0..3 |
-| `PRESENT_MASK` | Read | Existing immediate children |
-| `ACTIVE_MASK` | Read/write | Enabled immediate children; subset of present mask |
+| `PRESENT_MASK` | Read | Opaque selection of existing immediate children; assign to `ACTIVE_MASK` to enable them |
+| `ACTIVE_MASK` | Read/write | Enabled immediate children; use an opaque returned mask or `MESHMAP_BANK_MASK_NONE` |
+| `CHILD_PRESENT` | Read | Whether the selected immediate child exists; extra `slot` argument |
+| `CHILD_ACTIVE` | Read/write | Selected immediate child's local active state as 0/1; extra `slot` argument |
 | `CHILD_COUNT` | Read | Number of present immediate children |
 | `GATE_ENABLED`, `GATE_MODE` | Read/write | Gate activation and position/body mode |
 | `MIN_X`, `MIN_Y`, `MIN_Z`, `MAX_X`, `MAX_Y`, `MAX_Z` | Read/write | World gate bounds |
@@ -624,16 +683,40 @@ Removing a bank also removes its descendants. Removing depth 0 clears the
 collection while retaining the level-owned collection handle. Removing one
 map does not automatically prune its empty ancestor banks.
 
-Keep masks as exact integer values. They are returned as unsigned 64-bit
-script variants; converting them to floating point can lose high bits. This
-example saves and restores the root's exact mask:
+Use `CHILD_PRESENT` and `CHILD_ACTIVE` for individual slots. The slot is an
+ordinary index from 0 through 63. It follows the value in the setter:
+
+```c
+// Disable area 1 while preserving every other area's active state.
+if(get_meshmap_bank_property(maps, 0, 0,
+    openborconstant("MESHMAP_BANK_PROPERTY_CHILD_PRESENT"), 1))
+{
+    set_meshmap_bank_property(maps, 0, 0,
+        openborconstant("MESHMAP_BANK_PROPERTY_CHILD_ACTIVE"), 0, 1);
+}
+```
+
+To enable every currently present child, pass the opaque `PRESENT_MASK`
+value to `ACTIVE_MASK`:
+
+```c
+set_meshmap_bank_property(maps, 0, 0,
+    openborconstant("MESHMAP_BANK_PROPERTY_ACTIVE_MASK"),
+    get_meshmap_bank_property(maps, 0, 0,
+        openborconstant("MESHMAP_BANK_PROPERTY_PRESENT_MASK")));
+```
+
+Whole masks can also be saved and restored as opaque values. Keep the
+returned variant without converting it to a floating-point value or a
+narrower integer type, so every slot is preserved:
 
 ```c
 void saved_mask = get_meshmap_bank_property(
     maps, 0, 0, openborconstant("MESHMAP_BANK_PROPERTY_ACTIVE_MASK"));
 
 set_meshmap_bank_property(
-    maps, 0, 0, openborconstant("MESHMAP_BANK_PROPERTY_ACTIVE_MASK"), 0);
+    maps, 0, 0, openborconstant("MESHMAP_BANK_PROPERTY_ACTIVE_MASK"),
+    openborconstant("MESHMAP_BANK_MASK_NONE"));
 
 // Later, while these children still exist:
 set_meshmap_bank_property(
@@ -671,7 +754,7 @@ void main()
 }
 ```
 
-Walkability requires an upward-facing contact, the map's `WALKABLE` bit and
+Walkability requires an upward-facing contact, the map's `WALKABLE` flag and
 a slope permitted by **both** the map and entity limits. The slope is
 measured from world up. Selecting a fixed movement plane projects the contact normal
 into the permitted plane for that decision. The stored world contact normal
@@ -700,7 +783,8 @@ meshmap 0 0 0 1 y 160 80 96 0 0 data/terrain/flat16.png
 meshmapspacing 0 0 0 1 160 32
 
 # One-way, drop-through, walkable collision; no artwork attached.
-meshmaprules 0 0 0 1 31 0 12 45 80
+meshmapflags 0 0 0 1 collide walkable one_way drop_through
+meshmaprules 0 0 0 1 0 12 45 80
 ```
 
 This platform spans X = 160..320, Z = 96..128, at Y = 80. The negative solid
@@ -795,7 +879,7 @@ screen_y = world_z - world_y - screeny + gfx_y_offset
 
 Queue entries retain the level collection and numeric map ID. They resolve
 the current resources when drawn. Removing a queued map, replacing its
-artwork or clearing its `DRAW` bit before playback is therefore safe.
+artwork or clearing its `DRAW` flag before playback is therefore safe.
 
 ### Explicit draw functions
 
@@ -821,7 +905,7 @@ sampling controls use the established renderer. Terrain placement comes
 from the map and supplied view, not a drawmethod affine or curve transform.
 
 Explicit draws honor active ancestry and available artwork, but do not
-require `MESHMAP_DRAW`. Set that flag to 0 for a map rendered exclusively
+require `MESHMAP_DRAW`. Set `MESHMAP_PROPERTY_DRAW` to 0 for a map rendered exclusively
 through a scripted view. Its `LAYER` controls the automatic scene entry
 only; the caller chooses where a completed subscreen is queued.
 

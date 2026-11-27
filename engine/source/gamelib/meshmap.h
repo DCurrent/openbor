@@ -47,7 +47,14 @@ typedef enum e_meshmap_flags
     MESHMAP_DROP_THROUGH = 1u << 4
 } e_meshmap_flags;
 
+#define MESHMAP_FLAGS_NONE 0u
+#define MESHMAP_FLAGS_DEFAULT (MESHMAP_COLLIDE | MESHMAP_DRAW | MESHMAP_WALKABLE)
 #define MESHMAP_FLAGS_ALL (MESHMAP_COLLIDE | MESHMAP_DRAW | MESHMAP_WALKABLE | MESHMAP_ONE_WAY | MESHMAP_DROP_THROUGH)
+
+/* Scripts may clear or restore an opaque bank selection. Individual children
+ * use ordinary numeric slot indices through the indexed bank properties.
+ * There is no fixed ALL mask: "all" means that bank's present children. */
+#define MESHMAP_BANK_MASK_NONE UINT64_C(0)
 
 typedef struct s_meshmap_vec3 { double x, y, z; } s_meshmap_vec3;
 typedef struct s_meshmap_bounds { s_meshmap_vec3 min, max; } s_meshmap_bounds;
