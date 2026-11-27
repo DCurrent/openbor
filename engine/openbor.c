@@ -32436,6 +32436,7 @@ void check_gravity(entity *e)
                     if(!check_bind_override(self, BIND_CONFIG_OVERRIDE_FALL_LAND))
                     {
                         self->position.y = self->base;
+                        meshmap_entity_land(self);
                         self->falling = 0;
 
                         if ( self->hitwall ) self->hitwall = 0;

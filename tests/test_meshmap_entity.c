@@ -115,6 +115,83 @@ static void test_slopes(void)
     NEAR(e.position.y, 0);
 }
 
+/* Gravity's resting tolerance can finish a fall just before the feet cross
+ * a mesh. Support must identify the receiver on that first clamped tick,
+ * while a nearby higher legacy floor must keep its independent identity. */
+static void test_landing_support_identity(void)
+{
+    const double floor_y = -31.67531677;
+    entity e;
+    s_meshmap *map;
+    scene();
+    map = flat(7, MESHMAP_AXIS_Y, -10, 0, -10, 20, 20, floor_y);
+    e = actor(0, (float)(floor_y + 3.0), 0, 4);
+    e.velocity.y = -2.95f;
+    meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+    REQUIRE(e.base == (float)floor_y);
+    REQUIRE(e.meshmap.support_id == -1);
+    e.position.y = meshmap_entity_vertical(&e, (float)(floor_y + 0.05));
+    REQUIRE(e.position.y > e.base && e.position.y - e.base < 0.1f);
+    REQUIRE(e.meshmap.support_id == -1);
+
+    /* check_gravity accepts this resting gap and clamps to the selected base. */
+    e.position.y = e.base;
+    meshmap_entity_land(&e);
+    REQUIRE(e.meshmap.support_id == 7);
+    REQUIRE(e.meshmap.support_generation == map->generation);
+    REQUIRE(e.meshmap.support_y == e.base);
+
+    /* Even a legacy floor within the contact skin remains distinct. Reusing
+     * the actor also proves a former mesh support cannot leak into this land. */
+    e.position.y = e.base = (float)(floor_y + 0.005);
+    meshmap_entity_land(&e);
+    REQUIRE(e.meshmap.support_id == -1);
+    REQUIRE(e.meshmap.support_generation == 0);
+    REQUIRE(e.position.y == (float)(floor_y + 0.005));
+    REQUIRE(e.base == e.position.y);
+}
+
+/* Entity positions are floats, while terrain calculations are doubles. At
+ * large world coordinates an unrounded candidate can produce a different
+ * support Y from the next base refresh. Native gravity treats that mismatch
+ * as a new landing and stops horizontal velocity even on a gentle slope. */
+static void test_large_world_resting_contact(void)
+{
+    const uint16_t samples[4] = {32768, 35000, 32790, 35080};
+    entity e;
+    s_meshmap *map;
+    s_meshmap_config config;
+    s_meshmap_sample sample;
+    scene();
+    map = flat(0, MESHMAP_AXIS_Y, 16384, 0, 0, 16384, 16384, 0);
+    config = map->config;
+    config.min_height = -32;
+    config.max_height = 32;
+    REQUIRE(meshmap_configure(map, &config));
+    REQUIRE(meshmap_set_geometry(map, 2, 2, samples, "large-world shallow plane"));
+    e = actor(18761.123f, 0, 4817.456f, 22);
+    REQUIRE(meshmap_sample_world(map, (s_meshmap_vec3){e.position.x, 0, e.position.z}, &sample));
+    e.position.y = (float)sample.position.y;
+    meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+    for(unsigned tick = 0; tick < 400; ++tick)
+    {
+        const float direction = (tick / 100) % 2 ? 1.0f : -1.0f;
+        const float old_x = e.position.x;
+        const float requested_x = direction * 6.29321f;
+        const float requested_z = direction * 0.21789f;
+        float dx = requested_x, dz = requested_z;
+        meshmap_entity_move(&e, &dx, &dz);
+        REQUIRE(dx == requested_x && dz == requested_z);
+        e.position.x += dx;
+        e.position.z += dz;
+        REQUIRE(fabs(e.position.x - old_x) > 6.29);
+        REQUIRE(e.position.y == e.base);
+        meshmap_entity_adjust_base(&e, MESHMAP_ENTITY_VOID_BASE);
+        REQUIRE(e.meshmap.support_id == 0);
+        REQUIRE(e.position.y == e.base);
+    }
+}
+
 static void test_side_platforms(void)
 {
     entity e;
@@ -401,6 +478,8 @@ int main(void)
 {
     test_ground_and_holes();
     test_slopes();
+    test_landing_support_identity();
+    test_large_world_resting_contact();
     test_side_platforms();
     test_steps_and_intervening_wall();
     test_x_wall_and_gates();

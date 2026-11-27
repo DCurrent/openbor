@@ -55,6 +55,18 @@ typedef enum e_meshmap_properties
     MESHMAP_PROPERTY_MAX_X,
     MESHMAP_PROPERTY_MAX_Y,
     MESHMAP_PROPERTY_MAX_Z,
+    /* World-space probes read the same triangle used by native contact and
+     * drawing. They append XYZ arguments to get_meshmap_property(). */
+    MESHMAP_PROPERTY_SURFACE_PRESENT,
+    MESHMAP_PROPERTY_SURFACE_X,
+    MESHMAP_PROPERTY_SURFACE_Y,
+    MESHMAP_PROPERTY_SURFACE_Z,
+    MESHMAP_PROPERTY_SURFACE_NORMAL_X,
+    MESHMAP_PROPERTY_SURFACE_NORMAL_Y,
+    MESHMAP_PROPERTY_SURFACE_NORMAL_Z,
+    MESHMAP_PROPERTY_SURFACE_COLUMN,
+    MESHMAP_PROPERTY_SURFACE_ROW,
+    MESHMAP_PROPERTY_SURFACE_TRIANGLE,
     MESHMAP_PROPERTY_END
 } e_meshmap_properties;
 

@@ -225,10 +225,12 @@ static uint32_t meshmap_property_flag(int property)
 /*
  * Read a map by its level-local ID. SAMPLE adds column and row arguments;
  * dimensions and samples remain native integers rather than image colors.
+ * SURFACE_* instead adds a world XYZ probe. Native interpolation owns these
+ * results so cameras, rider attitude and scenery need no second height field.
  */
 HRESULT openbor_get_meshmap_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    const char *function = "get_meshmap_property(collection, id, property [, column, row])";
+    const char *function = "get_meshmap_property(collection, id, property [, column, row | world_x, world_y, world_z])";
     s_meshmap_store *store;
     const s_meshmap *map;
     const meshmap_property_info *info;
@@ -249,6 +251,40 @@ HRESULT openbor_get_meshmap_property(ScriptVariant **varlist, ScriptVariant **pr
         return S_OK;
     }
     if(!map) return meshmap_script_error(function, "map does not exist");
+    if(property >= MESHMAP_PROPERTY_SURFACE_PRESENT && property <= MESHMAP_PROPERTY_SURFACE_TRIANGLE)
+    {
+        s_meshmap_vec3 point;
+        s_meshmap_sample sample;
+        int present;
+        if(paramCount != 6 || !meshmap_script_number(varlist[3], &point.x)
+           || !meshmap_script_number(varlist[4], &point.y)
+           || !meshmap_script_number(varlist[5], &point.z))
+            return meshmap_script_error(function, "surface properties require finite world X, Y and Z");
+        /* This is a numerical resource probe, independent of entity admission
+         * gates and active masks. Missing cells return PRESENT=0 and NULL for
+         * other fields, keeping an actual zero-height surface distinguishable.
+         * The mapped coordinate is replaced by the sampled surface position. */
+        present = meshmap_sample_world(map, point, &sample);
+        if(property == MESHMAP_PROPERTY_SURFACE_PRESENT)
+            meshmap_return_int(*pretvar, present);
+        else if(present)
+        {
+            switch(property)
+            {
+            case MESHMAP_PROPERTY_SURFACE_X: meshmap_return_double(*pretvar, sample.position.x); break;
+            case MESHMAP_PROPERTY_SURFACE_Y: meshmap_return_double(*pretvar, sample.position.y); break;
+            case MESHMAP_PROPERTY_SURFACE_Z: meshmap_return_double(*pretvar, sample.position.z); break;
+            case MESHMAP_PROPERTY_SURFACE_NORMAL_X: meshmap_return_double(*pretvar, sample.normal.x); break;
+            case MESHMAP_PROPERTY_SURFACE_NORMAL_Y: meshmap_return_double(*pretvar, sample.normal.y); break;
+            case MESHMAP_PROPERTY_SURFACE_NORMAL_Z: meshmap_return_double(*pretvar, sample.normal.z); break;
+            case MESHMAP_PROPERTY_SURFACE_COLUMN: meshmap_return_uint64(*pretvar, sample.column); break;
+            case MESHMAP_PROPERTY_SURFACE_ROW: meshmap_return_uint64(*pretvar, sample.row); break;
+            case MESHMAP_PROPERTY_SURFACE_TRIANGLE: meshmap_return_uint64(*pretvar, sample.triangle); break;
+            default: break;
+            }
+        }
+        return S_OK;
+    }
     info = meshmap_config_property(property);
     if(info)
     {

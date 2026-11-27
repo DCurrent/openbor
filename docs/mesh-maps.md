@@ -564,6 +564,43 @@ IDs, selectors, sample coordinates, masks and booleans require integer
 arguments. Geometric quantities accept finite numeric values. Requests for
 an absent map are errors except for `EXISTS`.
 
+### World-space surface probes
+
+Camera, scenery and rider scripts can inspect the exact native triangle at a
+world position through the read-only `SURFACE_*` properties:
+
+```text
+get_meshmap_property(collection, id, surface_property, world_x, world_y, world_z)
+```
+
+`MESHMAP_PROPERTY_SURFACE_PRESENT` returns 1 when the probe lies in an existing
+cell and 0 outside the map or over a hole. `SURFACE_X`, `SURFACE_Y` and
+`SURFACE_Z` return the sampled world surface position. `SURFACE_NORMAL_X`,
+`SURFACE_NORMAL_Y` and `SURFACE_NORMAL_Z` return its outward unit normal.
+`SURFACE_COLUMN`, `SURFACE_ROW` and `SURFACE_TRIANGLE` identify the cell and
+triangle. Prefix each suffix with `MESHMAP_PROPERTY_`.
+
+The mapped coordinate of the probe is replaced by the sampled displacement;
+for example, Y-map sampling uses the supplied X/Z and returns the ground Y.
+Supply three finite coordinates even when one coordinate does not affect the
+lookup. Fields other than `SURFACE_PRESENT` return NULL over missing terrain.
+These are numerical resource queries, so active masks and entity-admission
+bounds do not restrict them. Native movement continues to enforce those rules.
+
+```c
+if(get_meshmap_property(maps, id,
+    openborconstant("MESHMAP_PROPERTY_SURFACE_PRESENT"), x, 0, z))
+{
+    float ground_y = get_meshmap_property(maps, id,
+        openborconstant("MESHMAP_PROPERTY_SURFACE_Y"), x, 0, z);
+}
+```
+
+This keeps presentation and placement tied to the same PNG samples and
+triangle interpolation as collision, without a separately generated script
+height table. Sample values are read immediately; no result handle or extra
+allocation needs to be released.
+
 ### Bank properties
 
 ```text
@@ -903,6 +940,14 @@ the following order.
    and per-entity drop exceptions. `engine/openbor.c` invokes this adapter
    at the existing movement/base lifecycle points. Map identities use
    generations so resource removal does not leave borrowed contact pointers.
+   Lateral support is sampled at the float endpoint the entity will actually
+   store, preventing tiny double/float height disagreements from generating
+   repeated landings at large world coordinates. Unobstructed displacement
+   retains its original request for the legacy movement-result comparison.
+   Gravity's final floor clamp also revalidates mesh support identity, so a
+   landing inside the engine's resting tolerance has a support ID immediately.
+   That refresh requires the selected base to match the mesh's stored height;
+   nearby terrain cannot claim a higher legacy wall or platform.
 
 5. **Expose one native model to sheets and scripts.**
    `engine/source/openborscript/meshmap.[ch]` parses complete native

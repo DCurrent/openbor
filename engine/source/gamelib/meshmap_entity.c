@@ -276,6 +276,30 @@ void meshmap_entity_adjust_base(entity *e, float legacy_base)
     }
 }
 
+/*
+ * Native gravity also lands within its resting tolerance before the feet
+ * actually cross a surface. Base selection can know that receiver while the
+ * pre-move position is still airborne, so a vertical trace need not have set
+ * support yet. Resolve identity at the final clamped position instead of
+ * claiming contact early. Exact stored-height agreement preserves the chosen
+ * legacy floor when a mesh lies nearby beneath a wall or platform.
+ */
+void meshmap_entity_land(entity *e)
+{
+    s_meshmap_query query;
+    s_meshmap_hit hit;
+    if(!e) return;
+    terrain_clear_support(e);
+    if(!terrain_enabled(e) || e->meshmap.movement_plane == MESHMAP_AXIS_Y) return;
+    terrain_refresh_drop(e);
+    query = terrain_query(e);
+    if(terrain_support(&query, e->position.x, e->position.z,
+                       e->position.y + TERRAIN_SKIN,
+                       e->position.y - TERRAIN_REST_DISTANCE, &hit) > 0 &&
+       hit.walkable && (float)hit.position.y == e->base)
+        terrain_set_support(e, &hit);
+}
+
 float meshmap_entity_check_base(entity *e, float x, float z,
                                float ceiling, float legacy_base)
 {
@@ -402,8 +426,23 @@ static double terrain_move_axis_part(entity *e, const s_meshmap_query *snapshot,
     double fraction = 1.0, lift = 0.0;
     int blocked, support_result = 0, subdivide = 0;
     if(delta == 0.0 || e->meshmap.movement_plane == (int)axis) return 0.0;
-    if(axis == MESHMAP_AXIS_X) end.x += delta;
-    else end.z += delta;
+    /* Entity coordinates are stored as floats. Query the endpoint that can
+     * actually be stored, then return its matching displacement. Sampling an
+     * unrounded double endpoint gives a slightly different support Y on the
+     * next base refresh, which legacy gravity interprets as a fresh landing
+     * and uses to stop horizontal motion. Large worlds expose this even on
+     * extremely shallow slopes. Keep all later route tests on this endpoint. */
+    if(axis == MESHMAP_AXIS_X)
+    {
+        end.x = (float)(end.x + delta);
+        delta = end.x - start.x;
+    }
+    else
+    {
+        end.z = (float)(end.z + delta);
+        delta = end.z - start.z;
+    }
+    if(delta == 0.0) return 0.0;
     blocked = terrain_body_sweep(snapshot, start, end, height, &obstruction);
     if(blocked < 0) return 0.0;
 
@@ -503,14 +542,24 @@ static double terrain_move_axis(entity *e, const s_meshmap_query *snapshot,
 void meshmap_entity_move(entity *e, float *move_x, float *move_z)
 {
     s_meshmap_query snapshot;
-    float original_x, original_z;
+    float original_x, original_z, requested_x, requested_z;
     if(!move_x || !move_z || !terrain_enabled(e)) return;
     terrain_refresh_drop(e);
     snapshot = terrain_query(e);
     original_x = e->position.x;
     original_z = e->position.z;
+    requested_x = *move_x;
+    requested_z = *move_z;
     *move_x = (float)terrain_move_axis(e, &snapshot, MESHMAP_AXIS_X, *move_x);
     *move_z = (float)terrain_move_axis(e, &snapshot, MESHMAP_AXIS_Z, *move_z);
+    /* Legacy trymove compares the accepted delta to its exact request when
+     * reporting blocked movement. Float coordinate rounding is not a wall:
+     * retain that request when it reaches the same stored endpoint. Partial
+     * moves still report the delta to their actual stored position. */
+    *move_x = e->position.x == (float)(original_x + requested_x)
+        ? requested_x : e->position.x - original_x;
+    *move_z = e->position.z == (float)(original_z + requested_z)
+        ? requested_z : e->position.z - original_z;
     /* Existing engine movement applies the accepted X/Z deltas and emits its
      * normal movement events. Any permitted step/ramp Y adjustment stays. */
     e->position.x = original_x;

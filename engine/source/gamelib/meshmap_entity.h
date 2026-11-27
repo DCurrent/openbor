@@ -36,6 +36,7 @@ typedef struct s_meshmap_entity
 void meshmap_entity_initialize(struct entity *entity);
 int meshmap_entity_drop(struct entity *entity);
 void meshmap_entity_adjust_base(struct entity *entity, float legacy_base);
+void meshmap_entity_land(struct entity *entity);
 float meshmap_entity_vertical(struct entity *entity, float destination_y);
 void meshmap_entity_move(struct entity *entity, float *move_x, float *move_z);
 int meshmap_entity_test_move(const struct entity *entity,

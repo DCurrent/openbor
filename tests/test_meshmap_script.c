@@ -387,6 +387,65 @@ static void test_entity_and_draw(void)
     assert(draw_calls == 2);
 }
 
+/* World probes are checked against an analytic plane in all three map
+ * orientations. Their optional coordinates are world positions, not image
+ * indices; holes remain distinct from a genuine world-zero surface. */
+static void test_world_surface_properties(void)
+{
+    const uint16_t pixels[4] = {1, 65535, 1, 65535};
+    s_meshmap *map = meshmap_create(level->meshmaps, 62);
+    s_meshmap_config config;
+    const int properties[3] = {MESHMAP_PROPERTY_SURFACE_X,
+        MESHMAP_PROPERTY_SURFACE_Y, MESHMAP_PROPERTY_SURFACE_Z};
+    const double expected[3] = {97.5, 17.5, 297.5};
+    assert(map);
+    meshmap_config_default(&config);
+    config.origin = (s_meshmap_vec3){100, 20, 300};
+    config.min_height = -10;
+    config.max_height = 10;
+    config.spacing_u = 4;
+    config.spacing_v = 8;
+    assert(meshmap_set_geometry(map, 2, 2, pixels, "analytic plane"));
+    for(unsigned axis = 0; axis < 3; ++axis)
+    {
+        config.axis = (e_meshmap_axis)axis;
+        assert(meshmap_configure(map, &config));
+        map_arguments(62, properties[axis]);
+        decimal(3, 101.5); decimal(4, 18); decimal(5, 301.5);
+        expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+        assert(returned.vt == VT_DECIMAL && fabs(returned.dblVal - expected[axis]) < 1e-10);
+    }
+    config.axis = MESHMAP_AXIS_Y;
+    assert(meshmap_configure(map, &config));
+    integer(2, MESHMAP_PROPERTY_SURFACE_NORMAL_X);
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(fabs(returned.dblVal + 5 / sqrt(26)) < 1e-10);
+    integer(2, MESHMAP_PROPERTY_SURFACE_NORMAL_Y);
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(fabs(returned.dblVal - 1 / sqrt(26)) < 1e-10);
+    integer(2, MESHMAP_PROPERTY_SURFACE_PRESENT);
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(returned.vt == VT_INTEGER && returned.lVal == 1);
+    assert(meshmap_set_active(level->meshmaps, 62, 0));
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(returned.lVal == 1); /* Resource inspection is independent of admission. */
+    assert(meshmap_set_sample(map, 0, 0, 0));
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(returned.lVal == 0);
+    integer(2, MESHMAP_PROPERTY_SURFACE_Y);
+    expect(1, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    assert(returned.vt == VT_EMPTY);
+    expect(0, openbor_get_meshmap_property(argument_pointers, &result, 5));
+    decimal(3, INFINITY);
+    expect(0, openbor_get_meshmap_property(argument_pointers, &result, 6));
+    integer(3, 1);
+    expect(0, openbor_set_meshmap_property(argument_pointers, &result, 4));
+    assert(meshmap_remove(level->meshmaps, 62));
+    check_constant("MESHMAP_PROPERTY_SURFACE_PRESENT", MESHMAP_PROPERTY_SURFACE_PRESENT);
+    check_constant("MESHMAP_PROPERTY_SURFACE_Y", MESHMAP_PROPERTY_SURFACE_Y);
+    check_constant("MESHMAP_PROPERTY_SURFACE_NORMAL_X", MESHMAP_PROPERTY_SURFACE_NORMAL_X);
+}
+
 int main(int argc, char **argv)
 {
     s_level stage = {0};
@@ -396,6 +455,7 @@ int main(int argc, char **argv)
     test_geometry_and_artwork(argv[1]);
     test_native_commands(argv[1]);
     test_entity_and_draw();
+    test_world_surface_properties();
     bank_arguments(0, 0, MESHMAP_BANK_PROPERTY_EXISTS);
     integer(4, 0);
     expect(1, openbor_set_meshmap_bank_property(argument_pointers, &result, 5));
