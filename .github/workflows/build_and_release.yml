@@ -39,7 +39,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install build-essential git cmake zstd \
+        sudo apt-get install build-essential git cmake zstd pkg-config python3 zlib1g-dev \
           libsdl2-dev libvorbis-dev libpng-dev libvpx-dev libgl1-mesa-dri libegl1 libgles-dev
     - name: Setup Macos dependencies
       if: runner.os == 'macOS'
@@ -64,6 +64,21 @@ jobs:
         LIBGL_ALWAYS_SOFTWARE: '1'
         OPENBOR_REQUIRE_GPU_TESTS: '1'
       run: bash tests/run_gpu_tests.sh
+    - name: Native meshmap regression tests
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        SDL_VIDEODRIVER: offscreen
+        LIBGL_ALWAYS_SOFTWARE: '1'
+        OPENBOR_REQUIRE_GPU_TESTS: '1'
+      run: |
+        bash tests/run_meshmap_tests.sh
+        bash tests/run_meshmap_image_tests.sh
+        bash tests/run_meshmap_entity_tests.sh
+        bash tests/run_meshmap_native_hook_tests.sh
+        bash tests/run_meshmap_script_tests.sh
+        bash tests/run_meshmap_level_command_tests.sh
+        bash tests/run_meshmap_render_tests.sh
     - name: Build
       run: |
         ${{ matrix.platform.source_cmd }}
